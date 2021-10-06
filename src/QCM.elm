@@ -3,7 +3,9 @@ module QCM exposing (..)
 import Browser
 import Parser as P exposing (Parser, (|.), (|=), succeed, symbol, float, spaces)
 import List as L
+import ParserMaths as PM
 import String as S
+import Fractions as F exposing (Frac)
 import Html exposing (Html, Attribute, button, div, input, text, p)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
@@ -81,6 +83,17 @@ view model =
     <| input [ placeholder "Format de la question", value model.question, onInput Question ] []
     :: button [ onClick GenererQuestion ] [ text "Générer les questions" ]
     :: ( p [] <| L.map text model.questions )
+    :: [ text
+      (
+        let expressionParseePotentielle = PM.parseMaths "3+(2/3)^-2/3"
+        in
+        case expressionParseePotentielle of
+          Err erreur -> "L'expression est mal formée."
+          Ok expressionParsee ->
+            case Maybe.map F.teX <| PM.evaluer <| expressionParsee of
+              Just a -> a
+              Nothing -> "Les puissances non-entières ne sont pas acceptées."
+      ) ]
 
     {-
     , [ dl05 [0, 4, 2] 5 ]
@@ -109,8 +122,8 @@ view model =
     , List.map dl04 ( mix [ [-5,-3,-1,1,3,5], [-6,-4,-2,2,4,6], [0], [-9,-8,-7,-6,-5,-4,-3,-2,-1] ] )  --324 possibilités Ok
     , List.concat <| List.map ( mapTwist [3,5,9] ) ( List.map dl05 ( mix [ [0], [2,4,7,8,11,13,16,17], [2,4,7,8,11,13,16,17] ] ) )  -- 192 possibilités OK
     , d3 -- 512 possibilités OK
-    -}
     :: ( List.map primitPoly01 <| mix [ List.range -3 -2 ++ List.range 2 3, List.range -3 -2 ++ List.range 2 3, List.range -3 -2 ++ List.range 2 3, List.range -3 -2 ++ List.range 2 3 ] ) -- 256 possibilités OK
+    -}
 
 
 {-
@@ -161,10 +174,9 @@ texteSansVariables
 expressionVariable : Parser TexteVariable
 expressionVariable
   = succeed Variable
-  |. symbol "#("
-  |= (P.getChompedString <|
-    succeed ()
-    |. P.chompUntil "#")
+  |. symbol "#"
+  |= P.getChompedString ( P.chompUntil "#" )
+  |. symbol "#"
 
 {--
 testDeChomp
