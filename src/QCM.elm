@@ -203,12 +203,27 @@ remplacer : List Aremplacer -> List TexteVariable -> List String
 remplacer ars tvs =
   case tvs of
     [] -> []
-    Texte txt :: tvss -> L.map S.append txt <| remplacer ars tvss
-    Variable var :: tvss ->
+    Texte chaine :: tvss -> L.map S.append chaine <| remplacer ars tvss
+    Variable chaine :: tvss -> mix ([chaine]) (remplacer ars tvss)
 
 
 
-remplacerDansLaListeDeTexteVariable 
+remplacerToutDansLesChaines List Aremplacer -> List String -> List String
+remplacerToutDansLesChaines ars chaines =
+  case ars of
+    [] -> chaines
+    ar :: arss ->
+      (L.concat <| L.map (remplacerLaVariableParLesValeursDansLaChaine ar.var ar.val) chaines)
+      :: 
+      {--
+      case chaines of
+        chaine :: chainess ->
+          remplacerLaVariableParLesValeursDansLaChaine ar.var ar.val chaine
+          :: 
+
+      remplacerDansLeTexteVariable ar t
+      |>
+      --}
 
 remplacerDansLeTexteVariable : Aremplacer -> TexteVariable -> List String
 remplacerDansLeTexteVariable a t =
@@ -216,8 +231,8 @@ remplacerDansLeTexteVariable a t =
     Texte tt -> Texte tt
     Variable tt -> remplacerLaVariableParLesValeursDansLaChaine a.var a.vals tt
 
-remplacerLaVariableDansLaChaine : String -> List String -> String -> List String
-remplacerLaVariableDansLaChaine var vals chaine =
+remplacerLaVariableParLesValeursDansLaChaine : String -> List String -> String -> List String
+remplacerLaVariableParLesValeursDansLaChaine var vals chaine =
   case vals of
     [] -> []
     val :: valss ->
