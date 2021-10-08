@@ -149,19 +149,6 @@ voirTexteVariable txtvar
     Texte txt -> txt
     Variable var -> var
 
-questionOld : Parser Macro
-questionOld =
-    succeed (\x -> x :: [])
-    |= P.oneOf [ expressionVariable , texteSansVariables ]
-    {--
-    |= succeed Texte
-      |= (
-        P.getChompedString
-        <| succeed ()
-        |. P.chompUntilEndOr "\n"
-      )
-    --}
-
 texteSansVariables : Parser TexteVariable
 texteSansVariables
   = succeed Texte
@@ -178,24 +165,6 @@ expressionVariable
   |= P.getChompedString ( P.chompUntil "#" )
   |. symbol "#"
 
-{--
-testDeChomp
-  = succeed ( (::) )
-    (
-      P.getChompedString
-      <| succeed ()
-      |. P.chompUntil "truc"
-    )
-    |= P.int
---}
-
-parserBis : Parser Macro
-parserBis
-  = succeed (\x y-> Texte x :: y :: [])
-  |= P.getChompedString ( P.chompWhile ( (/=) '#' ) )
-  |= P.oneOf [ expressionVariable , texteSansVariables ]
-  --|= question
-
 questions : Parser Macro
 questions =
   P.loop [] questionsBis
@@ -209,14 +178,36 @@ questionsBis ls =
         |> P.map (\_ -> P.Done (List.reverse ls))
     ]
 
+{-
+        ███    ███ ██ ██   ██ ███████ ██    ██ ██████  
+        ████  ████ ██  ██ ██  ██      ██    ██ ██   ██ 
+        ██ ████ ██ ██   ███   █████   ██    ██ ██████  
+        ██  ██  ██ ██  ██ ██  ██      ██    ██ ██   ██ 
+        ██      ██ ██ ██   ██ ███████  ██████  ██   ██ 
+-}
+
+-- mix [ [1,2] , [3,4] , [5,6] ] == [ [1,3,5] , [1,3,6] , [1,4,5] , [1,4,6] , [2,3,5] , ... ]
+mix lls =
+  case lls of
+    [] -> []
+    [] :: llss -> []
+    l :: [] -> List.map List.singleton l
+    (a :: ls) :: llss -> ( List.map ( (::) a ) ( mix llss ) ) ++ mix ( ls :: llss )
 
 
 
 
+{-
 
+        ███████ ██   ██ ██████  ██████  ███████ ███████ ███████ ██  ██████  ███    ██ ███████ 
+        ██       ██ ██  ██   ██ ██   ██ ██      ██      ██      ██ ██    ██ ████   ██ ██      
+        █████     ███   ██████  ██████  █████   ███████ ███████ ██ ██    ██ ██ ██  ██ ███████ 
+        ██       ██ ██  ██      ██   ██ ██           ██      ██ ██ ██    ██ ██  ██ ██      ██ 
+        ███████ ██   ██ ██      ██   ██ ███████ ███████ ███████ ██  ██████  ██   ████ ███████ 
+                                                                                              
+                                                                                              
 
-
-
+-}
 
 type Expr num
   = Const num
@@ -231,6 +222,74 @@ type Expr num
   | Sum ( Expr num ) ( Expr num )
   | Diff ( Expr num ) ( Expr num )
   | Power ( Expr num ) num
+
+monome a n =
+  if a == 0 then ""
+  else if n == 0 then ( String.fromInt a )
+  else if (n,a) == (1,1) then "x"
+  else if (n,a) == (1,-1) then "-x"
+  else if n == 1 then ( String.fromInt a ) ++ "x"
+  else if a == 1 then "x^{" ++ ( String.fromInt n ) ++ "}"
+  else if a == -1 then "-x^{" ++ ( String.fromInt n ) ++ "}"
+  else ( String.fromInt a ) ++ "x^{" ++ ( String.fromInt n ) ++ "}"
+
+poly a_ks =
+  if a_ks == [] then "0"
+  else polyBis a_ks ( List.length a_ks - 1 )
+
+polyBis a_ks n =
+  case a_ks of
+    [] -> ""
+    a_n :: a_kss ->
+      if a_n == 0 then polyBis a_kss ( n - 1 )
+      else ( monome a_n n ) ++ ( polyGen a_kss ( n - 1 ) )
+
+polyGen a_ks n =
+  case a_ks of
+    [] -> ""
+    a_i :: a_is ->
+      if a_i <= 0 then ( monome a_i n ) ++ ( polyGen a_is ( n - 1 ) )
+      else "+" ++ ( monome a_i n ) ++ ( polyGen a_is ( n - 1 ) )
+
+polyD a_ks = polyDbis a_ks ( List.length a_ks - 1 )
+
+polyDbis a_ks n =
+  case a_ks of
+    [] -> []
+    a_0 :: [] -> []
+    a_k :: a_kss -> ( n*a_k ) :: polyDbis a_kss ( n - 1 )
+
+dl a_ks =
+  if a_ks == [] then "0"
+  else dlBis a_ks 0
+
+dlBis a_ks n =
+  case a_ks of
+    [] -> ""
+    premierCoef :: suite ->
+      if premierCoef == 0 then dlBis suite ( n + 1 )
+      else ( monome premierCoef n ) ++ ( dlGen suite ( n + 1 ) )
+
+dlGen a_ks n =
+  case a_ks of
+    [] -> ""
+    a_i :: a_is ->
+      if a_i <= 0 then ( monome a_i n ) ++ ( dlGen a_is ( n + 1 ) )
+      else "+" ++ ( monome a_i n ) ++ ( dlGen a_is ( n + 1 ) )
+
+
+{-
+
+         ██████   ██████ ███    ███ 
+        ██    ██ ██      ████  ████ 
+        ██    ██ ██      ██ ████ ██ 
+        ██ ▄▄ ██ ██      ██  ██  ██ 
+         ██████   ██████ ██      ██ 
+            ▀▀                      
+                                    
+
+-}
+
 
 
 mathTeX a = "$" ++ a ++ "$"
@@ -279,51 +338,7 @@ derivExp01 a b c =
 
 -- Des DL
 
-monome a n =
-  if a == 0 then ""
-  else if n == 0 then ( String.fromInt a )
-  else if (n,a) == (1,1) then "x"
-  else if (n,a) == (1,-1) then "-x"
-  else if n == 1 then ( String.fromInt a ) ++ "x"
-  else if a == 1 then "x^{" ++ ( String.fromInt n ) ++ "}"
-  else if a == -1 then "-x^{" ++ ( String.fromInt n ) ++ "}"
-  else ( String.fromInt a ) ++ "x^{" ++ ( String.fromInt n ) ++ "}"
 
-poly a_ks =
-  if a_ks == [] then "0"
-  else polyBis a_ks ( List.length a_ks - 1 )
-
-polyBis a_ks n =
-  case a_ks of
-    [] -> ""
-    a_n :: a_kss ->
-      if a_n == 0 then polyBis a_kss ( n - 1 )
-      else ( monome a_n n ) ++ ( polyGen a_kss ( n - 1 ) )
-
-polyGen a_ks n =
-  case a_ks of
-    [] -> ""
-    a_i :: a_is ->
-      if a_i <= 0 then ( monome a_i n ) ++ ( polyGen a_is ( n - 1 ) )
-      else "+" ++ ( monome a_i n ) ++ ( polyGen a_is ( n - 1 ) )
-
-dl a_ks =
-  if a_ks == [] then "0"
-  else dlBis a_ks 0
-
-dlBis a_ks n =
-  case a_ks of
-    [] -> ""
-    premierCoef :: suite ->
-      if premierCoef == 0 then dlBis suite ( n + 1 )
-      else ( monome premierCoef n ) ++ ( dlGen suite ( n + 1 ) )
-
-dlGen a_ks n =
-  case a_ks of
-    [] -> ""
-    a_i :: a_is ->
-      if a_i <= 0 then ( monome a_i n ) ++ ( dlGen a_is ( n + 1 ) )
-      else "+" ++ ( monome a_i n ) ++ ( dlGen a_is ( n + 1 ) )
 
 dl01 a_k =
   let
@@ -477,13 +492,6 @@ d2 = List.concat ( List.map (mapTwist entiers) d1 )
 
 d3 = List.concat ( List.map (mapTwist entiers) d2 )
 
-mix lls =
-  case lls of
-    [] -> []
-    [] :: llss -> []
-    l :: [] -> List.map List.singleton l
-    (a :: ls) :: llss -> ( List.map ( (::) a ) ( mix llss ) ) ++ mix ( ls :: llss )
-
 derivPoly01 param = -- on donne a pair et positif, les deux racines x_1 < x_2, d, et m > x_2
   case param of
     [] -> div [] []
@@ -552,13 +560,6 @@ derivPoly02Bis a x_1 x_2 d m =
     , p [] [ text ("==== Dérivée, Polynômes, derivPoly02") ]
     ]
 
-polyD a_ks = polyDbis a_ks ( List.length a_ks - 1 )
-
-polyDbis a_ks n =
-  case a_ks of
-    [] -> []
-    a_0 :: [] -> []
-    a_k :: a_kss -> ( n*a_k ) :: polyDbis a_kss ( n - 1 ) 
 
 equaDiff01 a = -- a négatif
   let
