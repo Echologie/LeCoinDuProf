@@ -194,6 +194,35 @@ mix lls =
     l :: [] -> List.map List.singleton l
     (a :: ls) :: llss -> ( List.map ( (::) a ) ( mix llss ) ) ++ mix ( ls :: llss )
 
+type alias Aremplacer =
+  { var : String
+  , vals : List String
+  }
+
+remplacer : List Aremplacer -> List TexteVariable -> List String
+remplacer ars tvs =
+  case tvs of
+    [] -> []
+    Texte txt :: tvss -> L.map S.append txt <| remplacer ars tvss
+    Variable var :: tvss ->
+
+
+
+remplacerDansLaListeDeTexteVariable 
+
+remplacerDansLeTexteVariable : Aremplacer -> TexteVariable -> List String
+remplacerDansLeTexteVariable a t =
+  case t of
+    Texte tt -> Texte tt
+    Variable tt -> remplacerLaVariableParLesValeursDansLaChaine a.var a.vals tt
+
+remplacerLaVariableDansLaChaine : String -> List String -> String -> List String
+remplacerLaVariableDansLaChaine var vals chaine =
+  case vals of
+    [] -> []
+    val :: valss ->
+      S.replace var val chaine
+      :: remplacerLaVariableParLesValeursDansLaChaine var valss chaine
 
 
 
