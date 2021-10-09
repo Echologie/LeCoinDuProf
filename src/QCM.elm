@@ -83,7 +83,7 @@ view model =
     <| input [ placeholder "Format de la question", value model.question, onInput Question ] []
     :: button [ onClick GenererQuestion ] [ text "Générer les questions" ]
     :: ( p [] <| L.map text model.questions )
-    :: [ text
+    :: text
       (
         let expressionParseePotentielle = PM.parseMaths "3+(2/3)^-2/3"
         in
@@ -93,7 +93,14 @@ view model =
             case Maybe.map F.teX <| PM.evaluer <| expressionParsee of
               Just a -> a
               Nothing -> "Les puissances non-entières ne sont pas acceptées."
-      ) ]
+      )
+      :: L.map text
+        ( remplacer
+          [ Aremplacer "a" ["1","2"], Aremplacer "b" ["3","4"] ]
+          [ Texte "Calculer $", Variable "a" , Texte "+" , Variable "a+b" , Texte "$."]
+        )
+      ++ L.map text (remplacer [] [Texte "chose"])
+      ++ L.map text (remplacer [] [Texte "chose"])
 
     {-
     , [ dl05 [0, 4, 2] 5 ]
@@ -202,19 +209,25 @@ type alias Aremplacer =
 remplacer : List Aremplacer -> List TexteVariable -> List String
 remplacer ars tvs =
   case tvs of
-    [] -> []
-    Texte chaine :: tvss -> L.map S.append chaine <| remplacer ars tvss
-    Variable chaine :: tvss -> mix ([chaine]) (remplacer ars tvss)
+    [] -> [""]
+    Texte chaine :: tvss -> L.map (S.append chaine) <| remplacer ars tvss
+    Variable chaine :: tvss ->
+      mix
+        [ remplacerToutDansLesChaines ars [chaine]
+        , remplacer ars tvss
+        ]
+        |> L.map S.concat 
 
 
 
-remplacerToutDansLesChaines List Aremplacer -> List String -> List String
+remplacerToutDansLesChaines : List Aremplacer -> List String -> List String
 remplacerToutDansLesChaines ars chaines =
   case ars of
     [] -> chaines
     ar :: arss ->
-      (L.concat <| L.map (remplacerLaVariableParLesValeursDansLaChaine ar.var ar.val) chaines)
-      :: 
+      L.map (remplacerLaVariableParLesValeursDansLaChaine ar.var ar.vals) chaines
+      |> L.concat
+      |> remplacerToutDansLesChaines arss 
       {--
       case chaines of
         chaine :: chainess ->
@@ -224,12 +237,13 @@ remplacerToutDansLesChaines ars chaines =
       remplacerDansLeTexteVariable ar t
       |>
       --}
-
+{--
 remplacerDansLeTexteVariable : Aremplacer -> TexteVariable -> List String
 remplacerDansLeTexteVariable a t =
   case t of
     Texte tt -> Texte tt
     Variable tt -> remplacerLaVariableParLesValeursDansLaChaine a.var a.vals tt
+--}
 
 remplacerLaVariableParLesValeursDansLaChaine : String -> List String -> String -> List String
 remplacerLaVariableParLesValeursDansLaChaine var vals chaine =
