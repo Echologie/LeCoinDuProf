@@ -154,7 +154,15 @@ voirMacro macro
 voirTexteVariable txtvar
   = case txtvar of
     Texte txt -> txt
-    Variable var -> var
+    Variable var ->
+      let expressionParseePotentielle = PM.parseMaths var
+      in
+      case expressionParseePotentielle of
+        Err erreur -> "L'expression est mal formée."
+        Ok expressionParsee ->
+          case Maybe.map F.teX <| PM.evaluer <| expressionParsee of
+            Just a -> a
+            Nothing -> "Les puissances non-entières ne sont pas acceptées."
 
 texteSansVariables : Parser TexteVariable
 texteSansVariables
@@ -206,7 +214,21 @@ type alias Aremplacer =
   , vals : List String
   }
 
-remplacer : List Aremplacer -> List TexteVariable -> List String
+remplacer : List Aremplacer -> Macro -> List String
+remplacer ars macro =
+  remplacerBis ars [macro]
+  |> L.map voirMacro
+
+remplacerBis : List Aremplacer -> List Macro -> List Macro
+remplacerBis ars macros =
+  case ars of
+    [] -> macros
+    ar :: arss ->
+      L.map (remplacerDansLaMacro ar) macros
+      |> L.concat
+      |> remplacerBis arss
+
+{--
 remplacer ars tvs =
   case tvs of
     [] -> [""]
@@ -217,9 +239,9 @@ remplacer ars tvs =
         , remplacer ars tvss
         ]
         |> L.map S.concat 
+--}
 
-
-
+{--
 remplacerToutDansLesChaines : List Aremplacer -> List String -> List String
 remplacerToutDansLesChaines ars chaines =
   case ars of
@@ -237,6 +259,24 @@ remplacerToutDansLesChaines ars chaines =
       remplacerDansLeTexteVariable ar t
       |>
       --}
+--}
+
+remplacerDansLaMacro : Aremplacer -> Macro -> List Macro
+remplacerDansLaMacro ar macro =
+  let
+    f val = remplacerLaVariableParLaValeurDansLaMacro ar.var val macro
+  in  
+  L.map f ar.vals 
+
+remplacerLaVariableParLaValeurDansLaMacro : String -> String -> Macro -> Macro
+remplacerLaVariableParLaValeurDansLaMacro var val macro =
+  L.map (remplacerLaVariableParLaValeurDansLeTexteVariable var val) macro
+
+remplacerLaVariableParLaValeurDansLeTexteVariable var val tv =
+  case tv of
+    Texte chaine -> Texte chaine
+    Variable chaine -> Variable <| S.replace var val chaine
+
 {--
 remplacerDansLeTexteVariable : Aremplacer -> TexteVariable -> List String
 remplacerDansLeTexteVariable a t =
@@ -245,6 +285,7 @@ remplacerDansLeTexteVariable a t =
     Variable tt -> remplacerLaVariableParLesValeursDansLaChaine a.var a.vals tt
 --}
 
+{--
 remplacerLaVariableParLesValeursDansLaChaine : String -> List String -> String -> List String
 remplacerLaVariableParLesValeursDansLaChaine var vals chaine =
   case vals of
@@ -252,7 +293,7 @@ remplacerLaVariableParLesValeursDansLaChaine var vals chaine =
     val :: valss ->
       S.replace var val chaine
       :: remplacerLaVariableParLesValeursDansLaChaine var valss chaine
-
+--}
 
 
 {-
