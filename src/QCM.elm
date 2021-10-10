@@ -3,10 +3,11 @@ module QCM exposing (..)
 import Browser
 import Parser as P exposing (Parser, (|.), (|=), succeed, symbol, float, spaces)
 import List as L
+import Set
 import ParserMaths as PM
 import String as S
 import Fractions as F exposing (Frac)
-import Html exposing (Html, Attribute, button, div, input, text, p)
+import Html exposing (Html, Attribute, button, div, textarea, input, text, p)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 
@@ -31,14 +32,16 @@ main =
 -}
 
 type alias Model =
-  { question : String
+  { variables : String
+  , question : String
   , questions : List String
   }
 
 
 init : Model
 init =
-  { question = ""
+  { variables = ""
+  , question = ""
   , questions = [ "" ]
   }
 
@@ -53,6 +56,7 @@ init =
 
 type Msg
   = Question String
+  | Variables String
   | GenererQuestion
 
 update : Msg -> Model -> Model
@@ -60,13 +64,10 @@ update msg model =
   case msg of
     Question nouvelleQuestion ->
       { model | question = nouvelleQuestion }
+    Variables nouvellesVariables ->
+      { model | variables = nouvellesVariables }
     GenererQuestion ->
-      { model | questions = [
-        case P.run questions model.question of
-          Ok macro -> voirMacro macro
-          Err _ -> "Y a un truc qui cloche !"
-      ] }
-
+      { model | questions = remplacer model.variables model.question }
 
 {-
 
@@ -80,9 +81,11 @@ update msg model =
 view : Model -> Html Msg
 view model =
   div []
-    <| input [ placeholder "Format de la question", value model.question, onInput Question ] []
+    <| textarea [ placeholder "Liste des variables", value model.variables, onInput Variables ] []
+    :: textarea [ placeholder "Format de la question", value model.question, onInput Question ] []
     :: button [ onClick GenererQuestion ] [ text "Générer les questions" ]
-    :: ( p [] <| L.map text model.questions )
+    :: [ ( p [] <| L.map (\q -> p [] [text q]) model.questions ) ]
+    {--
     :: text
       (
         let expressionParseePotentielle = PM.parseMaths "3+(2/3)^-2/3"
@@ -101,6 +104,7 @@ view model =
         )
       ++ L.map text (remplacer [] [Texte "chose"])
       ++ L.map text (remplacer [] [Texte "chose"])
+      --}
 
     {-
     , [ dl05 [0, 4, 2] 5 ]
@@ -130,15 +134,21 @@ view model =
     , List.concat <| List.map ( mapTwist [3,5,9] ) ( List.map dl05 ( mix [ [0], [2,4,7,8,11,13,16,17], [2,4,7,8,11,13,16,17] ] ) )  -- 192 possibilités OK
     , d3 -- 512 possibilités OK
     :: ( List.map primitPoly01 <| mix [ List.range -3 -2 ++ List.range 2 3, List.range -3 -2 ++ List.range 2 3, List.range -3 -2 ++ List.range 2 3, List.range -3 -2 ++ List.range 2 3 ] ) -- 256 possibilités OK
+-- mix [ [1,2] , [3,4] , [5,6] ] == [ [1,3,5] , [1,3,6] , [1,4,5] , [1,4,6] , [2,3,5] , ... ]
+mix lls =
+  case lls of
+    [] -> []
+    [] :: llss -> []
+    l :: [] -> List.map List.singleton l
+    (a :: ls) :: llss -> ( List.map ( (::) a ) ( mix llss ) ) ++ mix ( ls :: llss )
     -}
 
-
 {-
-        ██████   █████  ██████  ███████ ███████ ██████  
-        ██   ██ ██   ██ ██   ██ ██      ██      ██   ██ 
-        ██████  ███████ ██████  ███████ █████   ██████  
-        ██      ██   ██ ██   ██      ██ ██      ██   ██ 
-        ██      ██   ██ ██   ██ ███████ ███████ ██   ██ 
+        ██████   █████  ██████  ███████ ███████ ██████       ██████   ██████ ███    ███ 
+        ██   ██ ██   ██ ██   ██ ██      ██      ██   ██     ██    ██ ██      ████  ████ 
+        ██████  ███████ ██████  ███████ █████   ██████      ██    ██ ██      ██ ████ ██ 
+        ██      ██   ██ ██   ██      ██ ██      ██   ██     ██ ▄▄ ██ ██      ██  ██  ██ 
+        ██      ██   ██ ██   ██ ███████ ███████ ██   ██      ██████   ██████ ██      ██ 
 -}
 
 type TexteVariable
@@ -180,6 +190,11 @@ expressionVariable
   |= P.getChompedString ( P.chompUntil "#" )
   |. symbol "#"
 
+parserQuestion question =
+  case P.run questions question of
+    Ok macro -> macro
+    Err _ -> []
+
 questions : Parser Macro
 questions =
   P.loop [] questionsBis
@@ -193,6 +208,49 @@ questionsBis ls =
         |> P.map (\_ -> P.Done (List.reverse ls))
     ]
 
+
+{-
+        ██████   █████  ██████  ███████ ███████ ██████      ██    ██  █████  ██████  
+        ██   ██ ██   ██ ██   ██ ██      ██      ██   ██     ██    ██ ██   ██ ██   ██ 
+        ██████  ███████ ██████  ███████ █████   ██████      ██    ██ ███████ ██████  
+        ██      ██   ██ ██   ██      ██ ██      ██   ██      ██  ██  ██   ██ ██   ██ 
+        ██      ██   ██ ██   ██ ███████ ███████ ██   ██       ████   ██   ██ ██   ██ 
+-}
+
+type alias Aremplacer =
+  { var : String
+  , vals : List String
+  }
+
+parserAremplacer variables =
+  case P.run aRemplacer variables of
+          Ok ars -> ars
+          Err _ -> Aremplacer "" []
+
+aRemplacer : Parser Aremplacer
+aRemplacer =
+  succeed Aremplacer
+  |. P.spaces
+  |= P.variable
+    { start = \_ -> True
+    , inner = Char.isAlpha
+    , reserved = Set.fromList []
+    }
+  |. P.spaces
+  |. P.symbol ":"
+  |= P.sequence
+    { start = ""
+    , separator = ","
+    , end = ""
+    , spaces = spaces
+    , item = P.variable
+      { start = \x -> Char.isDigit x || x == '-'
+      , inner = Char.isDigit
+      , reserved = Set.fromList []
+      }
+    , trailing = P.Optional
+    }
+
 {-
         ███    ███ ██ ██   ██ ███████ ██    ██ ██████  
         ████  ████ ██  ██ ██  ██      ██    ██ ██   ██ 
@@ -201,68 +259,33 @@ questionsBis ls =
         ██      ██ ██ ██   ██ ███████  ██████  ██   ██ 
 -}
 
--- mix [ [1,2] , [3,4] , [5,6] ] == [ [1,3,5] , [1,3,6] , [1,4,5] , [1,4,6] , [2,3,5] , ... ]
-mix lls =
-  case lls of
-    [] -> []
-    [] :: llss -> []
-    l :: [] -> List.map List.singleton l
-    (a :: ls) :: llss -> ( List.map ( (::) a ) ( mix llss ) ) ++ mix ( ls :: llss )
+remplacer : String -> String -> List String
+remplacer variables question =
+  let
+    ars =
+      S.lines variables
+      |> L.map parserAremplacer
+    macro =
+      parserQuestion question
+  in
+  remplacerLesVariablesDansLaMacro ars macro
 
-type alias Aremplacer =
-  { var : String
-  , vals : List String
-  }
-
-remplacer : List Aremplacer -> Macro -> List String
-remplacer ars macro =
-  remplacerBis ars [macro]
+remplacerLesVariablesDansLaMacro : List Aremplacer -> Macro -> List String
+remplacerLesVariablesDansLaMacro ars macro =
+  remplacerLesVariablesDansLaMacroBis ars [macro]
   |> L.map voirMacro
 
-remplacerBis : List Aremplacer -> List Macro -> List Macro
-remplacerBis ars macros =
+remplacerLesVariablesDansLaMacroBis : List Aremplacer -> List Macro -> List Macro
+remplacerLesVariablesDansLaMacroBis ars macros =
   case ars of
     [] -> macros
     ar :: arss ->
-      L.map (remplacerDansLaMacro ar) macros
+      L.map (remplacerLaVariableDansLaMacro ar) macros
       |> L.concat
-      |> remplacerBis arss
+      |> remplacerLesVariablesDansLaMacroBis arss
 
-{--
-remplacer ars tvs =
-  case tvs of
-    [] -> [""]
-    Texte chaine :: tvss -> L.map (S.append chaine) <| remplacer ars tvss
-    Variable chaine :: tvss ->
-      mix
-        [ remplacerToutDansLesChaines ars [chaine]
-        , remplacer ars tvss
-        ]
-        |> L.map S.concat 
---}
-
-{--
-remplacerToutDansLesChaines : List Aremplacer -> List String -> List String
-remplacerToutDansLesChaines ars chaines =
-  case ars of
-    [] -> chaines
-    ar :: arss ->
-      L.map (remplacerLaVariableParLesValeursDansLaChaine ar.var ar.vals) chaines
-      |> L.concat
-      |> remplacerToutDansLesChaines arss 
-      {--
-      case chaines of
-        chaine :: chainess ->
-          remplacerLaVariableParLesValeursDansLaChaine ar.var ar.val chaine
-          :: 
-
-      remplacerDansLeTexteVariable ar t
-      |>
-      --}
---}
-
-remplacerDansLaMacro : Aremplacer -> Macro -> List Macro
-remplacerDansLaMacro ar macro =
+remplacerLaVariableDansLaMacro : Aremplacer -> Macro -> List Macro
+remplacerLaVariableDansLaMacro ar macro =
   let
     f val = remplacerLaVariableParLaValeurDansLaMacro ar.var val macro
   in  
@@ -276,25 +299,6 @@ remplacerLaVariableParLaValeurDansLeTexteVariable var val tv =
   case tv of
     Texte chaine -> Texte chaine
     Variable chaine -> Variable <| S.replace var val chaine
-
-{--
-remplacerDansLeTexteVariable : Aremplacer -> TexteVariable -> List String
-remplacerDansLeTexteVariable a t =
-  case t of
-    Texte tt -> Texte tt
-    Variable tt -> remplacerLaVariableParLesValeursDansLaChaine a.var a.vals tt
---}
-
-{--
-remplacerLaVariableParLesValeursDansLaChaine : String -> List String -> String -> List String
-remplacerLaVariableParLesValeursDansLaChaine var vals chaine =
-  case vals of
-    [] -> []
-    val :: valss ->
-      S.replace var val chaine
-      :: remplacerLaVariableParLesValeursDansLaChaine var valss chaine
---}
-
 
 {-
 
