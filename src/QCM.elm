@@ -7,7 +7,7 @@ import Set
 import ParserMaths as PM
 import String as S
 import Fractions as F exposing (Frac)
-import Html exposing (Html, Attribute, button, div, textarea, input, text, p)
+import Html exposing (Html, Attribute, button, div, textarea, input, text, p, iframe)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 
@@ -244,8 +244,8 @@ aRemplacer =
     , end = ""
     , spaces = spaces
     , item = P.variable
-      { start = \x -> Char.isDigit x || x == '-'
-      , inner = Char.isDigit
+      { start = (/=) ','
+      , inner = (/=) ','
       , reserved = Set.fromList []
       }
     , trailing = P.Optional
@@ -311,6 +311,9 @@ remplacerLaVariableParLaValeurDansLeTexteVariable var val tv =
                                                                                               
 
 -}
+
+type Nombre
+  = 
 
 type Expr num
   = Const num

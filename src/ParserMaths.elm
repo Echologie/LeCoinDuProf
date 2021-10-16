@@ -2,6 +2,7 @@ module ParserMaths exposing (parseMaths, evaluer, montrerErreurs)
 
 import Fractions as F
 import Maybe as M
+import Set
 import Parser exposing (..)
 
 montrerErreurs : String -> List DeadEnd -> String
@@ -61,6 +62,9 @@ evaluer expression =
         Entier n ->
             Just <| F.Frac n 1
 
+        Poly a_i x ->
+            Just <| F.Frac 50 1
+
 
 type Expr
     = Add Expr Expr
@@ -71,6 +75,7 @@ type Expr
     | Neg Expr
     | Entier Int
     | Grouping Expr
+    | Poly (List Expr) String
 
 
 parseMaths : String -> Result (List DeadEnd) Expr
@@ -96,6 +101,10 @@ type Operand
     | Operand Operator Expr
 
 
+{-
+  En quelque sorte, décurryfie une expression binaire
+    binary e_1 (Operand MulOp e_2) == Mul e_1 e_2
+-}
 binary : Expr -> Operand -> Expr
 binary a b =
     case b of
@@ -129,6 +138,7 @@ add =
         |= loop [] addHelper
 
 
+-- 
 foldBinary : Expr -> List Operand -> Expr
 foldBinary left operands =
     List.foldr
@@ -210,6 +220,7 @@ primary =
         ]
     |= oneOf
         [ grouping
+        , poly
         , nombre
         ]
 
@@ -223,6 +234,26 @@ nombre =
             , octal = Nothing
             , binary = Nothing
             , float = Nothing
+            }
+
+poly : Parser Expr
+poly =
+    succeed Poly
+        |. keyword "Poly"
+        |. spaces
+        |= sequence
+            { start = "["
+            , separator = ","
+            , end = "]"
+            , spaces = spaces
+            , item = lazy (\_ -> expr)
+            , trailing = Forbidden
+            }
+        |. spaces
+        |= variable
+            { start = \_ -> True
+            , inner = \_ -> False
+            , reserved = Set.fromList []
             }
 
 
