@@ -1,9 +1,10 @@
-module ParserMaths exposing (parseMaths, evaluer, montrerErreurs)
+module ParserMaths exposing (parseMaths, evaluer, evaluerBis, montrerErreurs, expr)
 
-import Fractions as F
+import Fractions as F exposing (Frac)
 import Maybe as M
 import Set
 import Parser exposing (..)
+
 
 montrerErreurs : String -> List DeadEnd -> String
 montrerErreurs source errs =
@@ -32,6 +33,11 @@ displayExpected err =
         _ ->
             "une expression"
 
+evaluerBis : Expr -> F.Frac
+evaluerBis expression =
+    case evaluer expression of
+        Nothing -> Frac 666 1
+        Just a -> a
 
 evaluer : Expr -> Maybe F.Frac
 evaluer expression =
@@ -65,6 +71,22 @@ evaluer expression =
         Poly a_i x ->
             Just <| F.Frac 50 1
 
+{--
+type Expr
+  = Const Fraction
+  | Var String
+  | Poly (List Fraction) String
+  | Exp Expr
+  | Ln Expr
+  | Sin Expr
+  | Cos Expr
+  | Prod Expr Expr
+  | Div Expr Expr
+  | Sum Expr Expr
+  | Dif Expr Expr
+  | Exp Expr Frac
+  | Opp Expr
+--}
 
 type Expr
     = Add Expr Expr

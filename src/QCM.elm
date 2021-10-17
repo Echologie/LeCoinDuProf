@@ -7,7 +7,7 @@ import Set
 import ParserMaths as PM
 import String as S
 import Fractions as F exposing (Frac)
-import Html exposing (Html, Attribute, button, div, textarea, input, text, p, iframe)
+import Html exposing (Html, Attribute, button, div, textarea, input, p, iframe)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 
@@ -84,6 +84,7 @@ view model =
     <| textarea [ placeholder "Liste des variables", value model.variables, onInput Variables ] []
     :: textarea [ placeholder "Format de la question", value model.question, onInput Question ] []
     :: button [ onClick GenererQuestion ] [ text "Générer les questions" ]
+    :: (text "Le résultat apparaitra\nici")
     :: [ ( p [] <| L.map (\q -> p [] [text q]) model.questions ) ]
     {--
     :: text
@@ -142,6 +143,12 @@ mix lls =
     l :: [] -> List.map List.singleton l
     (a :: ls) :: llss -> ( List.map ( (::) a ) ( mix llss ) ) ++ mix ( ls :: llss )
     -}
+
+text chaine =
+  S.lines chaine
+  |> L.map (p [] << L.singleton << Html.text)
+  |> p []
+
 
 {-
         ██████   █████  ██████  ███████ ███████ ██████       ██████   ██████ ███    ███ 
@@ -229,7 +236,7 @@ parserAremplacer variables =
 
 aRemplacer : Parser Aremplacer
 aRemplacer =
-  succeed Aremplacer
+  succeed ( \x y -> Aremplacer x (L.map (F.teX << PM.evaluerBis) y) )
   |. P.spaces
   |= P.variable
     { start = \_ -> True
@@ -243,11 +250,14 @@ aRemplacer =
     , separator = ","
     , end = ""
     , spaces = spaces
+    , item = PM.expr
+    {--
     , item = P.variable
       { start = (/=) ','
       , inner = (/=) ','
       , reserved = Set.fromList []
       }
+    --}
     , trailing = P.Optional
     }
 
@@ -312,23 +322,6 @@ remplacerLaVariableParLaValeurDansLeTexteVariable var val tv =
 
 -}
 
-type Nombre
-  = 
-
-type Expr num
-  = Const num
-  | Var String
-  | Poly ( List num )
-  | Exp ( Expr num )
-  | Ln ( Expr num )
-  | Sin ( Expr num )
-  | Cos ( Expr num )
-  | Prod ( Expr num ) ( Expr num )
-  | Quot ( Expr num ) ( Expr num )
-  | Sum ( Expr num ) ( Expr num )
-  | Diff ( Expr num ) ( Expr num )
-  | Power ( Expr num ) num
-
 monome a n =
   if a == 0 then ""
   else if n == 0 then ( String.fromInt a )
@@ -385,15 +378,12 @@ dlGen a_ks n =
 
 
 {-
-
          ██████   ██████ ███    ███ 
         ██    ██ ██      ████  ████ 
         ██    ██ ██      ██ ████ ██ 
         ██ ▄▄ ██ ██      ██  ██  ██ 
          ██████   ██████ ██      ██ 
             ▀▀                      
-                                    
-
 -}
 
 
