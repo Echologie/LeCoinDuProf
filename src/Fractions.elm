@@ -54,3 +54,5 @@ teX a
         "-\\frac{" ++ String.fromInt (-a.num) ++ "}{" ++ String.fromInt a.den ++ "}"
       else
         "\\frac{" ++ String.fromInt a.num ++ "}{" ++ String.fromInt a.den ++ "}"
+
+raw a = "(" ++ String.fromInt a.num ++ "/" ++ String.fromInt a.den ++ ")"

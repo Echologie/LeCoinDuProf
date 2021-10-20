@@ -7,7 +7,7 @@ import Set
 import ParserMaths as PM
 import String as S
 import Fractions as F exposing (Frac)
-import Html exposing (Html, Attribute, button, div, textarea, input, p, iframe)
+import Html exposing (Html, Attribute, button, div, textarea, input, p, iframe, section)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 
@@ -84,8 +84,7 @@ view model =
     <| textarea [ placeholder "Liste des variables", value model.variables, onInput Variables ] []
     :: textarea [ placeholder "Format de la question", value model.question, onInput Question ] []
     :: button [ onClick GenererQuestion ] [ text "Générer les questions" ]
-    :: (text "Le résultat apparaitra\nici")
-    :: [ ( p [] <| L.map (\q -> p [] [text q]) model.questions ) ]
+    :: [ ( section [] <| L.map (\q -> p [] [text q]) model.questions ) ]
     {--
     :: text
       (
@@ -236,7 +235,7 @@ parserAremplacer variables =
 
 aRemplacer : Parser Aremplacer
 aRemplacer =
-  succeed ( \x y -> Aremplacer x (L.map (F.teX << PM.evaluerBis) y) )
+  succeed ( \x y -> Aremplacer x (L.map (F.raw << PM.evaluerBis) y) )
   |. P.spaces
   |= P.variable
     { start = \_ -> True
