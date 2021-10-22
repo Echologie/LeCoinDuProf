@@ -200,3 +200,25 @@ d) Préciser, en le justifiant, le sens de variation de la suite $\left(I_{n}\ri
 3) Quelle est l'intensité initiale $I_{0}$ d'un rayon lumineux dont l'intensité après avoir traversé 5 plaques est égale à 20 ?
 4) Calculer le nombre minimum de plaques qu'un rayon doit avoir traversé pour que son intensité sortante soit inférieure ou égale à la moitié de son intensité entrante.
 ==== Suites, Suit11
+
+
+
+
+On considère l'équation $x^{2}+3 x+10=0$ alors le discriminant $\Delta$ est égal à :
++$-31$
+-49
+-31
+
+
+
+Le nombre de solutions de l'équation $x^{2}+3 x+10=0$ est
++0
+-1
+-2
+
+
+
+L'ensemble des solutions de l'équation $x^{2}+3 x-10=0$ est
+-$\emptyset$
++$\{2 ;-5\}$
+-$\{2 ; 5\}$
