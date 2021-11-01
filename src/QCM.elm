@@ -84,7 +84,7 @@ view model =
     <| textarea [ placeholder "Liste des variables", value model.variables, onInput Variables ] []
     :: textarea [ placeholder "Format de la question", value model.question, onInput Question ] []
     :: button [ onClick GenererQuestion ] [ text "Générer les questions" ]
-    :: [ ( section [] <| L.map (\q -> p [] [text q]) model.questions ) ]
+    ::  ( section [] <| L.map (\q -> p [] [text q]) model.questions ) 
     {--
     :: text
       (
@@ -106,7 +106,7 @@ view model =
       ++ L.map text (remplacer [] [Texte "chose"])
       --}
 
-    {-
+    {--
     , [ dl05 [0, 4, 2] 5 ]
     , [ text ( poly [0, 0, 7, -3, 0 , 2, 1 , -1 , 3 , 1, 1, 1, 5] ) ]
     , [ primitLn01 [-5,-6] ]
@@ -132,7 +132,9 @@ view model =
     , List.map dl03 ( mix [ [0], [-9,-8,-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7,8,9], [0], [1,2,3,4,5,6,7,8,9] ] )  -- 162 possibilités OK
     , List.map dl04 ( mix [ [-5,-3,-1,1,3,5], [-6,-4,-2,2,4,6], [0], [-9,-8,-7,-6,-5,-4,-3,-2,-1] ] )  --324 possibilités Ok
     , List.concat <| List.map ( mapTwist [3,5,9] ) ( List.map dl05 ( mix [ [0], [2,4,7,8,11,13,16,17], [2,4,7,8,11,13,16,17] ] ) )  -- 192 possibilités OK
-    , d3 -- 512 possibilités OK
+    --}
+    :: d3 -- 512 possibilités OK
+    {--
     :: ( List.map primitPoly01 <| mix [ List.range -3 -2 ++ List.range 2 3, List.range -3 -2 ++ List.range 2 3, List.range -3 -2 ++ List.range 2 3, List.range -3 -2 ++ List.range 2 3 ] ) -- 256 possibilités OK
 -- mix [ [1,2] , [3,4] , [5,6] ] == [ [1,3,5] , [1,3,6] , [1,4,5] , [1,4,6] , [2,3,5] , ... ]
 mix lls =
@@ -411,12 +413,12 @@ derivExp01 a b c =
     [ p [] [ text ("Donner la dérivée de la fonction " ++ f a b c) ]
     , vr (a*c) (a+b*c) c
     , fx (a+b) a c
-    , fx (a+b) a c
+    , fx (a+b) a (-c)
     , fx (a+b*c) (a*c) c
-    , fx (a-b*c) (a*c) c
+    , fx (a-b*c) (a*c) (-c)
     , fx (a-b*c) (a*c) c
     , fx a 0 c
-    , fx (a*c) 0 c
+    , fx (a*c) 0 (-c)
     , fx a 0 1
     , fx (a*c) 0 1
     {--

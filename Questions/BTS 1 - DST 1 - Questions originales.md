@@ -65,7 +65,7 @@ e : 6,8
 
 Le couple solution du système $\left\{\begin{array}{c}#c#x+#d#y=#c*a+d*b# \\ x-#e#y=#a-e*b#\end{array}\right.$ est
 -$(#-2*a#;#b#)$
--$(#b# ; #a#)$
+-$(#b/2# ; #a#)$
 +$(#a# ;#b#)$
 ==== Systèmes linéaires, SysLin01
 
@@ -204,21 +204,54 @@ d) Préciser, en le justifiant, le sens de variation de la suite $\left(I_{n}\ri
 
 
 
-On considère l'équation $x^{2}+3 x+10=0$ alors le discriminant $\Delta$ est égal à :
-+$-31$
--49
--31
+a : 2,3,4,5,6,8,9
+b : 10,12,15,18
+
+Soit la suite $\left(u_{n}\right)$ définie par $u_{n+1}=#a/b#u_n$.
+Cette suite est :
+-croissante
++décroissante
+-constante
+==== Suites, Suit12
+
+Soit la suite $\left(u_{n}\right)$ définie par $u_{n+1}=#b/a#u_n$.
+Cette suite est :
++croissante
+-décroissante
+-constante
+==== Suites, Suit12
+
+
+a : 2,4
+b : 3,5,8
+c : 6,7,9
+
+On considère l'équation $#a#x^{2}-#b# x-#c#=0$ alors le discriminant $\Delta$ est égal à :
++$#b^2+4*a*c#$
+-$#b^2-4*a*c#$
+-$#-(b^2)+4* c#$
+==== Second degré, SecDeg02
 
 
 
-Le nombre de solutions de l'équation $x^{2}+3 x+10=0$ est
-+0
--1
--2
+a : 2,3
+b : 1,2,3,4,5,6,7,8,9
+
+Le nombre de solutions de l'équation $#a#x^{2}-#2*a*b# x+#a* b^2#=0$ est
+-$0$
++$1$
+-$2$
+==== Second degré, SecDeg03
 
 
 
-L'ensemble des solutions de l'équation $x^{2}+3 x-10=0$ est
+a : 2,3,4,5
+b : 6,7,8,9
+
+L'ensemble des solutions de l'équation $x^{2}+#b-a# x-#a* b#=0$ est :
 -$\emptyset$
-+$\{2 ;-5\}$
--$\{2 ; 5\}$
++$\{#a# ;-#b#\}$
+-$\{#a# ; #b#\}$
+==== Équations, Second degré, SecDeg01
+
+
