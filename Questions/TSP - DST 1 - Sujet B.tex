@@ -10,6 +10,7 @@
 \usepackage{stmaryrd}
 \PassOptionsToPackage{version=3}{mhchem}
 \usepackage{mhchem}
+\usepackage{xcolor}
 
 \makeatletter
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
@@ -31,8 +32,10 @@
 
 \chapter*{Contrôle de Mathématiques}
 
-\let\MauvaiseReponse\null
-\let\BonneReponse\null
+%\let\MauvaiseReponse\null
+%\let\BonneReponse\null
+\def\MauvaiseReponse#1\par{\textcolor{red}{#1}}
+\def\BonneReponse#1\par{\textcolor{green}{#1}}
 
 {\bf Merci de répondre sur la grille fournie et de rendre le sujet avec la grille.}
 \vspace{2em}
@@ -102,6 +105,7 @@
 \begin{enumerate}
 
 \item\BonneReponse est solution de l'équation $8x-1=0$
+
 \item\MauvaiseReponse est solution de l'équation $7x+1=0$
 
 
@@ -118,6 +122,7 @@
 \item\MauvaiseReponse $(6;4)$
 
 \item\BonneReponse $(-3 ;4)$
+
 \item\MauvaiseReponse $(2 ; -3)$
 
 
@@ -130,6 +135,7 @@
 \begin{enumerate}
 
 \item\BonneReponse $\{4 ;-6\}$
+
 \item\MauvaiseReponse $\emptyset$
 
 
@@ -144,6 +150,7 @@
 \begin{enumerate}
 
 \item\MauvaiseReponse $\frac{23}{10}$
+
 \item\BonneReponse $-\frac{1}{10}$
 
 \item\MauvaiseReponse $\frac{23}{20}$
@@ -159,6 +166,7 @@
 
 
 \item\MauvaiseReponse $\frac{72}{5}$
+
 \item\BonneReponse $\frac{32}{45}$
 
 \item\MauvaiseReponse $\frac{9}{10}$
@@ -175,6 +183,7 @@
 
 
 \item\MauvaiseReponse $\cos (\hat{C})=\frac{2}{5}$
+
 \item\BonneReponse $AC=\sqrt{84}$
 
 \end{enumerate}
@@ -188,6 +197,7 @@
 \item\MauvaiseReponse $\tan (\hat{C})=\frac{2}{7}$
 
 \item\BonneReponse $\cos (\hat{B})=\frac{2}{7}$
+
 \item\MauvaiseReponse $AC=\sqrt{212}$
 
 
@@ -200,6 +210,7 @@
 \begin{enumerate}
 
 \item\BonneReponse $\arctan\left(\frac{35}{20}\right)$
+
 \item\MauvaiseReponse $20\times\arctan\left(35\right)$
 
 
@@ -230,6 +241,7 @@
 \item\MauvaiseReponse $\widehat{C}=40^{\circ}$
 
 \item\BonneReponse $\widehat{C}=30^{\circ}$
+
 \item\MauvaiseReponse $\widehat{C}=15^{\circ}$
 
 
@@ -245,6 +257,7 @@
 \item\MauvaiseReponse $47\mathrm{cm}$
 
 \item\BonneReponse $37\mathrm{cm}$
+
 \item\MauvaiseReponse $23\mathrm{cm}$
 
 \end{enumerate}
@@ -259,6 +272,7 @@
 \item\MauvaiseReponse $47\mathrm{cm}$
 
 \item\MauvaiseReponse $98\mathrm{cm}$
+
 \item\BonneReponse $84\mathrm{cm}$
 
 \end{enumerate}
@@ -299,6 +313,7 @@
 
 
 \item\MauvaiseReponse $12\mathrm{mm}$
+
 \item\BonneReponse $750\mathrm{mm}$
 
 \item\MauvaiseReponse $12\mathrm{cm}$
@@ -315,6 +330,7 @@
 
 
 \item\MauvaiseReponse $AB=21\mathrm{m}$, $AC=84\mathrm{m}$, $A^{\prime}B^{\prime}=49\mathrm{cm}$ et $A^{\prime}C^{\prime}=36\mathrm{cm}$
+
 \item\BonneReponse $AB=21\mathrm{m}$, $AC=84\mathrm{m}$, $A^{\prime}B^{\prime}=49\mathrm{cm}$ et $A^{\prime}C^{\prime}=196\mathrm{cm}$
 
 \item\MauvaiseReponse $AB=21\mathrm{m}$, $AC=84\mathrm{m}$, $A^{\prime}B^{\prime}=49\mathrm{cm}$ et $A^{\prime}C^{\prime}=9\mathrm{cm}$

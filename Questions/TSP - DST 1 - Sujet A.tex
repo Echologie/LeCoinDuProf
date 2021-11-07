@@ -10,7 +10,7 @@
 \usepackage{stmaryrd}
 \PassOptionsToPackage{version=3}{mhchem}
 \usepackage{mhchem}
-
+\usepackage{xcolor}
 \makeatletter
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
 \usepackage{amsfonts}
@@ -31,8 +31,11 @@
 
 \chapter*{Contrôle de Mathématiques}
 
-\let\MauvaiseReponse\null
-\let\BonneReponse\null
+%\let\MauvaiseReponse\null
+%\let\BonneReponse\null
+\def\MauvaiseReponse#1\par{\textcolor{red}{#1}}
+\def\BonneReponse#1\par{\textcolor{green}{#1}}
+
 
 {\bf Merci de répondre sur la grille fournie et de rendre le sujet avec la grille.}
 \vspace{2em}
@@ -45,9 +48,13 @@
 
 \item L'ensemble des solutions de l'inéquation $-2 x+2<1$ est :
 \begin{enumerate}
+
 \item\BonneReponse $]\frac{1}{2},+\infty[$
+
 \item\MauvaiseReponse $\mathbb{R}$
+
 \item\MauvaiseReponse $]-\infty, -\frac{1}{2}]$
+
 \end{enumerate}
 
 
@@ -59,6 +66,7 @@
 
 
 \item\BonneReponse $]-\infty,-\frac{1}{2}]$
+
 \item\MauvaiseReponse $[-\frac{1}{2},+\infty[$
 
 \end{enumerate}
@@ -72,6 +80,7 @@
 \begin{enumerate}
 
 \item\MauvaiseReponse est solution de l'équation $x+2=0$
+
 \item\MauvaiseReponse est solution de l'équation $2x+1=0$
 
 
@@ -89,6 +98,7 @@
 \item\BonneReponse est solution de l'équation $x^{3}-5x=0$
 
 \item\MauvaiseReponse est solution de l'inéquation $-5x+2>0$
+
 \item\MauvaiseReponse est solution de l'équation $x^{2}+5=0$
 
 \end{enumerate}
@@ -101,6 +111,7 @@
 
 
 \item\BonneReponse est solution de l'équation $8x-1=0$
+
 \item\MauvaiseReponse est solution de l'équation $7x+1=0$
 
 \item\MauvaiseReponse est solution de l'inéquation $2x+7<0$
@@ -117,6 +128,7 @@
 \item\MauvaiseReponse $(4;4)$
 
 \item\BonneReponse $(-2 ;4)$
+
 \item\MauvaiseReponse $(2 ; -2)$
 
 
@@ -269,6 +281,7 @@
 
 
 \item\MauvaiseReponse $23\mathrm{cm}$
+
 \item\BonneReponse $40\mathrm{cm}$
 
 \item\MauvaiseReponse $50\mathrm{cm}$
@@ -285,6 +298,7 @@
 \item\MauvaiseReponse $AB=24\mathrm{cm}$, $AC=34\mathrm{cm}$ et $BC=10\mathrm{cm}$
 
 \item\MauvaiseReponse $AB=24\mathrm{cm}$, $AC=14\mathrm{cm}$ et $BC=10\mathrm{cm}$
+
 \item\BonneReponse $AB=24\mathrm{cm}$, $AC=26\mathrm{cm}$ et $BC=10\mathrm{cm}$
 
 \end{enumerate}
@@ -299,6 +313,7 @@
 \item\MauvaiseReponse $9\mathrm{cm}$
 
 \item\BonneReponse $16\mathrm{mm}$
+
 \item\MauvaiseReponse $36\mathrm{cm}$
 
 \end{enumerate}
@@ -311,6 +326,7 @@
 
 
 \item\MauvaiseReponse $50\mathrm{mm}$
+
 \item\BonneReponse $80\mathrm{mm}$
 
 \item\MauvaiseReponse $50\mathrm{cm}$

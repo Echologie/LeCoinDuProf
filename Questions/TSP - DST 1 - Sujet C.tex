@@ -10,6 +10,7 @@
 \usepackage{stmaryrd}
 \PassOptionsToPackage{version=3}{mhchem}
 \usepackage{mhchem}
+\usepackage{xcolor}
 
 \makeatletter
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
@@ -31,8 +32,10 @@
 
 \chapter*{Contrôle de Mathématiques}
 
-\let\MauvaiseReponse\null
-\let\BonneReponse\null
+%\let\MauvaiseReponse\null
+%\let\BonneReponse\null
+\def\MauvaiseReponse#1\par{\textcolor{red}{#1}}
+\def\BonneReponse#1\par{\textcolor{green}{#1}}
 
 
 {\bf Merci de répondre sur la grille fournie et de rendre le sujet avec la grille.}
@@ -50,6 +53,7 @@
 
 
 \item\MauvaiseReponse $]-\infty, \frac{1}{4}]$
+
 \item\BonneReponse $]-\frac{1}{4},+\infty[$
 
 \end{enumerate}
@@ -66,6 +70,7 @@
 \item\MauvaiseReponse $\mathbb{R}$
 
 \item\BonneReponse $]-\infty,\frac{1}{5}]$
+
 \item\MauvaiseReponse $[\frac{1}{5},+\infty[$
 
 
@@ -80,6 +85,7 @@
 \begin{enumerate}
 
 \item\MauvaiseReponse est solution de l'équation $4x+1=0$
+
 \item\BonneReponse est solution de l'inéquation $4x+5>0$
 
 \item\MauvaiseReponse est solution de l'équation $x+4=0$
@@ -94,6 +100,7 @@
 \begin{enumerate}
 
 \item\BonneReponse est solution de l'équation $x^{3}-7x=0$
+
 \item\MauvaiseReponse est solution de l'équation $x^{2}+7=0$
 
 
@@ -111,6 +118,7 @@
 
 
 \item\MauvaiseReponse est solution de l'inéquation $2x+3<0$
+
 \item\BonneReponse est solution de l'équation $10x-1=0$
 
 \end{enumerate}
@@ -124,6 +132,7 @@
 \item\MauvaiseReponse $(6;-3)$
 
 \item\BonneReponse $(-3 ;-3)$
+
 \item\MauvaiseReponse $(-\frac{3}{2} ; -3)$
 
 
@@ -151,6 +160,7 @@
 \begin{enumerate}
 
 \item\BonneReponse $-\frac{23}{14}$
+
 \item\MauvaiseReponse $-\frac{11}{14}$
 
 \item\MauvaiseReponse $-\frac{11}{28}$
@@ -168,6 +178,7 @@
 \item\MauvaiseReponse $52$
 
 \item\BonneReponse $\frac{44}{9}$
+
 \item\MauvaiseReponse $\frac{99}{16}$
 
 \end{enumerate}
@@ -183,6 +194,7 @@
 
 
 \item\MauvaiseReponse $\cos (\hat{C})=\frac{1}{5}$
+
 \item\BonneReponse $AC=\sqrt{384}$
 
 \end{enumerate}
@@ -194,6 +206,7 @@
 \begin{enumerate}
 
 \item\BonneReponse $\cos (\hat{B})=\frac{3}{5}$
+
 \item\MauvaiseReponse $\tan (\hat{C})=\frac{3}{5}$
 
 \item\MauvaiseReponse $AC=\sqrt{136}$
@@ -211,6 +224,7 @@
 
 
 \item\MauvaiseReponse $\frac{\arctan\left(\frac{7}{2}\right)}{4}$
+
 \item\BonneReponse $\arctan\left(\frac{35}{40}\right)$
 
 \end{enumerate}
@@ -224,6 +238,7 @@
 \item\MauvaiseReponse $\widehat{C}=70^{\circ}$
 
 \item\BonneReponse $\widehat{C}=60^{\circ}$
+
 \item\MauvaiseReponse $\widehat{C}=75^{\circ}$
 
 
@@ -268,6 +283,7 @@
 \item\MauvaiseReponse $98\mathrm{cm}$
 
 \item\MauvaiseReponse $200\mathrm{cm}$
+
 \item\BonneReponse $180\mathrm{cm}$
 
 \end{enumerate}
@@ -280,6 +296,7 @@
 
 
 \item\MauvaiseReponse $AB=99\mathrm{cm}$, $AC=119\mathrm{cm}$ et $BC=20\mathrm{cm}$
+
 \item\BonneReponse $AB=99\mathrm{cm}$, $AC=101\mathrm{cm}$ et $BC=20\mathrm{cm}$
 
 \item\MauvaiseReponse $AB=99\mathrm{cm}$, $AC=79\mathrm{cm}$ et $BC=20\mathrm{cm}$
@@ -296,6 +313,7 @@
 \item\MauvaiseReponse $20\mathrm{cm}$
 
 \item\MauvaiseReponse $8\mathrm{cm}$
+
 \item\BonneReponse $18\mathrm{mm}$
 
 \end{enumerate}
@@ -311,6 +329,7 @@
 \item\MauvaiseReponse $50\mathrm{mm}$
 
 \item\BonneReponse $80\mathrm{mm}$
+
 \item\MauvaiseReponse $50\mathrm{cm}$
 
 \end{enumerate}
@@ -327,6 +346,7 @@
 \item\MauvaiseReponse $AB=21\mathrm{m}$, $AC=42\mathrm{m}$, $A^{\prime}B^{\prime}=49\mathrm{cm}$ et $A^{\prime}C^{\prime}=18\mathrm{cm}$
 
 \item\MauvaiseReponse $AB=21\mathrm{m}$, $AC=42\mathrm{m}$, $A^{\prime}B^{\prime}=49\mathrm{cm}$ et $A^{\prime}C^{\prime}=9\mathrm{cm}$
+
 \item\BonneReponse $AB=21\mathrm{m}$, $AC=42\mathrm{m}$, $A^{\prime}B^{\prime}=49\mathrm{cm}$ et $A^{\prime}C^{\prime}=98\mathrm{cm}$
 
 \end{enumerate}

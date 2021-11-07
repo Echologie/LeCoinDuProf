@@ -1,11 +1,15 @@
 module ParserTest exposing (..)
 
-import Parser exposing (..)
+import Parser as P exposing (..)
 import Browser
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import Maybe exposing (Maybe)
 import Result exposing (Result)
+import String as S
+import List as L
+import ParserMaths as PM
+import Fractions as F exposing (Frac)
 
 
 
@@ -53,14 +57,25 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  div [] [ text texte ]
+  div [] [ text unTexte ]
 
-
-texte = voirArbresParses <| run (withIndent -1 arbres) -- permet d'avoir...
+{-
+  Sans le withIndent -1, les arbres sous-indentés sautes
+-}
+unTexte = voirArbresParses <| run (withIndent -1 arbres)
+{--}
+  """
+  macro
+   hh
+  
+jj
+  """
+--}
+{--
   """
   *
     *
-    *
+    #1+3#
       *
       *
       *
@@ -69,19 +84,15 @@ texte = voirArbresParses <| run (withIndent -1 arbres) -- permet d'avoir...
       *
         *
       *
-*                  <- cet arbre
+  *
       *
       *
       *
-"""
-
-unArbre =
-  Arbre
-    [ Arbre []
-    , Arbre
-      [ Arbre []
-      ]
-    ]
+  *
+  *
+  *
+  """
+--}
 
 voirArbresParses arbresParsesPotentiels =
   case arbresParsesPotentiels of
@@ -98,12 +109,12 @@ voirErreur err =
   "Ligne : " ++ String.fromInt err.row
   ++ " | Colonne : " ++ String.fromInt err.col
 
-type Arbre = Arbre (List Arbre)
+type Arbre = Arbre String (List Arbre)
 
 voirArbre arbr =
+  Debug.log "voirArbre " <|
   case arbr of
-    Arbre [] -> "[]"
-    Arbre arbrs -> "[" ++ String.concat (List.map voirArbre arbrs) ++ "]"
+    Arbre chn arbrs -> chn ++ "\n  [" ++ String.concat (List.map voirArbre arbrs) ++ "]"
 
 voirArbres =
   List.map voirArbre >> String.concat
@@ -115,13 +126,15 @@ arbre : Parser Arbre
 arbre =
   let
     suite =
+      Debug.log "? :" <|
       flip withIndent
         <| succeed Arbre
-          |. symbol "*"
+          |= chaine
           |= arbres
   in
   getCol
   |> andThen suite
+  |> Debug.log "Arbre : "
 
 flip f a b = f b a
 
@@ -131,7 +144,7 @@ arbres =
       let
         boucle =
           succeed ( \arbr -> Loop (arbr :: arbrs) )
-            |= lazy (\_ -> arbre)
+            |= arbre -- lazy (\_ -> arbre) semble inutile malgrè l'appel récursif...
         fin =
           map (\_ -> Done (List.reverse arbrs))
         suite col_ind =
@@ -153,3 +166,57 @@ arbres =
       |> andThen suite
   in
   loop [] sousArbres
+  |> Debug.log "Début de la boucle arbres "
+
+
+{-
+██████   █████  ██████  ███████ ███████ ██████      ███    ███  █████   ██████ ██████   ██████  
+██   ██ ██   ██ ██   ██ ██      ██      ██   ██     ████  ████ ██   ██ ██      ██   ██ ██    ██ 
+██████  ███████ ██████  ███████ █████   ██████      ██ ████ ██ ███████ ██      ██████  ██    ██ 
+██      ██   ██ ██   ██      ██ ██      ██   ██     ██  ██  ██ ██   ██ ██      ██   ██ ██    ██ 
+██      ██   ██ ██   ██ ███████ ███████ ██   ██     ██      ██ ██   ██  ██████ ██   ██  ██████  
+-}
+
+chaine : Parser String
+chaine =
+  let
+    suite txt =
+      P.oneOf
+        [ succeed (\x -> P.Loop (txt ++ x))
+            |= texte
+            {--
+            |= P.oneOf
+              [ texte
+              , retourAlaLigne
+              ]
+            --}
+        , succeed ()
+            --|. token "\n"
+            |> P.map (\_ -> P.Done [txt])
+        ]
+    tete ls =
+      case ls of
+        [] -> ""
+        l :: lss -> l
+  in
+  succeed tete
+  |= P.loop "" suite
+  |> Debug.log "macro "
+
+texte : Parser String
+texte =
+  P.getChompedString
+  <| succeed ()
+    |. P.chompIf ( (/=) '\n' )
+    |. P.chompWhile ( (/=) '\n' )
+
+retourAlaLigne : Parser String
+retourAlaLigne =
+  let
+    suite ind =
+      succeed "\n"
+        |. token "\n"
+        |. token (S.repeat ind " ")
+  in
+  getIndent
+  |> andThen suite
