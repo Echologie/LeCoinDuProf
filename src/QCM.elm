@@ -667,9 +667,11 @@ quizScanVoirBloc prblm =
       ++ quizScanVoirBlocs blcs
       ++ "\n\\end{Sujet}"
     Entete mcr sjt ->
+      -- "\n  \\begin{itemize}\n    \\item "
       voirMacro mcr
       ++ "\n"
       ++ quizScanVoirBlocs sjt
+      -- ++ "  \\end{itemize}"
     QCM mcr prps ->
       let
         f prp =
@@ -681,10 +683,9 @@ quizScanVoirBloc prblm =
       in
       "\n  \\begin{QCM}\n"
       ++ voirMacro mcr
-      ++ "\n"
+      ++ "\n    \\begin{enumerate}\n"
       ++ ( S.join "\n" <| L.map f prps )
-      ++ "\n"
-      ++ "\n  \\end{QCM}"
+      ++ "\n    \\end{enumerate}\n  \\end{QCM}"
     VraiFaux prps ->
       let
         f prp =
