@@ -28,6 +28,7 @@ import Html.Attributes as A -- exposing (..)
 import Html.Events exposing (onInput, onClick)
 import Random
 import Random.Extra
+import Random.List
 
 
 sujetTest =
@@ -156,7 +157,7 @@ view model =
     -- :: button [ onClick GenererQuestion ] [ text "Générer les questions" ]
     :: button [ onClick GenererSujet ] [ text "Générer un sujet au hasard" ]
     -- ::  ( section [] <| L.map (\q -> p [] [ text q ]) model.questions )
-    ::  [ ( section [] [ p [] [ text model.sujetGenere ] ] ) ]
+    ::  [ ( Html.output [] [ Html.code [] [ text model.sujetGenere ] ] ) ] -- fonction text réécrite ci-dessous
     {--
     :: text
       (
@@ -235,7 +236,7 @@ type Probleme =
   VariableAremplacer Aremplacer Sujet
   | Entete Macro Sujet
   -- | ProblemeOuvert NombreDeLigne TexteVariable
-  -- | QCM Propositions
+  | QCM Macro Propositions
   | VraiFaux Propositions
 
 type alias Propositions = List Proposition
@@ -245,11 +246,6 @@ type Proposition =
   | Faux Macro
 
 type alias NombreDeLigne = Int
-
-type alias Alternative =
-  { vraies : List Macro
-  , fausses : List Macro
-  }
 
 {--
 voirSujetParse sujetPotentiel =
@@ -333,6 +329,7 @@ probleme =
       flip withIndent
         <| oneOf
           [ vraiFaux
+          , qcm
           , backtrackable variableAremplacer
           , entete ]
   in
@@ -372,6 +369,14 @@ vraiFaux =
   -- Debug.log "vraiFaux " <|
   succeed VraiFaux
     |. keyword "vrfx"
+    |= propositions
+
+qcm =
+  -- Debug.log "vraiFaux " <|
+  succeed QCM
+    |. keyword "qcm"
+    |. espaces
+    |= macro
     |= propositions
 
 propositions =
@@ -577,12 +582,14 @@ problemeAleatoire prblm =
       Random.andThen (f sjt) vlr
     Entete mcr sjt ->
       Random.map (L.singleton << Entete mcr) (sujetAleatoire sjt)
-    VraiFaux prps -> propositionAleatoire prps
-
-propositionAleatoire prps =
-  Random.map
-    (L.singleton << VraiFaux << L.singleton)
-    ( valeurAleatoire ( Vrai [ Texte "Le prof de maths est le meilleur." ] ) prps )
+    VraiFaux prps ->
+      Random.map
+        (L.singleton << VraiFaux << L.singleton)
+        ( valeurAleatoire ( Vrai [ Texte "Le prof de maths est le meilleur." ] ) prps )
+    QCM mcr prps ->
+      Random.map
+        (L.singleton << QCM mcr)
+        (Random.List.shuffle prps )
 
 {-| Permet de prendre un élément aléatoire dans une liste
     avec une valeur par défaut si la liste est vide.
@@ -607,6 +614,13 @@ remplacerLaVariableDansLeProblemeAleatoire vrbl vlr prblm =
       <| Random.map2 Entete
           ( Random.constant <| remplacerLaVariableParLaValeurDansLaMacro vrbl vlr mcr )
           ( remplacerLaVariableDansLeSujetAleatoire vrbl vlr sjt )
+    QCM mcr prps ->
+      Random.map L.singleton
+      <| Random.map2 QCM
+          ( Random.constant <| remplacerLaVariableParLaValeurDansLaMacro vrbl vlr mcr )
+          ( Random.List.shuffle
+            <| L.map (remplacerLaVariableParLaValeurDansLaProposition vrbl vlr) prps
+          )
     VraiFaux prps ->
       Random.map
         ( L.singleton
@@ -640,7 +654,9 @@ remplacerLaVariableParLaValeurDansLaProposition vrbl vlr prp =
 
 quizScanVoirSujet : Sujet -> String
 quizScanVoirSujet sjt =
-  S.join "\n" <| L.map quizScanVoirProbleme sjt
+  "\n\\begin{Sujet}\n"
+  ++ ( S.join "\n" <| L.map quizScanVoirProbleme sjt )
+  ++ "\n\\end{Sujet}"
 
 quizScanVoirProbleme prblm =
   case prblm of
@@ -648,16 +664,31 @@ quizScanVoirProbleme prblm =
       voirMacro mcr
       ++ "\n"
       ++ quizScanVoirSujet sjt
+    QCM mcr prps ->
+      let
+        f prp =
+          case prp of
+            Vrai mc ->
+              "    \\Vrai{" ++ voirMacro mc ++ "}"
+            Faux mc ->
+              "    \\Faux{" ++ voirMacro mc ++ "}"
+      in
+      "\n  \\begin{QCM}\n"
+      ++ voirMacro mcr
+      ++ "\n"
+      ++ ( S.join "\n" <| L.map f prps )
+      ++ "\n"
+      ++ "\n  \\end{QCM}"
     VraiFaux prps ->
       let
         f prp =
           case prp of
-            Vrai mcr ->
-              "  \\item\\Vrai{" ++ voirMacro mcr ++ "}\n"
-            Faux mcr ->
-              "  \\item\\Faux{" ++ voirMacro mcr ++ "}\n"
+            Vrai mc ->
+              "\n  \\begin{VraiFaux}\n    \\Vrai{" ++ voirMacro mc ++ "}\n  \\end{VraiFaux}"
+            Faux mc ->
+              "\n  \\begin{VraiFaux}\n    \\Faux{" ++ voirMacro mc ++ "}\n  \\end{VraiFaux}"
       in
-      S.join "\n" <| L.map f prps
+      S.concat <| L.map f prps
     VariableAremplacer ar sjt -> "" ++ quizScanVoirSujet sjt
 {-
         ███    ███ ██ ██   ██ ███████ ██    ██ ██████  

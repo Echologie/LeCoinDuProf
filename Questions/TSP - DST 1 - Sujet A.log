@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 20.11) (preloaded format=pdflatex 2020.11.23)  5 NOV 2021 16:54
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 20.11) (preloaded format=pdflatex 2020.11.23)  8 NOV 2021 08:25
 entering extended mode
 **"./TSP - DST 1 - Sujet A.tex"
 ("TSP - DST 1 - Sujet A.tex"
@@ -298,24 +298,25 @@ Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 85.
 )
-LaTeX Font Info:    Trying to load font information for U+msa on input line 49.
+\c@question=\count279
+LaTeX Font Info:    Trying to load font information for U+msa on input line 51.
 
 
 ("C:\Program Files\MiKTeX\tex/latex/amsfonts\umsa.fd"
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 49.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 51.
 
 
 ("C:\Program Files\MiKTeX\tex/latex/amsfonts\umsb.fd"
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Trying to load font information for U+stmry on input line 4
-9.
+LaTeX Font Info:    Trying to load font information for U+stmry on input line 5
+1.
 
 (C:\Users\Echophile\AppData\Roaming\MiKTeX\tex/latex/stmaryrd\ustmry.fd)
 LaTeX Font Info:    Trying to load font information for U+bbold on input line 5
-5.
+7.
 
 (C:\Users\Echophile\AppData\Roaming\MiKTeX\tex/latex/jknappen\ubbold.fd
 File: ubbold.fd 1996/01/01 Blackboard Bold Font Definition File (jk)
@@ -324,7 +325,7 @@ File: ubbold.fd 1996/01/01 Blackboard Bold Font Definition File (jk)
 
 
 {C:/Users/Echophile/AppData/Local/MiKTeX/pdftex/config/pdftex.map}] [2]
-Overfull \hbox (5.8505pt too wide) in paragraph at lines 308--309
+Overfull \hbox (5.8505pt too wide) in paragraph at lines 311--312
 []\T1/cmr/m/n/10 On con-sid-ère deux tri-an-gles non plat $\OML/cmm/m/it/10 ABC
 $ \T1/cmr/m/n/10 et $\OML/cmm/m/it/10 A[]B[]C[]$ \T1/cmr/m/n/10 tels que $[] \O
 ML/cmm/m/it/10 == []$\T1/cmr/m/n/10 , $[] \OML/cmm/m/it/10 == []$ \T1/cmr/m/n/1
@@ -332,7 +333,7 @@ ML/cmm/m/it/10 == []$\T1/cmr/m/n/10 , $[] \OML/cmm/m/it/10 == []$ \T1/cmr/m/n/1
  []
 
 
-Overfull \hbox (5.8505pt too wide) in paragraph at lines 323--324
+Overfull \hbox (5.8505pt too wide) in paragraph at lines 326--327
 []\T1/cmr/m/n/10 On con-sid-ère deux tri-an-gles non plat $\OML/cmm/m/it/10 ABC
 $ \T1/cmr/m/n/10 et $\OML/cmm/m/it/10 A[]B[]C[]$ \T1/cmr/m/n/10 tels que $[] \O
 ML/cmm/m/it/10 == []$\T1/cmr/m/n/10 , $[] \OML/cmm/m/it/10 == []$ \T1/cmr/m/n/1
@@ -341,13 +342,13 @@ ML/cmm/m/it/10 == []$\T1/cmr/m/n/10 , $[] \OML/cmm/m/it/10 == []$ \T1/cmr/m/n/1
 
 [3] ("TSP - DST 1 - Sujet A.aux") ) 
 Here is how much of TeX's memory you used:
- 4771 strings out of 479799
- 70734 string characters out of 2879534
- 376878 words of memory out of 3000000
- 21708 multiletter control sequences out of 15000+200000
+ 4775 strings out of 479799
+ 70776 string characters out of 2879534
+ 376869 words of memory out of 3000000
+ 21712 multiletter control sequences out of 15000+200000
  541864 words of font info for 48 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 66i,8n,73p,411b,307s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 66i,8n,73p,411b,309s stack positions out of 5000i,500n,10000p,200000b,50000s
  <C:\Users\Echophile\AppData\Local\MiKTeX\fo
 nts/pk/ljfour/public/bbold/dpi600\bbold10.pk> <C:\Users\Echophile\AppData\Local
 \MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1000.pk> <C:\Users\Echophile\App
@@ -359,7 +360,7 @@ ts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX/fonts/type1/publ
 ic/amsfonts/cm/cmr7.pfb><C:/Program Files/MiKTeX/fonts/type1/public/amsfonts/cm
 /cmsy10.pfb><C:/Program Files/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy7.pfb><
 C:/Program Files/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pfb>
-Output written on "TSP - DST 1 - Sujet A.pdf" (3 pages, 105136 bytes).
+Output written on "TSP - DST 1 - Sujet A.pdf" (3 pages, 105139 bytes).
 PDF statistics:
  138 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)

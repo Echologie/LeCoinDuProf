@@ -36,6 +36,8 @@
 \def\MauvaiseReponse#1\par{\textcolor{red}{#1}}
 \def\BonneReponse#1\par{\textcolor{green}{#1}}
 
+\newcounter{question}
+\setcounter{question}{0}
 
 {\bf Merci de répondre sur la grille fournie et de rendre le sujet avec la grille.}
 \vspace{2em}
@@ -71,7 +73,8 @@
 
 \end{enumerate}
 
-
+\stepcounter{question}
+\setcounter{enumi}{\thequestion}
 
 
 
