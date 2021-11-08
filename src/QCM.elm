@@ -31,7 +31,7 @@ import Random.Extra
 import Random.List
 
 
-sujetTest =
+blocsTest =
   """a : 2,4
  b : 3,5,8
   c : 6,7,9
@@ -110,12 +110,6 @@ update msg model =
       ( { model | structureDuSujet = nouvelleStructure }
       , Cmd.none
       )
-    {--
-    Variables nouvellesVariables ->
-      ( { model | variables = nouvellesVariables }
-      , Cmd.none
-      )
-    --}
     SujetGenere nouveauSujetGenere ->
       ( { model | sujetGenere = nouveauSujetGenere }
       , Cmd.none
@@ -124,7 +118,7 @@ update msg model =
       let
         f strSuj =
           case P.run (withIndent -1 sujet) strSuj of
-            Ok sjt -> Random.map quizScanVoirSujet <| sujetsAleatoires sjt
+            Ok sjt -> Random.map quizScanVoirBlocs <| sujetsAleatoires sjt
             Err erreurs -> Random.constant <| deadEndsToStringBis erreurs
       in
       ( model
@@ -230,12 +224,13 @@ text chaine =
 ██      ██   ██ ██   ██ ███████ ███████ ██   ██     ███████  ██████   █████  ███████    ██    
 -}
 
-type alias Sujet = List Probleme
+type alias Blocs = List Bloc
 
-type Probleme =
-  VariableAremplacer Aremplacer Sujet
-  | Entete Macro Sujet
-  -- | ProblemeOuvert NombreDeLigne TexteVariable
+type Bloc =
+  Sujet (List Bloc)
+  | VariableAremplacer Aremplacer Blocs
+  | Entete Macro Blocs
+  -- | ProblèmeOuvert NombreDeLigne TexteVariable
   | QCM Macro Propositions
   | VraiFaux Propositions
 
@@ -248,15 +243,15 @@ type Proposition =
 type alias NombreDeLigne = Int
 
 {--
-voirSujetParse sujetPotentiel =
-  case P.run (withIndent -1 sujet) sujetPotentiel of
-    Ok sjt -> voirSujet sjt
+voirBlocsParse blocsPotentiel =
+  case P.run (withIndent -1 blocs) blocsPotentiel of
+    Ok sjt -> voirBlocs sjt
     Err erreurs -> deadEndsToStringBis erreurs
 --}
 
-voirSujetParseAleatoire sujetPotentiel =
-  case P.run (withIndent -1 sujet) sujetPotentiel of
-    Ok sjt -> Random.map quizScanVoirSujet <| sujetAleatoire sjt
+voirBlocsParseAleatoire blocsPotentiel =
+  case P.run (withIndent -1 blocs) blocsPotentiel of
+    Ok sjt -> Random.map quizScanVoirBlocs <| blocsAleatoires sjt
     Err erreurs -> Random.constant <| deadEndsToStringBis erreurs
 
 deadEndsToStringBis errs =
@@ -270,15 +265,15 @@ voirErreur err =
   ++ " | Colonne : " ++ String.fromInt err.col
 
 {--
-voirSujet = S.join "\n" << L.map voirProbleme
+voirBlocs = S.join "\n" << L.map voirBloc
 
-voirProbleme prblm =
-  -- Debug.log "voirProbleme " <|
+voirBloc prblm =
+  -- Debug.log "voirBloc " <|
   case prblm of
     Entete mcr sjt ->
       voirMacro mcr
       ++ "\n"
-      ++ voirSujet sjt
+      ++ voirBlocs sjt
     VraiFaux prps ->
       let
         f prp =
@@ -287,18 +282,23 @@ voirProbleme prblm =
             Faux mcr -> voirMacro mcr
       in
       S.join "\n" <| L.map f prps
-    VariableAremplacer ar sjt -> "" ++ voirSujet sjt
+    VariableAremplacer ar sjt -> "" ++ voirBlocs sjt
 --}
 
-sujet : Parser Sujet
+sujet : Parser Blocs
 sujet =
+  succeed (L.singleton << Sujet)
+   |= blocs
+
+blocs : Parser Blocs
+blocs =
   let
     problemes prblms =
       let
         boucle =
-          -- Debug.log "Boucle sur un probleme (bis) " <|
+          -- Debug.log "Boucle sur un bloc (bis) " <|
           succeed ( \prblm -> Loop (prblm :: prblms) )
-            |= probleme
+            |= bloc
         fin =
           map (\_ -> Done (List.reverse prblms))
         suite col_ind =
@@ -307,7 +307,7 @@ sujet =
                 |. end
               |> fin
             , if Tuple.first col_ind > Tuple.second col_ind then -- if col > ind
-                boucle -- |> Debug.log "Boucle sur un probleme "
+                boucle -- |> Debug.log "Boucle sur un bloc "
               else
                 succeed ()
                 |> fin
@@ -322,8 +322,8 @@ sujet =
   in
   loop [] problemes
 
-probleme : Parser Probleme
-probleme =
+bloc : Parser Bloc
+bloc =
   let
     suite =
       flip withIndent
@@ -344,11 +344,11 @@ reserve = Set.fromList
   , "var"
   ]
 
-sousSujet =
+sousBlocs =
   let
     suite col_ind =
       if Tuple.first col_ind > Tuple.second col_ind then -- if col > ind
-        withIndent (Tuple.first col_ind) ( lazy (\_ -> sujet) ) -- Aucune idée de l'effet du lazy, ça marche sans...
+        withIndent (Tuple.first col_ind) ( lazy (\_ -> blocs) ) -- Aucune idée de l'effet du lazy, ça marche sans...
       else
         succeed []
   in
@@ -358,12 +358,12 @@ sousSujet =
   |= getIndent
   |> andThen suite
 
-entete : Parser Probleme
+entete : Parser Bloc
 entete =
   -- Debug.log "entete " <|
   succeed Entete
     |= macro
-    |= sujet -- sousSujet
+    |= blocs -- sousBlocs
 
 vraiFaux =
   -- Debug.log "vraiFaux " <|
@@ -517,12 +517,12 @@ parserAremplacer variables =
 espaces =
   chompWhile <| (==) ' '
 
-variableAremplacer : Parser Probleme
+variableAremplacer : Parser Bloc
 variableAremplacer =
   -- Debug.log "variableAremplacer " <|
   succeed VariableAremplacer
     |= aRemplacer
-    |= sujet -- sousSujet
+    |= blocs -- sousBlocs
 
 aRemplacer : Parser Aremplacer
 aRemplacer =
@@ -552,36 +552,38 @@ aRemplacer =
 ███████  █████     ██        ██   ██ ███████ ███████ ██   ██    ██     ██████  ██ ██   ██ ███████ 
 -}
 
-sujetsAleatoires : Sujet -> Random.Generator Sujet
+sujetsAleatoires : Blocs -> Random.Generator Blocs
 sujetsAleatoires sjt =
-  sujetAleatoire sjt
+  blocsAleatoires sjt
   |> Random.list 89
   |> Random.map L.concat
 
-sujetAleatoire : Sujet -> Random.Generator Sujet
-sujetAleatoire sjt =
+blocsAleatoires : Blocs -> Random.Generator Blocs
+blocsAleatoires sjt =
   Random.map L.concat
   <| Random.Extra.sequence
-  <| L.map problemeAleatoire sjt
+  <| L.map blocAleatoire sjt
 
-problemeAleatoire : Probleme -> Random.Generator Sujet
-problemeAleatoire prblm =
+blocAleatoire : Bloc -> Random.Generator Blocs
+blocAleatoire prblm =
   case prblm of
+    Sujet blcs ->
+      Random.map (L.singleton << Sujet) (blocsAleatoires blcs)
     VariableAremplacer ar sjt ->
       let
         vrbl = ar.var
         vlr = valeurAleatoire "" ar.vals
-        f sj vl = remplacerLaVariableDansLeSujetAleatoire vrbl vl sj
+        f sj vl = remplacerLaVariableDansLesBlocsAleatoires vrbl vl sj
       in
       {--
       Debug.log
-        ( "problemeAleatoire, branche VariableAremplacer, variable : "
+        ( "blocAleatoire, branche VariableAremplacer, variable : "
           ++ vrbl ++ " "
         ) <|
       --}
       Random.andThen (f sjt) vlr
     Entete mcr sjt ->
-      Random.map (L.singleton << Entete mcr) (sujetAleatoire sjt)
+      Random.map (L.singleton << Entete mcr) (blocsAleatoires sjt)
     VraiFaux prps ->
       Random.map
         (L.singleton << VraiFaux << L.singleton)
@@ -602,18 +604,20 @@ valeurAleatoire f fs =
     ff :: fss ->
       Random.uniform ff fss
 
-remplacerLaVariableDansLeProblemeAleatoire :
-  String -> String -> Probleme -> Random.Generator Sujet
-remplacerLaVariableDansLeProblemeAleatoire vrbl vlr prblm =
+remplacerLaVariableDansLeBlocAleatoire :
+  String -> String -> Bloc -> Random.Generator Blocs
+remplacerLaVariableDansLeBlocAleatoire vrbl vlr prblm =
   case prblm of
+    Sujet blcs ->
+      remplacerLaVariableDansLesBlocsAleatoires vrbl vlr blcs
     VariableAremplacer ar sjt ->
-      problemeAleatoire (VariableAremplacer ar sjt)
-      |> Random.andThen (remplacerLaVariableDansLeSujetAleatoire vrbl vlr)
+      blocAleatoire (VariableAremplacer ar sjt)
+      |> Random.andThen (remplacerLaVariableDansLesBlocsAleatoires vrbl vlr)
     Entete mcr sjt ->
       Random.map L.singleton
       <| Random.map2 Entete
           ( Random.constant <| remplacerLaVariableParLaValeurDansLaMacro vrbl vlr mcr )
-          ( remplacerLaVariableDansLeSujetAleatoire vrbl vlr sjt )
+          ( remplacerLaVariableDansLesBlocsAleatoires vrbl vlr sjt )
     QCM mcr prps ->
       Random.map L.singleton
       <| Random.map2 QCM
@@ -630,12 +634,12 @@ remplacerLaVariableDansLeProblemeAleatoire vrbl vlr prblm =
         )
         <| valeurAleatoire ( Vrai [ Texte "Le prof de maths est le meilleur." ] ) prps
 
-remplacerLaVariableDansLeSujetAleatoire :
-  String -> String -> Sujet -> Random.Generator Sujet
-remplacerLaVariableDansLeSujetAleatoire vrbl vlr sjt =
+remplacerLaVariableDansLesBlocsAleatoires :
+  String -> String -> Blocs -> Random.Generator Blocs
+remplacerLaVariableDansLesBlocsAleatoires vrbl vlr sjt =
   Random.map L.concat
   <| Random.Extra.sequence
-  <| L.map (remplacerLaVariableDansLeProblemeAleatoire vrbl vlr) sjt
+  <| L.map (remplacerLaVariableDansLeBlocAleatoire vrbl vlr) sjt
 
 remplacerLaVariableParLaValeurDansLaProposition vrbl vlr prp =
   case prp of
@@ -652,18 +656,20 @@ remplacerLaVariableParLaValeurDansLaProposition vrbl vlr prp =
             ▀▀                                                         
 -}
 
-quizScanVoirSujet : Sujet -> String
-quizScanVoirSujet sjt =
-  "\n\\begin{Sujet}\n"
-  ++ ( S.join "\n" <| L.map quizScanVoirProbleme sjt )
-  ++ "\n\\end{Sujet}"
+quizScanVoirBlocs : Blocs -> String
+quizScanVoirBlocs blcs =
+  S.join "\n" <| L.map quizScanVoirBloc blcs
 
-quizScanVoirProbleme prblm =
+quizScanVoirBloc prblm =
   case prblm of
+    Sujet blcs ->
+      "\n\\begin{Sujet}\n"
+      ++ quizScanVoirBlocs blcs
+      ++ "\n\\end{Sujet}"
     Entete mcr sjt ->
       voirMacro mcr
       ++ "\n"
-      ++ quizScanVoirSujet sjt
+      ++ quizScanVoirBlocs sjt
     QCM mcr prps ->
       let
         f prp =
@@ -689,7 +695,11 @@ quizScanVoirProbleme prblm =
               "\n  \\begin{VraiFaux}\n    \\Faux{" ++ voirMacro mc ++ "}\n  \\end{VraiFaux}"
       in
       S.concat <| L.map f prps
-    VariableAremplacer ar sjt -> "" ++ quizScanVoirSujet sjt
+    VariableAremplacer ar sjt ->
+      "" ++ quizScanVoirBlocs sjt
+
+
+
 {-
         ███    ███ ██ ██   ██ ███████ ██    ██ ██████  
         ████  ████ ██  ██ ██  ██      ██    ██ ██   ██ 
