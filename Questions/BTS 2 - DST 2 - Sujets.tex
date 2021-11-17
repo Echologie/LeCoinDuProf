@@ -50,8 +50,11 @@
     \stepcounter{NumeroDeLaQuestion}
   }
 
-\let\Vrai\item
-\let\Faux\item
+%\let\Vrai\item
+%\let\Faux\item
+
+\def\Vrai#1{\item{\color{green}#1}}
+\def\Faux#1{\item{\color{red}#1}}
 
 \begin{document}
 
@@ -86,7 +89,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -258,7 +261,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -602,7 +605,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -1118,7 +1121,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -1290,7 +1293,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -1462,7 +1465,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -1978,7 +1981,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -2494,7 +2497,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -2666,7 +2669,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -2838,7 +2841,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -3010,7 +3013,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -3526,7 +3529,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -3870,7 +3873,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -4214,7 +4217,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -4730,7 +4733,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -4902,7 +4905,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -5074,7 +5077,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -6278,7 +6281,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -6450,7 +6453,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -6622,7 +6625,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -6794,7 +6797,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -6966,7 +6969,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -7138,7 +7141,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -7310,7 +7313,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -8170,7 +8173,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -9890,7 +9893,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -10062,7 +10065,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -10578,7 +10581,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -10922,7 +10925,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -11094,7 +11097,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -11438,7 +11441,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -11610,7 +11613,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -12126,7 +12129,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -12814,7 +12817,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -13846,7 +13849,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -14018,7 +14021,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -14362,7 +14365,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -14534,7 +14537,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -14878,7 +14881,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
@@ -15222,7 +15225,7 @@ On admet que son approximation quadratique est donné par\par $\qquad f\left(x\r
 
 \begin{VraiFaux}
 
-\Vrai{ $T$ est au-dessus de $\mathscr C$.}
+\Faux{ $T$ est au-dessus de $\mathscr C$.}
 
 \end{VraiFaux}
 
