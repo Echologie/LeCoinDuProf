@@ -178,7 +178,10 @@ view model =
             , label = text "Calculer les notes"
             }
           --}
-          voirNotes model.eleves
+          text
+            <| "Moyenne : " ++ String.fromFloat (moyenne model.eleves)
+            ++ " Écart type : " ++ String.fromFloat (ecartType model.eleves)
+        , voirNotes model.eleves
         ]
       ]
 
@@ -407,132 +410,26 @@ noteQuestion brm bonneRpn rpnEleve =
   else
     brm.mauvaiseReponse
 
+moyenne elvs =
+  let
+    moy nts = List.sum nts / toFloat (List.length nts)
+  in
+  List.map .note elvs
+  |> expurgerNotesManquantes
+  |> moy
 
-monBareme = "+1 -1, +1 -1, +1 -1, +1 -1, +2 -1, +2 -1, +2 -1, +3 -1, +3 -1, +3 -1, +3 -1"
+ecartType elvs =
+  let
+    moy nts = List.sum nts / toFloat (List.length nts)
+    moyCarre = moy << List.map (\x -> x^2)
+    ecTp nts = sqrt <| moyCarre nts - (moy nts)^2
+  in
+  List.map .note elvs
+  |> expurgerNotesManquantes
+  |> ecTp
 
-mesReonses =
-  """ABBACBBBCDB
-BABABCBDCAD
-ABAACCCBADD
-BAAAAACBADB
-BAAACCBAAAC
-ABBAABACCAC
-BBBAACCADAC
-AAAACCBDBBB
-BABACAADBDC
-AAAAAACCDBD
-BBBABCBDDBC
-ABBABACCCDA
-AABAABCBCAD
-BAAABACCCDB
-BBAABCAACCC
-BABABBCDCCA
-AABACCBACDB
-BBAAACAABBC
-AAAACBBAAAA
-AAAABCCDCCB
-AABABCCBDAA
-BBAACCCBADC
-BBBABCBAABC
-AAAABABCADB
-ABBAAAADDAD
-AAAAAABDDBA
-BBAAAACCCDA
-ABBACAABABD
-BABACBCBABA
-AAAABABBCCA
-BBBAACAAABD
-AAAACBAABBC
-AABAACBCDCA
-BBAABBCDBBC
-ABAACCBBAAA
-BAAACCAADCB
-BBAAAACABAD
-BAAABBCABDD
-BBBAAABACCA
-AABACCADBAC
-BABABBBACCB
-BAAACCBBABA
-BBAAAACAADD
-BAAAACBACAA
-AAAAAACDBCD
-AABABABCCDB
-ABAAAAADBAC
-ABAACAABABA
-BABABBCDBBB
-BBBABCBBDDD
-BABABBCACBB
-BABACCCABAB
-ABAACCBAADB
-AAAAABCBBCD
-ABAACCBCCCD
-BBBAAACBBCB
-ABAAAAAADBC
-AAAABBCDBCA
-AABAABBABAC
-ABBABBBBABD
-BABAABAAADB
-BABABBBDACA
-BABABACDCDD
-BBBACCCBAAB
-ABAAABBBCDA
-AAAABACBBBA
-AABACBCBADA
-BBAACCABCDA
-BBBAABADADA
-BBAACBBCDDD
-BBAAACBCACC
-BAAABBCDDDD
-ABAABBCBBCA
-BAAAAABCBCB
-BBAAABCDDBB
-ABAACAACBCC
-AABACCABCCB
-BAAACCADCBB
-BBBAABCBDAD
-BBAABBADCCB
-ABAACABBCDC
-BAAACACACCB
-BBBACABDCDD
-BBBAAACADAD
-AAAAABADDAC
-BBBAACCACBB
-BBBABBABBDD
-BABAACCADCD
-ABBACBBACAC"""
-
-mesEleves =
-  """2000126;rayan;;B;B;A;B;B;-;B;D;A;D;-;;
-2000224;selena;;B;B;A;A;B;-;C;B;B;-;-;;
-2000527;maryam;;B;-;B;-;B;-;A;A;D;A;-;;
-2000728;juliette;;A;-;-;-;A;C;A;D;C;C;-;;
-2000829;ma?v?ne;;A;A;-;B;B;C;-;A;A;-;-;;
-2000891;ma?v?ne;;B;B;B;B;C;A;C;B;C;D;C;;
-2000948;mathilde;;B;B;A;B;C;B;A;-;-;-;-;;
-2001047;lucille;;A;B;A;B;A;A;-;A;A;A;D;;
-2001160;marie;;B;B;A;-;C;-;A;-;-;-;-;;
-2001458;issra;;A;B;A;B;A;A;C;B;A;B;-;;
-2001732;audrey;;B;B;A;A;C;C;C;-;-;-;-;;
-2001834;emeric;;A;A;A;A;-;A;B;-;-;-;-;;
-2001944;lamia;;A;B;B;A;A;B;A;D;C;A;C;;
-2002030;adrien;;A;B;A;A;A;A;C;-;-;-;B;;
-2002128;bettina;;B;B;A;A;A;C;C;A;B;-;-;;
-2002333;samuel;;B;B;B;B;-;C;-;A;B;-;-;;
-2002439;marl?ne;;B;B;A;A;A;B;C;B;A;B;D;;
-2003684;vincent;;B;A;A;A;A;A;B;C;D;C;B;;
-2000632;chiche;;B;B;A;B;A;C;C;B;A;-;-;;
-2000334;BOUDRY;;A;B;A;A;-;-;A;C;-;-;-;;
-2001641;GUERIN;;A;B;B;A;-;B;B;A;-;B;-;;
-2002514;NGEUMELEU;;A;B;A;A;B;C;B;B;A;B;B;;
-2002215;MEJJATI;;A;A;B;A;B;C;A;D;C;C;-;;
-2002790;NICOISE;;A;B;A;A;A;B;B;A;A;A;A;;
-2003293;SCHEPENS;;B;B;B;A;C;A;C;D;D;D;D;;
-2000430;BOUHNIK;;A;A;B;A;B;C;B;D;C;-;-;;
-2003392;SERGEANT;;B;A;A;A;C;A;A;-;-;-;-;;
-2002986;PEREZ;;A;B;A;B;-;A;B;-;-;B;-;;
-2003710;PERROT;;A;B;A;A;B;A;C;D;C;A;D;;
-2003585;SUNNASSEE;;B;B;A;A;C;A;C;D;B;C;A;;
-2003110;QIU;;B;A;A;A;C;A;C;A;B;C;A;;
-2001356;ESTIVAL;;A;A;B;A;C;B;B;C;B;D;C;;
-2001546;GRANDJEAN;;B;A;B;A;-;C;-;A;D;C;B;;
-2001262;DUFRIEN;;B;A;-;A;-;C;-;B;C;-;D;;"""
+expurgerNotesManquantes nts =
+  case nts of
+    [] -> []
+    Nothing :: ntss -> expurgerNotesManquantes ntss
+    Just nt :: ntss -> nt :: expurgerNotesManquantes ntss

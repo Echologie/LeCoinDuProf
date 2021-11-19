@@ -114,20 +114,28 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   layout [] <|
-    column [height fill, width fill]
-      [ Input.multiline []
+    row [spacing grandEspacement, padding tresGrandEspacement, height fill, width fill, clip, scrollbars]
+      [ Input.multiline [height <| maximum 800 fill, clip, scrollbars]
           { onChange = StructureDuSujet
           , label = Input.labelHidden "chose"
           , placeholder = Just <| Input.placeholder [] <| text "Structure du sujet"
           , text = model.structureDuSujet
           , spellcheck = True
           }
-      , Input.button []
-          { onPress = Just GenererSujet
-          , label = text "Générer le sujet"
-          }
-      , text model.sujetGenere
+      , column [spacing petitEspacement, height fill, width fill]
+          [ Input.button []
+              { onPress = Just GenererSujet
+              , label = text "Générer le sujet"
+              }
+          , el [height <| maximum 800 fill, clip, scrollbars] <| text model.sujetGenere
+          ]
       ]
+
+petitEspacement = 20
+
+grandEspacement = 5*petitEspacement // 4
+
+tresGrandEspacement = 25*petitEspacement // 16
 
 
 {-
@@ -488,12 +496,6 @@ blocAleatoire prblm =
         vlr = valeurAleatoire "" ar.vals
         f sj vl = remplacerLaVariableDansLesBlocsAleatoires vrbl vl sj
       in
-      {--
-      Debug.log
-        ( "blocAleatoire, branche VariableAremplacer, variable : "
-          ++ vrbl ++ " "
-        ) <|
-      --}
       Random.andThen (f sjt) vlr
     Entete mcr sjt ->
       Random.map (L.singleton << Entete mcr) (blocsAleatoires sjt)
@@ -558,6 +560,104 @@ remplacerLaVariableParLaValeurDansLaProposition vrbl vlr prp =
   case prp of
     Vrai mcr -> Vrai <| remplacerLaVariableParLaValeurDansLaMacro vrbl vlr mcr
     Faux mcr -> Faux <| remplacerLaVariableParLaValeurDansLaMacro vrbl vlr mcr
+
+
+
+{-
+        ██    ██  █████  ██████  ██  █████  ███    ██ ████████ ███████ ███████ 
+        ██    ██ ██   ██ ██   ██ ██ ██   ██ ████   ██    ██    ██      ██      
+        ██    ██ ███████ ██████  ██ ███████ ██ ██  ██    ██    █████   ███████ 
+         ██  ██  ██   ██ ██   ██ ██ ██   ██ ██  ██ ██    ██    ██           ██ 
+          ████   ██   ██ ██   ██ ██ ██   ██ ██   ████    ██    ███████ ███████ 
+-}
+
+
+variantesBlocs : Blocs ->  Blocs
+variantesBlocs = L.concat << L.map variantesBloc
+
+variantesBloc : Bloc -> Blocs
+variantesBloc blcs =
+  case blcs of
+    Sujet blcss ->
+      L.singleton <| Sujet <| variantesBlocs blcss
+    VariableAremplacer ar blcss ->
+      remplacerLaVariableDansLesVariantesBlocs ar.var ar.vals blcss
+    Entete mcr blcss ->
+      case qcmsDepuisVraiFauxx mcr blcss of
+        Just qcms -> qcms
+        Nothing -> [ Entete ( Texte "Je ne peux pas prendre en charge une telle imbrication :(" ) [] ]
+    VraiFaux prps -> [ VraiFaux prps ]
+    QCM mcr prps -> [ QCM mcr prps ]
+
+qcmsDepuisVraiFauxx : Macro -> Blocs -> Maybe Bloc
+qcmsDepuisVraiFauxx mcr blcs =
+  let
+    recupererPropositionsDuVraiFaux blc =
+      case blc of
+        VraiFaux prps -> Just prps
+        _ -> Nothing
+    listeDePropositions listePartielle listeDeMaybePropositions =
+      case listeDeMaybePropositions of
+        [] -> Just <| List.reverse listePartielle
+        Nothing :: lstMbPrps -> Nothing
+        Just prps :: lstMbPrps -> listeDePropositions (prps :: listePartielle) lstMbPrps
+  in
+  recupererPropositionsDuVraiFaux blcs
+  |> listeDePropositions []
+  |> Maybe.map mix
+  |> Maybe.map ( List.map (QCM mcr) )
+
+
+{-| mix [ [1,2] , [3,4] , [5,6] ] == [ [1,3,5] , [1,3,6] , [1,4,5] , [1,4,6] , [2,3,5] , ... ]
+-}
+mix : List (List a) -> List (List a)
+mix lls =
+  case lls of
+    [] -> []
+    [] :: llss -> []
+    l :: [] -> List.map List.singleton l
+    (a :: ls) :: llss -> ( List.map ( (::) a ) ( mix llss ) ) ++ mix ( ls :: llss )
+
+queDesVraiFaux = List.fold && True estUnVraiFaux
+
+estUnVraiFaux blc =
+  case blc of
+    VraiFaux _ -> True
+    _ -> False
+
+remplacerLaVariableDansLaVarianteBloc : String -> List String -> Bloc -> Blocs
+remplacerLaVariableDansLaVarianteBloc vrbl vlrs blc =
+  case blc of
+    Sujet blcs ->
+      remplacerLaVariableDansLesVariantesBlocs vrbl vlr blcs
+    VariableAremplacer ar sjt ->
+      variantesBloc (VariableAremplacer ar sjt)
+      |> Random.andThen (remplacerLaVariableDansLesVariantesBlocs vrbl vlr)
+    Entete mcr sjt ->
+      Random.map L.singleton
+      <| Random.map2 Entete
+          ( Random.constant <| remplacerLaVariableParLaValeurDansLaMacro vrbl vlr mcr )
+          ( remplacerLaVariableDansLesVariantesBlocs vrbl vlr sjt )
+    QCM mcr prps ->
+      Random.map L.singleton
+      <| Random.map2 QCM
+          ( Random.constant <| remplacerLaVariableParLaValeurDansLaMacro vrbl vlr mcr )
+          ( Random.List.shuffle
+            <| L.map (remplacerLaVariableParLaValeurDansLaProposition vrbl vlr) prps
+          )
+    VraiFaux prps ->
+      Random.map
+        ( L.singleton
+          << VraiFaux
+          << L.singleton
+          << remplacerLaVariableParLaValeurDansLaProposition vrbl vlr
+        )
+        <| valeurVariante ( Vrai [ Texte "Le prof de maths est le meilleur." ] ) prps
+
+remplacerLaVariableDansLesVariantesBlocs : String -> String -> Blocs -> Blocs
+remplacerLaVariableDansLesVariantesBlocs vrbl vlr sjt =
+  L.concat <| L.map (remplacerLaVariableDansLaVarianteBloc vrbl vlr) sjt
+
 
 
 {-
