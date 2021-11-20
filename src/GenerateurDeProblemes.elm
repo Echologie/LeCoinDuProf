@@ -69,7 +69,8 @@ init _ =
 
 type Msg
   = StructureDuSujet String
-  | GenererSujet
+  | GenererSujetAleatoire
+  | GenererVariantesSujet
   | SujetGenere String 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -83,7 +84,7 @@ update msg model =
       ( { model | sujetGenere = nouveauSujetGenere }
       , Cmd.none
       )
-    GenererSujet ->
+    GenererSujetAleatoire ->
       let
         f strSuj =
           case P.run (withIndent -1 sujet) strSuj of
@@ -92,6 +93,16 @@ update msg model =
       in
       ( model
       , Random.generate SujetGenere (f model.structureDuSujet)
+      )
+    GenererVariantesSujet ->
+      let
+        f strSuj =
+          case P.run (withIndent -1 sujet) strSuj of
+            Ok sjt -> evalBoxVoirBlocs <| variantesBlocs sjt
+            Err erreurs -> deadEndsToStringBis erreurs
+      in
+      ( { model | sujetGenere = f model.structureDuSujet }
+      , Cmd.none
       )
 
 
@@ -124,8 +135,12 @@ view model =
           }
       , column [spacing petitEspacement, height fill, width fill]
           [ Input.button []
-              { onPress = Just GenererSujet
-              , label = text "Générer le sujet"
+              { onPress = Just GenererSujetAleatoire
+              , label = text "Générer 89 sujets alétoires pour QuizScan"
+              }
+          , Input.button []
+              { onPress = Just GenererVariantesSujet
+              , label = text "Générer les variantes du sujet pour EvalBox"
               }
           , el [height <| maximum 800 fill, clip, scrollbars] <| text model.sujetGenere
           ]
@@ -571,7 +586,7 @@ remplacerLaVariableParLaValeurDansLaProposition vrbl vlr prp =
           ████   ██   ██ ██   ██ ██ ██   ██ ██   ████    ██    ███████ ███████ 
 -}
 
-
+{--}
 variantesBlocs : Blocs ->  Blocs
 variantesBlocs = L.concat << L.map variantesBloc
 
@@ -581,29 +596,29 @@ variantesBloc blcs =
     Sujet blcss ->
       L.singleton <| Sujet <| variantesBlocs blcss
     VariableAremplacer ar blcss ->
-      remplacerLaVariableDansLesVariantesBlocs ar.var ar.vals blcss
+      remplacerLaVariableDansLesBlocs ar blcss
     Entete mcr blcss ->
       case qcmsDepuisVraiFauxx mcr blcss of
         Just qcms -> qcms
-        Nothing -> [ Entete ( Texte "Je ne peux pas prendre en charge une telle imbrication :(" ) [] ]
+        Nothing -> [ Entete [ Texte "Je ne peux pas prendre en charge une telle imbrication :(" ] [] ]
     VraiFaux prps -> [ VraiFaux prps ]
     QCM mcr prps -> [ QCM mcr prps ]
 
-qcmsDepuisVraiFauxx : Macro -> Blocs -> Maybe Bloc
+qcmsDepuisVraiFauxx : Macro -> Blocs -> Maybe Blocs
 qcmsDepuisVraiFauxx mcr blcs =
   let
-    recupererPropositionsDuVraiFaux blc =
+    alternativesDuVraiFaux blc =
       case blc of
         VraiFaux prps -> Just prps
         _ -> Nothing
-    listeDePropositions listePartielle listeDeMaybePropositions =
+    listeDesAlternatives listePartielle listeDeMaybePropositions =
       case listeDeMaybePropositions of
         [] -> Just <| List.reverse listePartielle
         Nothing :: lstMbPrps -> Nothing
-        Just prps :: lstMbPrps -> listeDePropositions (prps :: listePartielle) lstMbPrps
+        Just prps :: lstMbPrps -> listeDesAlternatives (prps :: listePartielle) lstMbPrps
   in
-  recupererPropositionsDuVraiFaux blcs
-  |> listeDePropositions []
+  List.map alternativesDuVraiFaux blcs
+  |> listeDesAlternatives []
   |> Maybe.map mix
   |> Maybe.map ( List.map (QCM mcr) )
 
@@ -618,46 +633,40 @@ mix lls =
     l :: [] -> List.map List.singleton l
     (a :: ls) :: llss -> ( List.map ( (::) a ) ( mix llss ) ) ++ mix ( ls :: llss )
 
-queDesVraiFaux = List.fold && True estUnVraiFaux
+queDesVraiFaux blcs = List.foldl (&&) True <| List.map estUnVraiFaux blcs
 
 estUnVraiFaux blc =
   case blc of
     VraiFaux _ -> True
     _ -> False
 
-remplacerLaVariableDansLaVarianteBloc : String -> List String -> Bloc -> Blocs
-remplacerLaVariableDansLaVarianteBloc vrbl vlrs blc =
+remplacerLaVariableDansLeBloc : Aremplacer -> Bloc -> Blocs
+remplacerLaVariableDansLeBloc ar blc =
   case blc of
     Sujet blcs ->
-      remplacerLaVariableDansLesVariantesBlocs vrbl vlr blcs
-    VariableAremplacer ar sjt ->
-      variantesBloc (VariableAremplacer ar sjt)
-      |> Random.andThen (remplacerLaVariableDansLesVariantesBlocs vrbl vlr)
-    Entete mcr sjt ->
-      Random.map L.singleton
-      <| Random.map2 Entete
-          ( Random.constant <| remplacerLaVariableParLaValeurDansLaMacro vrbl vlr mcr )
-          ( remplacerLaVariableDansLesVariantesBlocs vrbl vlr sjt )
+      remplacerLaVariableDansLesBlocs ar blcs
+    VariableAremplacer arr sjt ->
+      variantesBloc (VariableAremplacer arr sjt)
+      |> remplacerLaVariableDansLesBlocs ar
+    Entete mcr blcs ->
+      List.map (\x -> Entete x []) ( remplacerLaVariableDansLaMacro ar mcr )
+          --( remplacerLaVariableDansLesBlocs ar blcs )
     QCM mcr prps ->
-      Random.map L.singleton
-      <| Random.map2 QCM
-          ( Random.constant <| remplacerLaVariableParLaValeurDansLaMacro vrbl vlr mcr )
-          ( Random.List.shuffle
-            <| L.map (remplacerLaVariableParLaValeurDansLaProposition vrbl vlr) prps
-          )
-    VraiFaux prps ->
-      Random.map
-        ( L.singleton
-          << VraiFaux
-          << L.singleton
-          << remplacerLaVariableParLaValeurDansLaProposition vrbl vlr
-        )
-        <| valeurVariante ( Vrai [ Texte "Le prof de maths est le meilleur." ] ) prps
+      List.map (\x -> QCM x []) ( remplacerLaVariableDansLaMacro ar mcr )
+          --( L.map (remplacerLaVariableParLaValeurDansLaProposition vrbl vlr) prps )
+    VraiFaux prps -> []
+      {--
+      L.singleton
+      <| VraiFaux
+      <| L.singleton
+      <| remplacerLaVariableParLaValeurDansLaProposition vrbl vlr
+      <|  prps
+      --}
 
-remplacerLaVariableDansLesVariantesBlocs : String -> String -> Blocs -> Blocs
-remplacerLaVariableDansLesVariantesBlocs vrbl vlr sjt =
-  L.concat <| L.map (remplacerLaVariableDansLaVarianteBloc vrbl vlr) sjt
-
+remplacerLaVariableDansLesBlocs : Aremplacer -> Blocs -> Blocs
+remplacerLaVariableDansLesBlocs ar blcs =
+  L.concat <| L.map (remplacerLaVariableDansLeBloc ar) blcs
+--}
 
 
 {-
@@ -715,6 +724,46 @@ quizScanVoirBloc prblm =
 
 
 {-
+    ███████ ██    ██  █████  ██      ██████   ██████  ██   ██ 
+    ██      ██    ██ ██   ██ ██      ██   ██ ██    ██  ██ ██  
+    █████   ██    ██ ███████ ██      ██████  ██    ██   ███   
+    ██       ██  ██  ██   ██ ██      ██   ██ ██    ██  ██ ██  
+    ███████   ████   ██   ██ ███████ ██████   ██████  ██   ██ 
+-}
+
+
+evalBoxVoirBlocs : Blocs -> String
+evalBoxVoirBlocs blcs =
+  S.join "\n" <| L.map evalBoxVoirBloc blcs
+
+evalBoxVoirBloc blc =
+  let
+    f prp =
+      case prp of
+        Vrai mc ->
+          "+" ++ voirMacro mc
+        Faux mc ->
+          "-" ++ voirMacro mc
+  in     
+  case blc of
+    Sujet blcs ->
+      evalBoxVoirBlocs blcs
+      ++ "\n----"
+    Entete mcr sjt ->
+      voirMacro mcr
+      ++ evalBoxVoirBlocs sjt
+    QCM mcr prps ->
+      voirMacro mcr
+      ++ "\n"
+      ++ ( S.join "\n" <| L.map f prps )
+    VraiFaux prps ->
+      S.concat <| L.map f prps
+    VariableAremplacer ar sjt ->
+      "" ++ evalBoxVoirBlocs sjt
+
+
+
+{-
         ███    ███ ██ ██   ██ ███████ ██    ██ ██████  
         ████  ████ ██  ██ ██  ██      ██    ██ ██   ██ 
         ██ ████ ██ ██   ███   █████   ██    ██ ██████  
@@ -747,6 +796,7 @@ remplacerLesVariablesDansLaMacroBis ars macros =
       L.map (remplacerLaVariableDansLaMacro ar) macros
       |> L.concat
       |> remplacerLesVariablesDansLaMacroBis arss
+--}
 
 remplacerLaVariableDansLaMacro : Aremplacer -> Macro -> List Macro
 remplacerLaVariableDansLaMacro ar mcr =
@@ -754,7 +804,6 @@ remplacerLaVariableDansLaMacro ar mcr =
     f val = remplacerLaVariableParLaValeurDansLaMacro ar.var val mcr
   in  
   L.map f ar.vals 
---}
 
 remplacerLaVariableParLaValeurDansLaMacro : String -> String -> Macro -> Macro
 remplacerLaVariableParLaValeurDansLaMacro var val mcr =
