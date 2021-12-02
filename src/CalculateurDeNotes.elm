@@ -138,7 +138,7 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-  layout [] <|
+  layout [ width fill, height fill ] <|
     row [spacing grandEspacement, padding tresGrandEspacement, height fill, width fill, clip, scrollbars]
       [ column [spacing petitEspacement, height fill, width fill, clip, scrollbars]
         [ Input.multiline [height <| maximum 300 fill, clip, scrollbars]
@@ -403,12 +403,26 @@ noteSujet brms bonneRpns rpnsEleve =
         _ -> Nothing
 
 noteQuestion brm bonneRpn rpnEleve =
-  if bonneRpn == rpnEleve then
-    brm.bonneReponse
-  else if rpnEleve == "-" then
-    0
-  else
-    brm.mauvaiseReponse
+  case bonneRpn of
+    "V" ->
+      if rpnEleve == "A" then brm.bonneReponse
+      else if rpnEleve == "B" then 2*brm.bonneReponse/3
+      else if rpnEleve == "C" then brm.mauvaiseReponse/3
+      else if rpnEleve == "D" then brm.mauvaiseReponse
+      else 0
+    "F" ->
+      if rpnEleve == "D" then brm.bonneReponse
+      else if rpnEleve == "C" then 2*brm.bonneReponse/3
+      else if rpnEleve == "B" then brm.mauvaiseReponse/3
+      else if rpnEleve == "A" then brm.mauvaiseReponse
+      else 0
+    _ ->
+      if bonnerpn == rpneleve then
+        brm.bonnereponse
+      else if rpneleve == "-" then
+        0
+      else
+        brm.mauvaisereponse
 
 moyenne elvs =
   let

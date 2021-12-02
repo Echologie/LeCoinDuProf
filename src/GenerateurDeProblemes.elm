@@ -6,7 +6,7 @@ import List as L
 import Set
 import ParserMaths as PM
 import String as S
-import Fractions as F exposing (Frac)
+import Fraction as F exposing (Fraction)
 import Html exposing (Html, Attribute, button, div, textarea, input, p, iframe, section)
 --import Html.Attributes as A -- exposing (..)
 --import Html.Events
@@ -164,7 +164,7 @@ tresGrandEspacement = 25*petitEspacement // 16
 type alias Blocs = List Bloc
 
 type Bloc =
-  Sujet (List Bloc)
+  Sujet Blocs
   | VariableAremplacer Aremplacer Blocs
   | Entete Macro Blocs
   | QCM Macro Propositions
@@ -277,7 +277,6 @@ flip f a b = f b a
 reserve = Set.fromList
   [ "qcm"
   , "vrfx"
-  , "var"
   ]
 
 sousBlocs =
@@ -378,9 +377,9 @@ voirTexteVariable txtvar =
       case expressionParseePotentielle of
         Err erreur -> "L'expression est mal formée."
         Ok expressionParsee ->
-          case Maybe.map F.teX <| PM.evaluer <| expressionParsee of
-            Just a -> a
-            Nothing -> "Les puissances non-entières ne sont pas acceptées."
+          case Result.map F.teX <| PM.evaluer <| expressionParsee of
+            Ok a -> a
+            Err erreur -> erreur
 
 texteSansVariables : Parser TexteVariable
 texteSansVariables =
@@ -586,7 +585,7 @@ remplacerLaVariableParLaValeurDansLaProposition vrbl vlr prp =
           ████   ██   ██ ██   ██ ██ ██   ██ ██   ████    ██    ███████ ███████ 
 -}
 
-{--}
+
 variantesBlocs : Blocs ->  Blocs
 variantesBlocs = L.concat << L.map variantesBloc
 
@@ -666,7 +665,7 @@ remplacerLaVariableDansLeBloc ar blc =
 remplacerLaVariableDansLesBlocs : Aremplacer -> Blocs -> Blocs
 remplacerLaVariableDansLesBlocs ar blcs =
   L.concat <| L.map (remplacerLaVariableDansLeBloc ar) blcs
---}
+
 
 
 {-
@@ -748,7 +747,6 @@ evalBoxVoirBloc blc =
   case blc of
     Sujet blcs ->
       evalBoxVoirBlocs blcs
-      ++ "\n----"
     Entete mcr sjt ->
       voirMacro mcr
       ++ evalBoxVoirBlocs sjt

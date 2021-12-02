@@ -189,17 +189,61 @@ Soit $\left(v_{n}\right)$ la suite définie par $v_{n}=u_{n}+1$.
 ==== Suites, Suit10
 
 
+a : 11,12,13,14,16,17,18,19
 
-En traversant une plaque de verre teintée, un rayon lumineux perd $15 \%$ de son intensité lumineuse.
-1) Soit $I_{0}$ l'intensité d'un rayon à son entrée dans la plaque de verre et $I_{1}$ son intensité à sa sortie. Exprimer $I_{1}$ en fonction de $I_{0}$.
-2) On superpose $n$ plaques de verre identiques ; on note $I_{n}$ l'intensité du rayon lumineux à la sortie de la n-ième plaque.
-a) Exprimer $I_{n}$ en fonction de $I_{n-1}$.
-b) Quelle est la nature de la suite $\left(I_{n}\right)$ ? Préciser le premier terme et la raison.
-c) En déduire l'expression de $I_{n}$ en fonction de $I_{0}$.
-d) Préciser, en le justifiant, le sens de variation de la suite $\left(I_{n}\right)$.
-3) Quelle est l'intensité initiale $I_{0}$ d'un rayon lumineux dont l'intensité après avoir traversé 5 plaques est égale à 20 ?
-4) Calculer le nombre minimum de plaques qu'un rayon doit avoir traversé pour que son intensité sortante soit inférieure ou égale à la moitié de son intensité entrante.
-==== Suites, Suit11
+  On place une bougie devant une plaque de verre teintée. Un rayon lumineux horizontal d'une intensité initiale de $1\,\mathrm{cd}$ perd $#a#\,\%$ de cette intensité en traversant la plaque.
+
+  On désigne par $I_{0}$ l'intensité du rayon à son entrée dans la plaque de verre et par $I_{1}$ son intensité à sa sortie, toutes deux mesurées en candelas ($\mathrm{cd}$).
+
+  vrfx
+    +On a $I_0=1$.
+
+    -On a $I_0=#a#$.
+
+  vrfx
+    -On a $I_1=0,#a#$.
+
+    +On a $I_1=0,#100-a#$.
+
+  On superpose $n$ de ces plaques de verre et on désigne par $I_{n}$ l'intensité en candelas du rayon lumineux à la sortie de la $n$-ième plaque. On admet qu'on a $I_{n}=0,#100-a#\times {n-1}$ pour tout entier positif $n$.
+
+  vrfx
+    +La suite $\left(I_{n}\right)$ est géométrique.
+
+    -La suite $\left(I_{n}\right)$ est arithmétique.
+
+  vrfx
+    +La suite $\left(I_{n}\right)$ est décroissante.
+
+    -La suite $\left(I_{n}\right)$ est croissante.
+
+  vrfx
+    +On a $I_{n}=0,#100-a#^n$ pour tout entier positif $n$.
+
+    -On a $I_{n}=0,#100-a#\times n$ pour tout entier positif $n$.
+
+  vrfx
+    +Le nombre minimum de plaques qu'un rayon doit avoir traversé pour que son intensité sortante soit inférieure à la moitié de son intensité entrante est $#(a^8)/1440 - (83 * a^7)/1008 + (3059 * a^6)/720 - (11213 * a^5)/90 + (3270169 * a^4)/1440 - (3793811 * a^3)/144 + (1899693 * a^2)/10 - (163461043 * a)/210 + 1387612#$
+
+    -Le nombre minimum de plaques qu'un rayon doit avoir traversé pour que son intensité sortante soit inférieure à la moitié de son intensité entrante est $#(a^8)/1440 - (83 * a^7)/1008 + (3059 * a^6)/720 - (11213 * a^5)/90 + (3270169 * a^4)/1440 - (3793811 * a^3)/144 + (1899693 * a^2)/10 - (163461043 * a)/210 + 1387613#$
+
+ b : 10,20,30
+  c : 4,5,6  
+   Pour cette dernière question, on remplace la bougie par un spot lumineux.
+
+   qcm Sachant que l'intensité du rayon lumineux horizontal est égale à $#b#\,\mathrm{cd}$ après avoir traversé $#c#$ plaques, quelle était son intensité initiale~?
+
+    +$\frac{#b#}{0,#100-a#^#c#}$
+
+    -$\frac{#b#}{0,#a#^#c#}$
+
+    -$#b#\times0,#100-a#^#c#$
+
+    -$#b#\times0,#a#^#c#$
+
+
+
+==== Suites, Suit12
 
 
 

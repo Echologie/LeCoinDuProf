@@ -1,0 +1,508 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\begin_preamble
+\usepackage{tkz-tab}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language french
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date true
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 10mm
+\topmargin 2cm
+\rightmargin 20mm
+\bottommargin 20mm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style french
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle empty
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+\paragraph_spacing onehalf
+Correction du DST 1
+\end_layout
+
+\begin_layout Section*
+\paragraph_spacing onehalf
+Exercice 1
+\end_layout
+
+\begin_layout Standard
+\paragraph_spacing onehalf
+Certains ont été perturbés, à juste titre, par le fait que la suite commence
+ à 
+\begin_inset Formula $u_{0}$
+\end_inset
+
+ alors que l'énoncé prétend qu'elle commence au rang 
+\begin_inset Formula $1$
+\end_inset
+
+...
+ Vous trouverez donc ci-dessous la correction pour les deux interprétations
+ de l'énoncé !
+\end_layout
+
+\begin_layout Itemize
+\paragraph_spacing onehalf
+Soit la suite 
+\begin_inset Formula $u$
+\end_inset
+
+ telle que 
+\begin_inset Formula $u_{0}=2$
+\end_inset
+
+ et 
+\begin_inset Formula $u_{n+1}=5u_{n}+4$
+\end_inset
+
+ pour tout entier 
+\begin_inset Formula $n\geqslant0$
+\end_inset
+
+, et soit 
+\begin_inset Formula $v$
+\end_inset
+
+ la suite définie par 
+\begin_inset Formula $v_{n}=u_{n}+1$
+\end_inset
+
+ pour tout entier 
+\begin_inset Formula $n\geqslant0$
+\end_inset
+
+.
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\paragraph_spacing onehalf
+Montrer que la suite 
+\begin_inset Formula $v$
+\end_inset
+
+ est une suite géométrique dont on donnera la raison et le premier terme
+ puis donner une formule pour 
+\begin_inset Formula $v_{n}$
+\end_inset
+
+ puis pour 
+\begin_inset Formula $u_{n}$
+\end_inset
+
+ en fonction de l'entier naturel 
+\begin_inset Formula $n$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Itemize
+\paragraph_spacing onehalf
+On a, pour tout entier naturel 
+\begin_inset Formula $n$
+\end_inset
+
+ :
+\begin_inset Formula 
+\[
+\begin{array}{rl}
+v_{n+1} & =u_{n+1}+1\\
+ & =5u_{n}+4+1\\
+ & =5u_{n}+5\\
+ & =5\left(u_{n}+1\right)\\
+ & 5v_{n}
+\end{array}
+\]
+
+\end_inset
+
+Ce qui montre que la suite 
+\begin_inset Formula $v$
+\end_inset
+
+ est géométrique de raison 
+\begin_inset Formula $5$
+\end_inset
+
+.
+ Son premier terme étant 
+\begin_inset Formula $v_{0}=u_{0}+1=2+1=3$
+\end_inset
+
+, on a que, pour tout entier 
+\begin_inset Formula $n\in\mathbb{N}$
+\end_inset
+
+ :
+\begin_inset Formula 
+\[
+v_{n}=3\times5^{n}
+\]
+
+\end_inset
+
+On en déduit que, pour tout entier 
+\begin_inset Formula $n\in\mathbb{N}$
+\end_inset
+
+ :
+\begin_inset Formula 
+\[
+u_{n}=v_{n}-1=3\times5^{n}-1
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\paragraph_spacing onehalf
+Soit la suite 
+\begin_inset Formula $u$
+\end_inset
+
+ telle que 
+\begin_inset Formula $u_{1}=2$
+\end_inset
+
+ et 
+\begin_inset Formula $u_{n+1}=5u_{n}+4$
+\end_inset
+
+ pour tout entier 
+\begin_inset Formula $n\geqslant1$
+\end_inset
+
+, et soit 
+\begin_inset Formula $v$
+\end_inset
+
+ la suite définie par 
+\begin_inset Formula $v_{n}=u_{n}+1$
+\end_inset
+
+ pour tout entier 
+\begin_inset Formula $n\geqslant1$
+\end_inset
+
+.
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\paragraph_spacing onehalf
+Montrer que la suite 
+\begin_inset Formula $v$
+\end_inset
+
+ est une suite géométrique dont on donnera la raison et le premier terme
+ puis donner une formule pour 
+\begin_inset Formula $v_{n}$
+\end_inset
+
+ puis pour 
+\begin_inset Formula $u_{n}$
+\end_inset
+
+ en fonction de l'entier naturel non nul 
+\begin_inset Formula $n$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Itemize
+\paragraph_spacing onehalf
+On a, pour tout entier naturel non nul 
+\begin_inset Formula $n$
+\end_inset
+
+ :
+\begin_inset Formula 
+\[
+\begin{array}{rl}
+v_{n+1} & =u_{n+1}+1\\
+ & =5u_{n}+4+1\\
+ & =5u_{n}+5\\
+ & =5\left(u_{n}+1\right)\\
+ & 5v_{n}
+\end{array}
+\]
+
+\end_inset
+
+Ce qui montre que la suite 
+\begin_inset Formula $v$
+\end_inset
+
+ est géométrique de raison 
+\begin_inset Formula $5$
+\end_inset
+
+.
+ Son premier terme étant 
+\begin_inset Formula $v_{1}=u_{1}+1=2+1=3$
+\end_inset
+
+, on a que, pour tout entier 
+\begin_inset Formula $n\in\mathbb{N}$
+\end_inset
+
+ :
+\begin_inset Formula 
+\[
+v_{n}=3\times5^{n-1}
+\]
+
+\end_inset
+
+On en déduit que, pour tout entier 
+\begin_inset Formula $n\in\mathbb{N}$
+\end_inset
+
+ :
+\begin_inset Formula 
+\[
+u_{n}=v_{n}-1=3\times5^{n-1}-1
+\]
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+\paragraph_spacing onehalf
+
+\end_layout
+
+\begin_layout Section*
+\paragraph_spacing onehalf
+Exercice 2
+\end_layout
+
+\begin_layout Standard
+\paragraph_spacing onehalf
+Établir, en faisant apparaitre les calculs, le tableau de signe sur 
+\begin_inset Formula $\mathbb{R}$
+\end_inset
+
+ de la fonction 
+\begin_inset Formula $f:x\mapsto3x^{2}+4x-7$
+\end_inset
+
+ et en déduire les solutions sur 
+\begin_inset Formula $\mathbb{R}$
+\end_inset
+
+ de l'inéquation 
+\begin_inset Formula $3x^{2}+4x+8\leqslant15$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\paragraph_spacing onehalf
+(Si vous ne parvenez pas à le faire par le calcul, une résolution graphique
+ du problème rapportera une partie des points)
+\end_layout
+
+\begin_layout Itemize
+\paragraph_spacing double
+\begin_inset Formula $f$
+\end_inset
+
+ est une fonction polynôme du second degré, son déterminant est 
+\begin_inset Formula $\Delta=4^{2}-4\times3\times\left(-7\right)=16+84=100>0$
+\end_inset
+
+, elle admet donc deux racines :
+\begin_inset Formula 
+\[
+x_{1}=\frac{-4-\sqrt{100}}{2\times3}=-\frac{7}{3}\qquad\text{et}\qquad x_{2}=\frac{-4+\sqrt{100}}{2\times3}=1
+\]
+
+\end_inset
+
+Son coefficient dominant étant 
+\begin_inset Formula $a=3>0$
+\end_inset
+
+, on en déduit le tableau de signe suivant :
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\paragraph_spacing onehalf
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{tikzpicture}
+\end_layout
+
+\begin_layout Plain Layout
+
+  
+\backslash
+tkzTabInit [ lgt = 3 ]
+\end_layout
+
+\begin_layout Plain Layout
+
+    {$x$ / 1 , $3x^{2}+4x-7$ / 1}
+\end_layout
+
+\begin_layout Plain Layout
+
+    {$-
+\backslash
+infty$, $-
+\backslash
+frac{7}{3}$, $1$, $+
+\backslash
+infty$}
+\end_layout
+
+\begin_layout Plain Layout
+
+  
+\backslash
+tkzTabLine
+\end_layout
+
+\begin_layout Plain Layout
+
+    {, +, z, -, z, +, }
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{tikzpicture}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\paragraph_spacing onehalf
+Ainsi, on a, pour tout réel 
+\begin_inset Formula $x$
+\end_inset
+
+, les équivalences suivantes :
+\begin_inset Formula 
+\[
+\begin{array}{rl}
+3x^{2}+4x+8\leqslant15 & \Longleftrightarrow3x^{2}+4x+8-15\leqslant0\\
+ & \Longleftrightarrow3x^{2}+4x-7\leqslant0\\
+ & \Longleftrightarrow3x^{2}+4x-7\leqslant0\\
+ & \Longleftrightarrow-\frac{7}{3}\leqslant x\leqslant1
+\end{array}
+\]
+
+\end_inset
+
+Les solutions réelles de l'inéquation 
+\begin_inset Formula $3x^{2}+4x+8\leqslant15$
+\end_inset
+
+ sont donc les réels compris, au sens large, entre 
+\begin_inset Formula $-\frac{7}{3}$
+\end_inset
+
+ et 
+\begin_inset Formula $1$
+\end_inset
+
+, autrement dit, les réels appartenant à l'intervalle 
+\begin_inset Formula $\left[-\frac{7}{3};1\right]$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\end_body
+\end_document

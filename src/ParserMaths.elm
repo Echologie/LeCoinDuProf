@@ -1,6 +1,6 @@
 module ParserMaths exposing (parseMaths, evaluer, evaluerBis, montrerErreurs, expr)
 
-import Fractions as F exposing (Frac)
+import Fraction as F exposing (Fraction, Resultat, frac, opp)
 import Maybe as M
 import Set
 import Parser exposing (..)
@@ -11,7 +11,6 @@ montrerErreurs source errs =
     case List.head errs of
         Nothing ->
             ""
-
         Just firstErr ->
             source
                 ++ "\n"
@@ -20,11 +19,11 @@ montrerErreurs source errs =
                 ++ "\nL'algorithme attendait :"
                 ++ String.join
                     " ou "
-                    (List.map displayExpected errs)
+                    (List.map montrerAttendu errs)
 
 
-displayExpected : DeadEnd -> String
-displayExpected err =
+montrerAttendu : DeadEnd -> String
+montrerAttendu err =
     case err.problem of
         ExpectingNumber ->
             "un nombre entier"
@@ -33,43 +32,48 @@ displayExpected err =
         _ ->
             "une expression"
 
-evaluerBis : Expr -> F.Frac
+evaluerBis : Expr -> Fraction
 evaluerBis expression =
     case evaluer expression of
-        Nothing -> Frac 666 1
-        Just a -> a
+        Err _ -> { num = 666, den = 1 }
+        Ok a -> a
 
-evaluer : Expr -> Maybe F.Frac
+evaluer : Expr -> Resultat
 evaluer expression =
     case expression of
         Add a b ->
-            M.map2 F.add (evaluer a) (evaluer b)
+            opp F.add (evaluer a) (evaluer b)
 
         Sub a b ->
-            M.map2 F.sub (evaluer a) (evaluer b)
+            opp F.sub (evaluer a) (evaluer b)
 
         Mul a b ->
-            M.map2 F.mul (evaluer a) (evaluer b)
+            opp F.mul (evaluer a) (evaluer b)
 
         Div a b ->
-            M.map2 F.div (evaluer a) (evaluer b)
+            opp F.div (evaluer a) (evaluer b)
 
         Exp a b ->
-            case M.map2 F.exp (evaluer a) (evaluer b) of
-                Nothing -> Nothing
-                Just p -> p
+            opp F.exp (evaluer a) (evaluer b)
 
         Neg a ->
-            M.map F.neg (evaluer a)
+            Result.map F.neg (evaluer a)
 
         Grouping l ->
             evaluer l
 
         Entier n ->
-            Just <| F.Frac n 1
+            F.frac n 1
 
         Poly a_i x ->
-            Just <| F.Frac 50 1
+            Err "Les polynômes ne sont pas encore pris en charge."
+
+{--
+appliquerAuResultat f a b =
+    case (a,b) of
+        (Ok aa, Ok bb) -> Ok <| f aa bb
+        (Err aa, _) -> Err aa
+--}
 
 {--
 type Expr
