@@ -107,12 +107,6 @@ update msg model =
         }
       , Cmd.none
       )
-      {--
-    CalculerNotes ->
-      ( { model | eleves = notes brms rpnCorrectes rpnEleves }
-      , Cmd.none
-      )
-    --}
 
 unsafeRun prsr defaut texte =
   case run prsr texte of
