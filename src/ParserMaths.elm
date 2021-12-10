@@ -1,9 +1,9 @@
-module ParserMaths exposing (parseMaths, evaluer, evaluerBis, montrerErreurs, expr)
+module ParserMaths exposing (evaluer, evaluerBis, expr, montrerErreurs, parseMaths)
 
 import Fraction as F exposing (Fraction, Resultat, frac, opp)
 import Maybe as M
-import Set
 import Parser exposing (..)
+import Set
 
 
 montrerErreurs : String -> List DeadEnd -> String
@@ -11,6 +11,7 @@ montrerErreurs source errs =
     case List.head errs of
         Nothing ->
             ""
+
         Just firstErr ->
             source
                 ++ "\n"
@@ -27,16 +28,23 @@ montrerAttendu err =
     case err.problem of
         ExpectingNumber ->
             "un nombre entier"
+
         ExpectingSymbol s ->
             "un \"" ++ s ++ "\""
+
         _ ->
             "une expression"
+
 
 evaluerBis : Expr -> Fraction
 evaluerBis expression =
     case evaluer expression of
-        Err _ -> { num = 666, den = 1 }
-        Ok a -> a
+        Err _ ->
+            { num = 666, den = 1 }
+
+        Ok a ->
+            a
+
 
 evaluer : Expr -> Resultat
 evaluer expression =
@@ -68,13 +76,14 @@ evaluer expression =
         Poly a_i x ->
             Err "Les polynômes ne sont pas encore pris en charge."
 
+
+
 {--
 appliquerAuResultat f a b =
     case (a,b) of
         (Ok aa, Ok bb) -> Ok <| f aa bb
         (Err aa, _) -> Err aa
 --}
-
 {--
 type Expr
   = Const Fraction
@@ -91,6 +100,7 @@ type Expr
   | Exp Expr Frac
   | Opp Expr
 --}
+
 
 type Expr
     = Add Expr Expr
@@ -127,10 +137,13 @@ type Operand
     | Operand Operator Expr
 
 
+
 {-
-  En quelque sorte, décurryfie une expression binaire
-    binary e_1 (Operand MulOp e_2) == Mul e_1 e_2
+   En quelque sorte, décurryfie une expression binaire
+     binary e_1 (Operand MulOp e_2) == Mul e_1 e_2
 -}
+
+
 binary : Expr -> Operand -> Expr
 binary a b =
     case b of
@@ -164,13 +177,16 @@ add =
         |= loop [] addHelper
 
 
--- 
+
+--
+
+
 foldBinary : Expr -> List Operand -> Expr
 foldBinary left operands =
     List.foldr
-    (\operand expression -> binary expression operand)
-    left
-    operands
+        (\operand expression -> binary expression operand)
+        left
+        operands
 
 
 addHelper : List Operand -> Parser (Step (List Operand) (List Operand))
@@ -231,7 +247,8 @@ exp =
 
 primary : Parser Expr
 primary =
-    succeed (\op literal ->
+    succeed
+        (\op literal ->
             case op of
                 Nothing ->
                     literal
@@ -239,16 +256,16 @@ primary =
                 Just _ ->
                     Neg literal
         )
-    |= oneOf
-        [ succeed Just
-            |= symbol "-"
-        , succeed Nothing
-        ]
-    |= oneOf
-        [ grouping
-        , poly
-        , nombre
-        ]
+        |= oneOf
+            [ succeed Just
+                |= symbol "-"
+            , succeed Nothing
+            ]
+        |= oneOf
+            [ grouping
+            , poly
+            , nombre
+            ]
 
 
 nombre : Parser Expr
@@ -261,6 +278,7 @@ nombre =
             , binary = Nothing
             , float = Nothing
             }
+
 
 poly : Parser Expr
 poly =

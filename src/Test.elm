@@ -1,31 +1,29 @@
 module Test exposing (..)
 
 import Browser
-import Html exposing (Html, button, div, text)
-import Html.Events exposing (onClick)
-import MiniLatex
---import MiniLatex.Render exposing(MathJaxRenderOption(..))
+import Element exposing (..)
+import Element.Input as Input
+import Html exposing (Html)
+
 
 
 -- MAIN
 
 
 main =
-  Browser.sandbox { init = init, update = update, view = view }
-
-texteLaTeX = "Pythagoras says: $a^2 + b^2 = c^2$"
+    Browser.sandbox { init = init, update = update, view = view }
 
 
 
 -- MODEL
 
 
-type alias Model = Int
+type alias Model =
+    { texte : String }
 
 
-init : Model
 init =
-  0
+    { texte = "" }
 
 
 
@@ -33,18 +31,12 @@ init =
 
 
 type Msg
-  = Increment
-  | Decrement
+    = NouveauTexte String
 
 
 update : Msg -> Model -> Model
-update msg model =
-  case msg of
-    Increment ->
-      model + 1
-
-    Decrement ->
-      model - 1
+update (NouveauTexte texte) model =
+    { texte = texte }
 
 
 
@@ -53,4 +45,17 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  MiniLatex.render "" NoDelay texteLaTeX
+    layout [ width fill, height fill ] <|
+        row []
+            [ Input.multiline [ height <| maximum 300 fill, clip, scrollbars ]
+                { onChange = NouveauTexte
+                , label = Input.labelAbove [] <| text "Test"
+                , placeholder =
+                    Just <|
+                        Input.placeholder [] <|
+                            text "Entrer le texte"
+                , text = String.toUpper model.texte
+                , spellcheck = False
+                }
+            , text model.texte
+            ]
