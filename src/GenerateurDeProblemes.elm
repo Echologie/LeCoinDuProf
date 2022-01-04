@@ -1,12 +1,13 @@
 module GenerateurDeProblemes exposing (..)
 
-import Browser
+import Browser exposing (Document)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
+import File.Download
 import Fraction as F exposing (Fraction)
 import Html exposing (Attribute, Html, button, div, iframe, input, p, section, textarea)
 import List as L
@@ -17,25 +18,11 @@ import Random.Extra
 import Random.List
 import Set
 import String as S
+import Style exposing (..)
 
 
-
-{-
-   ███    ███  █████  ██ ███    ██
-   ████  ████ ██   ██ ██ ████   ██
-   ██ ████ ██ ███████ ██ ██ ██  ██
-   ██  ██  ██ ██   ██ ██ ██  ██ ██
-   ██      ██ ██   ██ ██ ██   ████
--}
-
-
-main =
-    Browser.element
-        { init = init
-        , update = update
-        , subscriptions = subscriptions
-        , view = view
-        }
+titre =
+    "Générateur de proplèmes"
 
 
 
@@ -54,13 +41,11 @@ type alias Model =
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { structureDuSujet = ""
-      , sujetGenere = ""
-      }
-    , Cmd.none
-    )
+init : Model
+init =
+    { structureDuSujet = ""
+    , sujetGenere = ""
+    }
 
 
 
@@ -142,41 +127,78 @@ subscriptions model =
 -}
 
 
-view : Model -> Html Msg
+view : Model -> Element Msg
 view model =
-    layout [] <|
-        row [ spacing grandEspacement, padding tresGrandEspacement, height fill, width fill, clip, scrollbars ]
-            [ Input.multiline [ height <| maximum 800 fill, clip, scrollbars ]
-                { onChange = StructureDuSujet
-                , label = Input.labelHidden "chose"
-                , placeholder = Just <| Input.placeholder [] <| text "Structure du sujet"
-                , text = model.structureDuSujet
-                , spellcheck = True
+    row
+        [ spacing grandEspacement
+        , padding tresGrandEspacement
+        , height fill
+        , width fill
+        , scrollbars
+        ]
+        [ Input.multiline
+            [ height fill
+            , width fill
+            , clip
+            , scrollbars
+            , Background.color <| vert 0.2
+            , Border.rounded 8
+            , Border.innerShadow
+                { blur = 10
+                , color = rgb255 10 10 10
+                , offset = ( 0.3, 0.4 )
+                , size = 2
                 }
-            , column [ spacing petitEspacement, height fill, width fill ]
-                [ Input.button []
-                    { onPress = Just GenererSujetAleatoire
-                    , label = text "Générer 89 sujets alétoires pour QuizScan"
-                    }
-                , Input.button []
-                    { onPress = Just GenererVariantesSujet
-                    , label = text "Générer les variantes du sujet pour EvalBox"
-                    }
-                , el [ height <| maximum 800 fill, clip, scrollbars ] <| text model.sujetGenere
-                ]
             ]
+            { onChange = StructureDuSujet
+            , label = Input.labelHidden "chose"
+            , placeholder =
+                Just <|
+                    Input.placeholder [] <|
+                        text "Structure du sujet"
+            , text = model.structureDuSujet
+            , spellcheck = True
+            }
+        , column [ spacing petitEspacement, height fill, width fill, scrollbars ]
+            -- L'attibut scrollbars présent dans la liste ci-dessus  ^^^^^^^^^^
+            -- est nécessaire pour que l'élément ci-dessous ne s'étende pas !
+            [ paragraph []
+                [ text
+                    """
+                            Pour générer 89 sujets alétoires appuyer sur QuizScan et
+                            pour générer toutes les variantes du sujet appuyer sur EvalBox.
+                            """
+                ]
+            , row
+                [ width fill
+                , padding petitEspacement
+                , spacing tresGrandEspacement
+                ]
+                [ bouton GenererSujetAleatoire "QuizScan"
+                , bouton GenererVariantesSujet "EvalBox"
+                ]
+            , el
+                --^^ Cet élément ci
+                [ height fill
+                , width fill
+                , clip
+                , scrollbars
 
-
-petitEspacement =
-    20
-
-
-grandEspacement =
-    5 * petitEspacement // 4
-
-
-tresGrandEspacement =
-    25 * petitEspacement // 16
+                --^^^^^^^^^^ Cet attribut ne suffit pas
+                , padding petitEspacement
+                , Background.color <| vert 0.2
+                , Border.rounded 8
+                , Border.innerShadow
+                    { blur = 10
+                    , color = rgb255 10 10 10
+                    , offset = ( 0.3, 0.4 )
+                    , size = 2
+                    }
+                ]
+              <|
+                text model.sujetGenere
+            ]
+        ]
 
 
 
@@ -712,6 +734,8 @@ variantesBloc blcs =
                     [ Entete [ Texte "Je ne peux pas prendre en charge une telle imbrication :(" ] [] ]
 
         VraiFaux prps ->
+            --pourri
+            --qcmsDepuisVraiFauxx [ Texte "La proposition suivante est-elle correcte ?" ]
             [ VraiFaux prps ]
 
         QCM mcr prps ->

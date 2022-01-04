@@ -1,32 +1,22 @@
 module CalculateurDeNotes exposing (..)
 
 import Array exposing (..)
-import Browser
+import Browser exposing (Document)
 import Element exposing (..)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Events exposing (..)
+import Element.Font as Font
 import Element.Input as Input
 import File.Download
 import Html exposing (Html)
 import Parser exposing (..)
 import Set
+import Style exposing (..)
 
 
-
-{-
-   ███    ███  █████  ██ ███    ██
-   ████  ████ ██   ██ ██ ████   ██
-   ██ ████ ██ ███████ ██ ██ ██  ██
-   ██  ██  ██ ██   ██ ██ ██  ██ ██
-   ██      ██ ██   ██ ██ ██   ████
--}
-
-
-main =
-    Browser.element
-        { init = init
-        , update = update
-        , subscriptions = subscriptions
-        , view = view
-        }
+titre =
+    "Calculateur de notes"
 
 
 
@@ -47,15 +37,13 @@ type alias Model =
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { bareme = ""
-      , reponsesCorrectes = ""
-      , reponsesEleves = ""
-      , eleves = []
-      }
-    , Cmd.none
-    )
+init : Model
+init =
+    { bareme = ""
+    , reponsesCorrectes = ""
+    , reponsesEleves = ""
+    , eleves = []
+    }
 
 
 
@@ -159,73 +147,124 @@ subscriptions model =
 -}
 
 
-view : Model -> Html Msg
+view : Model -> Element Msg
 view model =
-    layout [ width fill, height fill ] <|
-        row
-            [ spacing grandEspacement
-            , padding tresGrandEspacement
+    row
+        [ spacing grandEspacement
+        , padding tresGrandEspacement
+        , height fill
+        , width fill
+        ]
+        [ column
+            [ spacing petitEspacement
             , height fill
             , width fill
-            , clip
             , scrollbars
+            , clip
             ]
-            [ column
-                [ spacing petitEspacement
-                , height fill
-                , width fill
+            [ Input.multiline
+                [ height fill
                 , clip
                 , scrollbars
-                ]
-                [ Input.multiline [ height <| maximum 300 fill, clip, scrollbars ]
-                    { onChange = NouveauBareme
-                    , label = Input.labelAbove [] <| text "Barème"
-                    , placeholder =
-                        Just <|
-                            Input.placeholder [] <|
-                                text "Entrer le barème sous la forme +3 -1, +2 -1"
-                    , text = model.bareme
-                    , spellcheck = False
-                    }
-                , Input.multiline [ height <| maximum 300 fill, clip, scrollbars ]
-                    { onChange = NouvellesReponsesCorrectes
-                    , label = Input.labelAbove [] <| text "Réponses correctes"
-                    , placeholder =
-                        Just <|
-                            Input.placeholder [] <|
-                                text "Entrer les réponses correctes pour chaque sujet"
-                    , text = model.reponsesCorrectes
-                    , spellcheck = False
-                    }
-                , Input.multiline [ height <| maximum 300 fill, clip, scrollbars ]
-                    { onChange = NouvellesReponsesEleves
-                    , label = Input.labelAbove [] <| text "Réponses des élèves"
-                    , placeholder =
-                        Just <|
-                            Input.placeholder [] <|
-                                text "Entrer les réponses des élèves"
-                    , text = model.reponsesEleves
-                    , spellcheck = False
+                , width fill
+                , Background.color <| vert 0.2
+                , Border.rounded 8
+                , Border.innerShadow
+                    { blur = 10
+                    , color = rgb255 10 10 10
+                    , offset = ( 0.3, 0.4 )
+                    , size = 2
                     }
                 ]
-            , column [ spacing petitEspacement, height fill, width fill ]
-                [ text <|
-                    "Moyenne : "
-                        ++ String.fromFloat (moyenne model.eleves)
-                        ++ " Écart type : "
-                        ++ String.fromFloat (ecartType model.eleves)
-                , Input.button []
-                    { onPress = Just TelechargerNotes
-                    , label = text "Télécharger le fichier de notes"
+                { onChange = NouveauBareme
+                , label = Input.labelAbove [] <| text "Barème"
+                , placeholder =
+                    Just <|
+                        Input.placeholder [] <|
+                            text "Entrer le barème sous la forme +3 -1, +2 -1"
+                , text = model.bareme
+                , spellcheck = False
+                }
+            , Input.multiline
+                [ height fill
+                , clip
+                , scrollbars
+                , width fill
+                , Background.color <| vert 0.2
+                , Border.rounded 8
+                , Border.innerShadow
+                    { blur = 10
+                    , color = rgb255 10 10 10
+                    , offset = ( 0.3, 0.4 )
+                    , size = 2
                     }
-                , voirNotes model.eleves
                 ]
+                { onChange = NouvellesReponsesCorrectes
+                , label = Input.labelAbove [] <| text "Réponses correctes"
+                , placeholder =
+                    Just <|
+                        Input.placeholder [] <|
+                            text "Entrer les réponses correctes pour chaque sujet"
+                , text = model.reponsesCorrectes
+                , spellcheck = False
+                }
+            , Input.multiline
+                [ height fill
+                , clip
+                , scrollbars
+                , width fill
+                , Background.color <| vert 0.2
+                , Border.rounded 8
+                , Border.innerShadow
+                    { blur = 10
+                    , color = rgb255 10 10 10
+                    , offset = ( 0.3, 0.4 )
+                    , size = 2
+                    }
+                ]
+                { onChange = NouvellesReponsesEleves
+                , label = Input.labelAbove [] <| text "Réponses des élèves"
+                , placeholder =
+                    Just <|
+                        Input.placeholder [] <|
+                            text "Entrer les réponses des élèves"
+                , text = model.reponsesEleves
+                , spellcheck = False
+                }
             ]
+        , column
+            [ spacing petitEspacement
+            , height fill
+            , width fill
+            ]
+            [ text <|
+                "Moyenne : "
+                    ++ String.fromFloat (moyenne model.eleves)
+                    ++ " Écart type : "
+                    ++ String.fromFloat (ecartType model.eleves)
+            , bouton TelechargerNotes "Télécharger le fichier de notes"
+            , voirNotes model.eleves
+            ]
+        ]
 
 
 voirNotes : Eleves -> Element Msg
 voirNotes rpnsEleves =
-    table []
+    table
+        [ height fill
+        , width fill
+        , clip
+        , scrollbars
+        , padding petitEspacement
+        , Background.color <| vert 0.2
+        , Border.rounded 8
+        , Border.innerShadow
+            { blur = 10
+            , color = rgb255 10 10 10
+            , offset = ( 0.3, 0.4 )
+            , size = 2
+            }
+        ]
         { data = rpnsEleves
         , columns =
             [ { header = Element.text "Numéro étudiant"
@@ -276,18 +315,6 @@ voirNotesOrg rpnsEleves =
     in
     "|Numéro|Nom|Prénom|Note|\n"
         ++ String.concat (List.map ligne rpnsEleves)
-
-
-petitEspacement =
-    20
-
-
-grandEspacement =
-    5 * petitEspacement // 4
-
-
-tresGrandEspacement =
-    25 * petitEspacement // 16
 
 
 

@@ -1,17 +1,3 @@
-<!DOCTYPE HTML>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Prof</title>
-  <style>body { padding: 0; margin: 0; }</style>
-</head>
-
-<body>
-
-<pre id="elm"></pre>
-
-<script>
-try {
 (function(scope){
 'use strict';
 
@@ -17181,21 +17167,3 @@ var $author$project$Prof$main = $elm$browser$Browser$application(
 	{ei: $author$project$Prof$init, eD: $author$project$Prof$UrlChanged, eE: $author$project$Prof$LinkClicked, e9: $author$project$Prof$subscriptions, ft: $author$project$Prof$update, c8: $author$project$Prof$view});
 _Platform_export({'Prof':{'init':$author$project$Prof$main(
 	$elm$json$Json$Decode$succeed(0))(0)}});}(this));
-
-  var app = Elm.Prof.init({ node: document.getElementById("elm") });
-}
-catch (e)
-{
-  // display initialization errors (e.g. bad flags, infinite recursion)
-  var header = document.createElement("h1");
-  header.style.fontFamily = "monospace";
-  header.innerText = "Initialization Error";
-  var pre = document.getElementById("elm");
-  document.body.insertBefore(header, pre);
-  pre.innerText = e;
-  throw e;
-}
-</script>
-
-</body>
-</html>
