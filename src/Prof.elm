@@ -26,7 +26,7 @@ import Url
 -}
 
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
     Browser.application
         { init = init
@@ -46,6 +46,8 @@ type alias Model =
     { key : Nav.Key
     , url : Url.Url
     , page : Page
+    , largeur : Int
+    , hauteur : Int
     , modeleGenerateurDeProblemes : GenerateurDeProblemes.Model
     , modeleCalculateurDeNotes : CalculateurDeNotes.Model
     }
@@ -56,13 +58,21 @@ type Page
     | CalculateurDeNotes
 
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+type alias Flags =
+    { l : Int
+    , h : Int
+    }
+
+
+init : Flags -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     case url.fragment of
         Just "CalculateurDeNotes" ->
             ( Model key
                 url
                 CalculateurDeNotes
+                flags.l
+                flags.h
                 GenerateurDeProblemes.init
                 CalculateurDeNotes.init
             , Cmd.none
@@ -72,6 +82,8 @@ init flags url key =
             ( Model key
                 url
                 GenerateurDeProblemes
+                flags.l
+                flags.h
                 GenerateurDeProblemes.init
                 CalculateurDeNotes.init
             , Cmd.none
@@ -81,6 +93,8 @@ init flags url key =
             ( Model key
                 { url | fragment = Just "GenerateurDeProblemes" }
                 GenerateurDeProblemes
+                flags.l
+                flags.h
                 GenerateurDeProblemes.init
                 CalculateurDeNotes.init
             , Nav.pushUrl key (Url.toString { url | fragment = Just "GenerateurDeProblemes" })
@@ -183,7 +197,9 @@ view model =
             , body =
                 [ CalculateurDeNotes.view model.modeleCalculateurDeNotes
                     |> Element.map CalculateurDeNotesMsg
-                    |> designGeneral CalculateurDeNotes.titre
+                    |> designGeneral
+                        (model.largeur - 2 * (petitEspacement + grandEspacement))
+                        CalculateurDeNotes.titre
                 ]
             }
 
@@ -192,12 +208,14 @@ view model =
             , body =
                 [ GenerateurDeProblemes.view model.modeleGenerateurDeProblemes
                     |> Element.map GenerateurDeProblemesMsg
-                    |> designGeneral GenerateurDeProblemes.titre
+                    |> designGeneral
+                        (model.largeur - 2 * (petitEspacement + grandEspacement))
+                        GenerateurDeProblemes.titre
                 ]
             }
 
 
-designGeneral titre elm =
+designGeneral largeur titre elmt =
     layout
         [ height fill
         , width fill
@@ -212,20 +230,23 @@ designGeneral titre elm =
             , Border.rounded 13
             ]
             [ row []
-                [ echologo 135
-                , el
-                    [ Font.size 120
-                    , Font.color <| vert 0.2
-                    , Font.shadow
-                        { offset = ( 2, 2 )
-                        , blur = 3
-                        , color = vert 1
-                        }
-                    ]
-                  <|
-                    text titre
+                [ entete 135 largeur titre
+
+                {-
+                   , el
+                       [ Font.size 120
+                       , Font.color <| vert 0.2
+                       , Font.shadow
+                           { offset = ( 2, 2 )
+                           , blur = 3
+                           , color = vert 1
+                           }
+                       ]
+                     <|
+                       text titre
+                -}
                 ]
-            , elm
+            , elmt
             ]
 
 

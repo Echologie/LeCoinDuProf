@@ -812,15 +812,27 @@ remplacerLaVariableDansLeBloc ar blc =
                 |> remplacerLaVariableDansLesBlocs ar
 
         Entete mcr blcs ->
-            List.map (\x -> Entete x []) (remplacerLaVariableDansLaMacro ar mcr)
+            case qcmsDepuisVraiFauxx mcr blcs of
+                Just qcms ->
+                    remplacerLaVariableDansLesBlocs ar qcms
 
+                Nothing ->
+                    [ Entete [ Texte "Je ne peux pas prendre en charge une telle imbrication :(" ] [] ]
+
+        -- List.map (\x -> Entete x []) (remplacerLaVariableDansLaMacro ar mcr)
         --( remplacerLaVariableDansLesBlocs ar blcs )
         QCM mcr prps ->
-            List.map (\x -> QCM x []) (remplacerLaVariableDansLaMacro ar mcr)
+            let
+                f vlr =
+                    QCM
+                        (remplacerLaVariableParLaValeurDansLaMacro ar.var vlr mcr)
+                        (L.map (remplacerLaVariableParLaValeurDansLaProposition ar.var vlr) prps)
+            in
+            L.map f ar.vals
 
         --( L.map (remplacerLaVariableParLaValeurDansLaProposition vrbl vlr) prps )
         VraiFaux prps ->
-            []
+            [ Entete [ Texte "J'ai besoin d'un entête pour générer des QCM à partir de vrai-faux :(" ] [] ]
 
 
 remplacerLaVariableDansLesBlocs : Aremplacer -> Blocs -> Blocs

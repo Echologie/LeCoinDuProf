@@ -2,10 +2,25 @@ module Style exposing (..)
 
 import Color
 import Color.Manipulate
+import Echologo exposing (..)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
+import Svg exposing (..)
+import Svg.Attributes as SvgA
+    exposing
+        ( color
+        , fill
+        , fontFamily
+        , fontSize
+        , height
+        , r
+        , strokeWidth
+        , viewBox
+        , x
+        , y
+        )
 
 
 {-| HSL = 155, 43.5, 57.6
@@ -51,5 +66,20 @@ bouton fonction label =
             }
         ]
         { onPress = Just fonction
-        , label = text label
+        , label = Element.text label
         }
+
+
+entete hauteur largeur titre =
+    html <|
+        svg [ viewBox <| "0 0 " ++ String.fromInt largeur ++ " 30", SvgA.height <| String.fromInt hauteur ] <|
+            echologo
+                ++ [ text_
+                        [ x "40"
+                        , y "20"
+                        , fontFamily "Verdana"
+                        , SvgA.fill "white"
+                        , fontSize "15"
+                        ]
+                        [ Svg.text titre ]
+                   ]
