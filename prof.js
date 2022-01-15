@@ -7993,6 +7993,9 @@ var $author$project$GenerateurDeProblemes$quizScanVoirBlocs = function (blcs) {
 		'\n',
 		A2($elm$core$List$map, $author$project$GenerateurDeProblemes$quizScanVoirBloc, blcs));
 };
+var $author$project$GenerateurDeProblemes$quizScanVoirSujet = function (blcs) {
+	return '\\documentclass[oneside,twocolumn,landscape]{book}\r\n\\usepackage[T1]{fontenc}\r\n\\usepackage[utf8]{inputenc}\r\n\\usepackage{geometry}\r\n\\geometry{verbose,tmargin=1cm,bmargin=1cm,lmargin=2cm,rmargin=2cm}\r\n\\setcounter{secnumdepth}{3}\r\n\\setcounter{tocdepth}{3}\r\n\\usepackage{mathrsfs}\r\n\\usepackage{amsmath}\r\n\\usepackage{amssymb}\r\n\\usepackage{amsfonts}\r\n\\usepackage{bbold}\r\n\\usepackage{xcolor}\r\n\\pagestyle{empty}\r\n\\newcounter{NumeroDuSujet}\r\n\\setcounter{NumeroDuSujet}{10}\r\n\\newenvironment{Sujet}[1][]\r\n  {\\refstepcounter{NumeroDuSujet}\\section*{Numéro du sujet :~\\theNumeroDuSujet}\\par #1}{\\newpage}\r\n\\newcounter{NumeroDeLaQuestion}[NumeroDuSujet]\r\n\\newenvironment{VraiFaux}[1][]\r\n  {\\begin{enumerate}\\setcounter{enumi}{\\theNumeroDeLaQuestion}#1}\r\n  {\\end{enumerate}\\stepcounter{NumeroDeLaQuestion}}\r\n\\newenvironment{QCM}[1][]\r\n  {\\begin{enumerate}\\setcounter{enumi}{\\theNumeroDeLaQuestion}\\item #1}\r\n  {\\end{enumerate}\\stepcounter{NumeroDeLaQuestion}}\r\n\r\n\\let\\Vrai\\item\r\n\\let\\Faux\\item\r\n\r\n% Pour obtenir les corrigés, retirer les % devant les deux lignes suivantes :\r\n\r\n%\\def\\Vrai#1{\\item{\\color{green}#1}}\r\n%\\def\\Faux#1{\\item{\\color{red}#1}}\r\n\r\n\\begin{document}\r\n\r\n' + ($author$project$GenerateurDeProblemes$quizScanVoirBlocs(blcs) + '\n\n\\end{document}');
+};
 var $author$project$GenerateurDeProblemes$Sujet = function (a) {
 	return {$: 0, a: a};
 };
@@ -9122,7 +9125,7 @@ var $author$project$GenerateurDeProblemes$update = F2(
 						var sjt = _v1.a;
 						return A2(
 							$elm$random$Random$map,
-							$author$project$GenerateurDeProblemes$quizScanVoirBlocs,
+							$author$project$GenerateurDeProblemes$quizScanVoirSujet,
 							$author$project$GenerateurDeProblemes$sujetsAleatoires(sjt));
 					} else {
 						var erreurs = _v1.a;

@@ -83,7 +83,7 @@ update msg model =
                 f strSuj =
                     case P.run (withIndent -1 sujet) strSuj of
                         Ok sjt ->
-                            Random.map quizScanVoirBlocs <| sujetsAleatoires sjt
+                            Random.map quizScanVoirSujet <| sujetsAleatoires sjt
 
                         Err erreurs ->
                             Random.constant <| deadEndsToStringBis erreurs
@@ -849,6 +849,47 @@ remplacerLaVariableDansLesBlocs ar blcs =
     ██████   ██████  ██ ███████ ███████  ██████ ██   ██ ██   ████
        ▀▀
 -}
+
+
+quizScanVoirSujet : Blocs -> String
+quizScanVoirSujet blcs =
+    """\\documentclass[oneside,twocolumn,landscape]{book}
+\\usepackage[T1]{fontenc}
+\\usepackage[utf8]{inputenc}
+\\usepackage{geometry}
+\\geometry{verbose,tmargin=1cm,bmargin=1cm,lmargin=2cm,rmargin=2cm}
+\\setcounter{secnumdepth}{3}
+\\setcounter{tocdepth}{3}
+\\usepackage{mathrsfs}
+\\usepackage{amsmath}
+\\usepackage{amssymb}
+\\usepackage{amsfonts}
+\\usepackage{bbold}
+\\usepackage{xcolor}
+\\pagestyle{empty}
+\\newcounter{NumeroDuSujet}
+\\setcounter{NumeroDuSujet}{10}
+\\newenvironment{Sujet}[1][]
+  {\\refstepcounter{NumeroDuSujet}\\section*{Numéro du sujet :~\\theNumeroDuSujet}\\par #1}{\\newpage}
+\\newcounter{NumeroDeLaQuestion}[NumeroDuSujet]
+\\newenvironment{VraiFaux}[1][]
+  {\\begin{enumerate}\\setcounter{enumi}{\\theNumeroDeLaQuestion}#1}
+  {\\end{enumerate}\\stepcounter{NumeroDeLaQuestion}}
+\\newenvironment{QCM}[1][]
+  {\\begin{enumerate}\\setcounter{enumi}{\\theNumeroDeLaQuestion}\\item #1}
+  {\\end{enumerate}\\stepcounter{NumeroDeLaQuestion}}
+
+\\let\\Vrai\\item
+\\let\\Faux\\item
+
+% Pour obtenir les corrigés, retirer les % devant les deux lignes suivantes :
+
+%\\def\\Vrai#1{\\item{\\color{green}#1}}
+%\\def\\Faux#1{\\item{\\color{red}#1}}
+
+\\begin{document}
+
+""" ++ quizScanVoirBlocs blcs ++ "\n\n\\end{document}"
 
 
 quizScanVoirBlocs : Blocs -> String
