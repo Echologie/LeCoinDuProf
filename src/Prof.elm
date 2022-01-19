@@ -39,7 +39,13 @@ main =
 
 
 
--- MODEL
+{-
+   ███    ███  ██████  ██████  ███████ ██
+   ████  ████ ██    ██ ██   ██ ██      ██
+   ██ ████ ██ ██    ██ ██   ██ █████   ██
+   ██  ██  ██ ██    ██ ██   ██ ██      ██
+   ██      ██  ██████  ██████  ███████ ███████
+-}
 
 
 type alias Model =
@@ -102,7 +108,13 @@ init flags url key =
 
 
 
--- UPDATE
+{-
+   ██    ██ ██████  ██████   █████  ████████ ███████
+   ██    ██ ██   ██ ██   ██ ██   ██    ██    ██
+   ██    ██ ██████  ██   ██ ███████    ██    █████
+   ██    ██ ██      ██   ██ ██   ██    ██    ██
+    ██████  ██      ██████  ██   ██    ██    ███████
+-}
 
 
 type Msg
@@ -186,7 +198,14 @@ subscriptions _ =
 
 
 
--- VIEW
+{-
+
+   ██    ██ ██ ███████ ██     ██
+   ██    ██ ██ ██      ██     ██
+   ██    ██ ██ █████   ██  █  ██
+    ██  ██  ██ ██      ██ ███ ██
+     ████   ██ ███████  ███ ███
+-}
 
 
 view : Model -> Browser.Document Msg
@@ -209,7 +228,7 @@ view model =
                 [ GenerateurDeProblemes.view model.modeleGenerateurDeProblemes
                     |> Element.map GenerateurDeProblemesMsg
                     |> designGeneral
-                        (model.largeur - 2 * (petitEspacement + grandEspacement))
+                        (10 * (model.largeur - 2 * (petitEspacement + grandEspacement)) // 44)
                         GenerateurDeProblemes.titre
                 ]
             }

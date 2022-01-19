@@ -72,7 +72,11 @@ bouton fonction label =
 
 entete hauteur largeur titre =
     html <|
-        svg [ viewBox <| "0 0 " ++ String.fromInt largeur ++ " 30", SvgA.height <| String.fromInt hauteur ] <|
+        svg
+            [ viewBox <| "0 0 " ++ String.fromInt largeur ++ " 30"
+            , SvgA.height <| String.fromInt hauteur
+            ]
+        <|
             echologo
                 ++ [ text_
                         [ x "40"

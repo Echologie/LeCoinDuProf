@@ -22,7 +22,7 @@ import Style exposing (..)
 
 
 titre =
-    "Générateur de proplèmes"
+    "Générateur de problèmes"
 
 
 
@@ -63,6 +63,7 @@ type Msg
     | GenererSujetAleatoire
     | GenererVariantesSujet
     | SujetGenere String
+    | TelechargerSujet
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -104,6 +105,11 @@ update msg model =
             in
             ( { model | sujetGenere = f model.structureDuSujet }
             , Cmd.none
+            )
+
+        TelechargerSujet ->
+            ( model
+            , File.Download.string "Sujets.tex" "text/tex" model.sujetGenere
             )
 
 
@@ -176,6 +182,7 @@ view model =
                 ]
                 [ bouton GenererSujetAleatoire "QuizScan"
                 , bouton GenererVariantesSujet "EvalBox"
+                , bouton TelechargerSujet "Télécharger"
                 ]
             , el
                 --^^ Cet élément ci
