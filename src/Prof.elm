@@ -217,7 +217,7 @@ view model =
                 [ CalculateurDeNotes.view model.modeleCalculateurDeNotes
                     |> Element.map CalculateurDeNotesMsg
                     |> designGeneral
-                        (model.largeur - 2 * (petitEspacement + grandEspacement))
+                        model.largeur
                         CalculateurDeNotes.titre
                 ]
             }
@@ -228,45 +228,10 @@ view model =
                 [ GenerateurDeProblemes.view model.modeleGenerateurDeProblemes
                     |> Element.map GenerateurDeProblemesMsg
                     |> designGeneral
-                        (10 * (model.largeur - 2 * (petitEspacement + grandEspacement)) // 44)
+                        model.largeur
                         GenerateurDeProblemes.titre
                 ]
             }
-
-
-designGeneral largeur titre elmt =
-    layout
-        [ height fill
-        , width fill
-        , padding tresGrandEspacement
-        , Background.color <| vert 0.2
-        ]
-    <|
-        column
-            [ height fill
-            , width fill
-            , Background.color <| vert 0
-            , Border.rounded 13
-            ]
-            [ row []
-                [ entete 135 largeur titre
-
-                {-
-                   , el
-                       [ Font.size 120
-                       , Font.color <| vert 0.2
-                       , Font.shadow
-                           { offset = ( 2, 2 )
-                           , blur = 3
-                           , color = vert 1
-                           }
-                       ]
-                     <|
-                       text titre
-                -}
-                ]
-            , elmt
-            ]
 
 
 viewLink : String -> Html msg

@@ -147,7 +147,7 @@ view model =
             , width fill
             , clip
             , scrollbars
-            , Background.color <| vert 0.2
+            , Background.color <| couleurUI <| couleurArrierePlan
             , Border.rounded 8
             , Border.innerShadow
                 { blur = 10
@@ -193,7 +193,7 @@ view model =
 
                 --^^^^^^^^^^ Cet attribut ne suffit pas
                 , padding petitEspacement
-                , Background.color <| vert 0.2
+                , Background.color <| couleurUI <| couleurArrierePlan
                 , Border.rounded 8
                 , Border.innerShadow
                     { blur = 10

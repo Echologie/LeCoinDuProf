@@ -167,7 +167,7 @@ view model =
                 , clip
                 , scrollbars
                 , width fill
-                , Background.color <| vert 0.2
+                , Background.color <| couleurUI <| couleurArrierePlan
                 , Border.rounded 8
                 , Border.innerShadow
                     { blur = 10
@@ -190,7 +190,7 @@ view model =
                 , clip
                 , scrollbars
                 , width fill
-                , Background.color <| vert 0.2
+                , Background.color <| couleurUI <| couleurArrierePlan
                 , Border.rounded 8
                 , Border.innerShadow
                     { blur = 10
@@ -213,7 +213,7 @@ view model =
                 , clip
                 , scrollbars
                 , width fill
-                , Background.color <| vert 0.2
+                , Background.color <| couleurUI <| couleurArrierePlan
                 , Border.rounded 8
                 , Border.innerShadow
                     { blur = 10
@@ -256,7 +256,7 @@ voirNotes rpnsEleves =
         , clip
         , scrollbars
         , padding petitEspacement
-        , Background.color <| vert 0.2
+        , Background.color <| couleurUI <| couleurArrierePlan
         , Border.rounded 8
         , Border.innerShadow
             { blur = 10

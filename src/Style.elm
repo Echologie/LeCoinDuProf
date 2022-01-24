@@ -1,6 +1,7 @@
 module Style exposing (..)
 
 import Color
+import Color.Convert
 import Color.Manipulate
 import Echologo exposing (..)
 import Element exposing (..)
@@ -11,11 +12,18 @@ import Svg exposing (..)
 import Svg.Attributes as SvgA
     exposing
         ( color
-        , fill
+        , dx
+        , dy
+        , floodColor
+        , floodOpacity
         , fontFamily
         , fontSize
-        , height
+        , id
+        , in2
+        , in_
+        , operator
         , r
+        , stdDeviation
         , strokeWidth
         , viewBox
         , x
@@ -23,21 +31,16 @@ import Svg.Attributes as SvgA
         )
 
 
-{-| HSL = 155, 43.5, 57.6
--}
-echoVert =
-    Color.fromRgba
-        { red = 100 / 255
-        , green = 194 / 255
-        , blue = 155 / 255
-        , alpha = 255 / 255
-        }
+couleurUI =
+    fromRgb << Color.toRgba
 
 
 vert t =
-    fromRgb <|
-        Color.toRgba <|
-            Color.Manipulate.lighten t echoVert
+    Color.Manipulate.lighten t vertMante
+
+
+couleurArrierePlan =
+    vert 0.3
 
 
 petitEspacement =
@@ -56,7 +59,7 @@ bouton fonction label =
     Input.button
         [ centerY
         , padding petitEspacement
-        , Background.color <| vert -0.2
+        , Background.color <| couleurUI <| vert -0.2
         , Border.rounded 8
         , Border.shadow
             { blur = 10
@@ -70,20 +73,59 @@ bouton fonction label =
         }
 
 
-entete hauteur largeur titre =
+entete largeur titre =
     html <|
         svg
-            [ viewBox <| "0 0 " ++ String.fromInt largeur ++ " 30"
-            , SvgA.height <| String.fromInt hauteur
+            [ viewBox <| "0 0 300 30"
+            , SvgA.width <| String.fromInt largeur
             ]
         <|
-            echologo
+            [ defs [] [ ombreInterne ] ]
+                ++ echologo couleurArrierePlan (SvgA.filter "url(#ombreInterne)")
                 ++ [ text_
-                        [ x "40"
-                        , y "20"
+                        [ x "30"
+                        , y "25"
                         , fontFamily "Verdana"
-                        , SvgA.fill "white"
-                        , fontSize "15"
+                        , SvgA.fill <| Color.Convert.colorToHex couleurArrierePlan
+                        , fontSize "20"
+                        , SvgA.filter "url(#ombreInterne)"
                         ]
                         [ Svg.text titre ]
                    ]
+
+
+ombreInterne =
+    filter [ id "ombreInterne" ]
+        [ feFlood [ floodColor "black", floodOpacity ".6" ] []
+        , feComposite [ in2 "SourceAlpha", operator "out" ] []
+        , feGaussianBlur [ stdDeviation "1" ] []
+        , feOffset [ dx ".1", dy ".5" ] []
+        , feComposite [ in2 "SourceAlpha", operator "in" ] []
+        , feMerge []
+            [ feMergeNode [ in_ "SourceGraphic" ] []
+            , feMergeNode [] []
+            ]
+        ]
+
+
+designGeneral largeur titre elmt =
+    layout
+        [ height fill
+        , width fill
+        , padding tresGrandEspacement
+        , Background.color <| couleurUI <| couleurArrierePlan
+        ]
+    <|
+        column
+            [ height fill
+            , width fill
+            , Background.color <| couleurUI <| vert 0
+            , Border.rounded 13
+            ]
+            [ row []
+                [ entete
+                    (largeur - 2 * (petitEspacement + grandEspacement))
+                    titre
+                ]
+            , elmt
+            ]
