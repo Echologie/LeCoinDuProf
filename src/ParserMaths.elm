@@ -1,6 +1,6 @@
 module ParserMaths exposing (evaluer, evaluerBis, expr, montrerErreurs, parseMaths)
 
-import Fraction as F exposing (Fraction, Resultat, frac, opp)
+import Fraction as F exposing (Fraction, Resultat, fraction, map2)
 import Maybe as M
 import Parser exposing (..)
 import Set
@@ -40,7 +40,7 @@ evaluerBis : Expr -> Fraction
 evaluerBis expression =
     case evaluer expression of
         Err _ ->
-            { num = 666, den = 1 }
+            { numerateur = 666, denominateur = 1 }
 
         Ok a ->
             a
@@ -50,56 +50,31 @@ evaluer : Expr -> Resultat
 evaluer expression =
     case expression of
         Add a b ->
-            opp F.add (evaluer a) (evaluer b)
+            map2 F.somme (evaluer a) (evaluer b)
 
         Sub a b ->
-            opp F.sub (evaluer a) (evaluer b)
+            map2 F.difference (evaluer a) (evaluer b)
 
         Mul a b ->
-            opp F.mul (evaluer a) (evaluer b)
+            map2 F.produit (evaluer a) (evaluer b)
 
         Div a b ->
-            opp F.div (evaluer a) (evaluer b)
+            map2 F.quotient (evaluer a) (evaluer b)
 
         Exp a b ->
-            opp F.exp (evaluer a) (evaluer b)
+            map2 F.exp (evaluer a) (evaluer b)
 
         Neg a ->
-            Result.map F.neg (evaluer a)
+            Result.map F.oppose (evaluer a)
 
         Grouping l ->
             evaluer l
 
         Entier n ->
-            F.frac n 1
+            F.fraction n 1
 
         Poly a_i x ->
             Err "Les polynômes ne sont pas encore pris en charge."
-
-
-
-{--
-appliquerAuResultat f a b =
-    case (a,b) of
-        (Ok aa, Ok bb) -> Ok <| f aa bb
-        (Err aa, _) -> Err aa
---}
-{--
-type Expr
-  = Const Fraction
-  | Var String
-  | Poly (List Fraction) String
-  | Exp Expr
-  | Ln Expr
-  | Sin Expr
-  | Cos Expr
-  | Prod Expr Expr
-  | Div Expr Expr
-  | Sum Expr Expr
-  | Dif Expr Expr
-  | Exp Expr Frac
-  | Opp Expr
---}
 
 
 type Expr
@@ -137,13 +112,9 @@ type Operand
     | Operand Operator Expr
 
 
-
-{-
-   En quelque sorte, décurryfie une expression binaire
-     binary e_1 (Operand MulOp e_2) == Mul e_1 e_2
+{-| En quelque sorte, décurryfie une expression binaire
+binary e\_1 (Operand MulOp e\_2) == Mul e\_1 e\_2
 -}
-
-
 binary : Expr -> Operand -> Expr
 binary a b =
     case b of

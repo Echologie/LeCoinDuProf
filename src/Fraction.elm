@@ -2,19 +2,19 @@ module Fraction exposing
     ( Erreur
     , Fraction
     , Resultat
-    , add
-    , den
-    , div
+    , asciiMath
+    , denominateur
+    , difference
     , estEntier
     , exp
-    , frac
-    , inv
-    , mul
-    , neg
-    , num
-    , opp
-    , raw
-    , sub
+    , fraction
+    , inverse
+    , map2
+    , numerateur
+    , oppose
+    , produit
+    , quotient
+    , somme
     , teX
     )
 
@@ -22,7 +22,7 @@ import Arithmetic exposing (gcd)
 
 
 type alias Fraction =
-    { num : Int, den : Int }
+    { numerateur : Int, denominateur : Int }
 
 
 type alias Resultat =
@@ -33,8 +33,8 @@ type alias Erreur =
     String
 
 
-frac : Int -> Int -> Resultat
-frac a b =
+fraction : Int -> Int -> Resultat
+fraction a b =
     let
         min =
             1 - 2 ^ 31
@@ -58,38 +58,38 @@ simplifier : Fraction -> Fraction
 simplifier a =
     let
         pgcd =
-            gcd a.num a.den
+            gcd a.numerateur a.denominateur
 
         sgnDuDen =
-            if a.den < 0 then
+            if a.denominateur < 0 then
                 -1
 
             else
                 1
     in
     { a
-        | num = sgnDuDen * (a.num // pgcd)
-        , den = sgnDuDen * (a.den // pgcd)
+        | numerateur = sgnDuDen * (a.numerateur // pgcd)
+        , denominateur = sgnDuDen * (a.denominateur // pgcd)
     }
 
 
-num a =
-    a.num
+numerateur a =
+    a.numerateur
 
 
-den a =
-    a.den
+denominateur a =
+    a.denominateur
 
 
 estEntier a =
-    a.den == 1
+    a.denominateur == 1
 
 
-opp : (Fraction -> Fraction -> Resultat) -> Resultat -> Resultat -> Resultat
-opp operation resultat1 resultat2 =
+map2 : (Fraction -> Fraction -> Resultat) -> Resultat -> Resultat -> Resultat
+map2 operation resultat1 resultat2 =
     case ( resultat1, resultat2 ) of
-        ( Ok fraction1, Ok fraction2 ) ->
-            operation fraction1 fraction2
+        ( Ok fractiontion1, Ok fractiontion2 ) ->
+            operation fractiontion1 fractiontion2
 
         ( Err erreur, _ ) ->
             Err erreur
@@ -98,109 +98,109 @@ opp operation resultat1 resultat2 =
             Err erreur
 
 
-add : Fraction -> Fraction -> Resultat
-add a b =
+somme : Fraction -> Fraction -> Resultat
+somme a b =
     let
         pgcd =
-            gcd a.den b.den
+            gcd a.denominateur b.denominateur
 
         aDenBis =
-            a.den // pgcd
+            a.denominateur // pgcd
 
         bDenBis =
-            b.den // pgcd
+            b.denominateur // pgcd
     in
-    frac (a.num * bDenBis + b.num * aDenBis) (a.den * bDenBis)
+    fraction (a.numerateur * bDenBis + b.numerateur * aDenBis) (a.denominateur * bDenBis)
 
 
-neg : Fraction -> Fraction
-neg a =
-    Fraction -a.num a.den
+oppose : Fraction -> Fraction
+oppose a =
+    Fraction -a.numerateur a.denominateur
 
 
-sub : Fraction -> Fraction -> Resultat
-sub a b =
-    add a (neg b)
+difference : Fraction -> Fraction -> Resultat
+difference a b =
+    somme a (oppose b)
 
 
-mul : Fraction -> Fraction -> Resultat
-mul a b =
+produit : Fraction -> Fraction -> Resultat
+produit a b =
     let
         pgcd =
-            gcd a.num b.den
+            gcd a.numerateur b.denominateur
 
         pgcdBis =
-            gcd b.num a.den
+            gcd b.numerateur a.denominateur
 
         aNum =
-            a.num // pgcd
+            a.numerateur // pgcd
 
         aDen =
-            a.den // pgcdBis
+            a.denominateur // pgcdBis
 
         bNum =
-            b.num // pgcdBis
+            b.numerateur // pgcdBis
 
         bDen =
-            b.den // pgcd
+            b.denominateur // pgcd
     in
-    frac (aNum * bNum) (aDen * bDen)
+    fraction (aNum * bNum) (aDen * bDen)
 
 
-inv : Fraction -> Resultat
-inv a =
-    case a.num of
+inverse : Fraction -> Resultat
+inverse a =
+    case a.numerateur of
         0 ->
             Err "Division par zéro"
 
         _ ->
-            Ok <| Fraction a.den a.num
+            Ok <| Fraction a.denominateur a.numerateur
 
 
-div : Fraction -> Fraction -> Resultat
-div a b =
-    Result.andThen (mul a) <| inv b
+quotient : Fraction -> Fraction -> Resultat
+quotient a b =
+    Result.andThen (produit a) <| inverse b
 
 
 exp : Fraction -> Fraction -> Resultat
 exp a b =
     let
         sgnDeA =
-            if a.num < 0 then
+            if a.numerateur < 0 then
                 -1
 
             else
                 1
 
         sgnDeB =
-            if b.num < 0 then
+            if b.numerateur < 0 then
                 -1
 
             else
                 1
     in
-    if b.den == 1 && b.num < 0 then
-        frac ((sgnDeA * a.den) ^ (sgnDeB * b.num)) ((sgnDeA * a.num) ^ (sgnDeB * b.num))
+    if b.denominateur == 1 && b.numerateur < 0 then
+        fraction ((sgnDeA * a.denominateur) ^ (sgnDeB * b.numerateur)) ((sgnDeA * a.numerateur) ^ (sgnDeB * b.numerateur))
 
-    else if b.den == 1 then
-        frac (a.num ^ b.num) (a.den ^ b.num)
+    else if b.denominateur == 1 then
+        fraction (a.numerateur ^ b.numerateur) (a.denominateur ^ b.numerateur)
 
     else
-        Err "Extraction de racine impossible"
+        Err "L'extraction de racine n'est pas disponible pour les nombres écrits sous forme fractiontionnaire."
 
 
 teX a =
-    case a.den of
+    case a.denominateur of
         1 ->
-            String.fromInt a.num
+            String.fromInt a.numerateur
 
         _ ->
-            if a.num < 0 then
-                "-\\frac{" ++ String.fromInt -a.num ++ "}{" ++ String.fromInt a.den ++ "}"
+            if a.numerateur < 0 then
+                "-\\fraction{" ++ String.fromInt -a.numerateur ++ "}{" ++ String.fromInt a.denominateur ++ "}"
 
             else
-                "\\frac{" ++ String.fromInt a.num ++ "}{" ++ String.fromInt a.den ++ "}"
+                "\\fraction{" ++ String.fromInt a.numerateur ++ "}{" ++ String.fromInt a.denominateur ++ "}"
 
 
-raw a =
-    "(" ++ String.fromInt a.num ++ "/" ++ String.fromInt a.den ++ ")"
+asciiMath a =
+    "(" ++ String.fromInt a.numerateur ++ "/" ++ String.fromInt a.denominateur ++ ")"

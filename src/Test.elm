@@ -4,7 +4,10 @@ import Browser
 import Debug exposing (todo)
 import Element exposing (..)
 import Element.Input as Input
+import Elm.Parser
 import Html exposing (Html)
+import Parser exposing ((|.), (|=), Parser, end, float, keyword, run, succeed, symbol)
+import Pratt exposing (infixLeft, infixRight, literal, prefix)
 import Svg exposing (circle, g, path, svg)
 import Svg.Attributes as SvgA exposing (color, cx, cy, r, strokeWidth, viewBox, x, y)
 
@@ -22,11 +25,11 @@ main =
 
 
 type alias Model =
-    { texte : String }
+    String
 
 
 init =
-    { texte = "" }
+    "2+5^(4/3),4"
 
 
 
@@ -39,15 +42,79 @@ type Msg
 
 update : Msg -> Model -> Model
 update (NouveauTexte texte) model =
-    { texte = texte }
+    texte
 
 
 
 -- VIEW
 
 
-view : Model -> Html Msg
 view model =
+    layout [] <|
+        text <|
+            case run parser model of
+                Ok valeur ->
+                    String.fromFloat valeur
+
+                Err _ ->
+                    "BOOM"
+
+
+mathExpression : Parser Float
+mathExpression =
+    Pratt.expression
+        { oneOf =
+            [ literal float
+            , prefix 3 (symbol "-") negate
+            , parenthesizedExpression
+            ]
+        , andThenOneOf =
+            [ infixLeft 1 (symbol "+") (+)
+            , infixLeft 1 (symbol "-") (-)
+            , infixLeft 2 (symbol "*") (*)
+            , infixLeft 2 (symbol "/") (/)
+            , infixRight 4 (symbol "^") (^)
+            ]
+        , spaces = Parser.spaces
+        }
+
+
+parenthesizedExpression : Pratt.Config Float -> Parser Float
+parenthesizedExpression config =
+    succeed identity
+        |. symbol "("
+        |= Pratt.subExpression 0 config
+        |. symbol ")"
+
+
+parser : Parser Float
+parser =
+    succeed List.sum
+        |= Parser.sequence
+            { start = ""
+            , separator = ","
+            , end = ""
+            , spaces = espaces
+            , item = mathExpression
+            , trailing = Parser.Forbidden
+            }
+        |. end
+
+
+espaces =
+    Parser.chompWhile <| (==) ' '
+
+
+
+{--
+run parser "-1*3--5+4/2^2" --> Ok ((-1*3)-(-5)+(4/(2^2)))
+run parser "-1*3--5+4/2^2" --> Ok 3
+run parser "((-1*3) - (-5) + (4 / (2^2)))" --> Ok 3
+--}
+
+
+viewOld : Model -> Html Msg
+viewOld model =
     layout [ width fill, height fill ] <|
         column [ padding 100, centerX, centerY ]
             [ html <|

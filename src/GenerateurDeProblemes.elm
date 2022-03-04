@@ -12,7 +12,7 @@ import Fraction as F exposing (Fraction)
 import Html exposing (Attribute, Html, button, div, iframe, input, p, section, textarea)
 import List as L
 import Parser as P exposing (..)
-import ParserMaths as PM
+import ParserMathsPratt as PM
 import Random
 import Random.Extra
 import Random.List
@@ -568,7 +568,7 @@ variableAremplacer =
 
 aRemplacer : Parser Aremplacer
 aRemplacer =
-    succeed (\x y -> Aremplacer x (L.map (F.raw << PM.evaluerBis) y))
+    succeed (\x y -> Aremplacer x (L.map (F.asciiMath << PM.evaluerBis) y))
         |. espaces
         |= variable
             { start = Char.isAlpha
