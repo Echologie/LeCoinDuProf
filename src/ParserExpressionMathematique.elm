@@ -1,10 +1,8 @@
-module ParserMathsPratt exposing
-    ( Expr(..)
-    , evaluer
-    , evaluerBis
-    , expr
-    , montrerErreurs
-    , parseMaths
+module ParserExpressionMathematique exposing
+    ( ExpressionMathematique(..)
+    , evaluerUnsafe
+    , expressionMathematique
+    , parserExpressionMathematique
     , resultatFractionnaire
     )
 
@@ -15,34 +13,34 @@ import Pratt exposing (constant, infixLeft, infixRight, literal, postfix, prefix
 import Set
 
 
-type Expr
+type ExpressionMathematique
     = Entier Int
     | Decimal Float
-    | Oppose Expr
-    | Somme Expr Expr
-    | Difference Expr Expr
-    | Produit Expr Expr
-    | Quotient Expr Expr
-    | Reste Expr Expr
-    | Exp Expr Expr
-    | Cos Expr
-    | Sin Expr
-    | Tan Expr
-    | ArcCos Expr
-    | ArcSin Expr
-    | ArcTan Expr
-    | Log Expr
-    | Ln Expr
-    | Factorielle Expr
-    | Degre Expr
-    | Poly (List Expr) String
+    | Oppose ExpressionMathematique
+    | Somme ExpressionMathematique ExpressionMathematique
+    | Difference ExpressionMathematique ExpressionMathematique
+    | Produit ExpressionMathematique ExpressionMathematique
+    | Quotient ExpressionMathematique ExpressionMathematique
+    | Reste ExpressionMathematique ExpressionMathematique
+    | Exp ExpressionMathematique ExpressionMathematique
+    | Cos ExpressionMathematique
+    | Sin ExpressionMathematique
+    | Tan ExpressionMathematique
+    | ArcCos ExpressionMathematique
+    | ArcSin ExpressionMathematique
+    | ArcTan ExpressionMathematique
+    | Log ExpressionMathematique
+    | Ln ExpressionMathematique
+    | Factorielle ExpressionMathematique
+    | Degre ExpressionMathematique
+    | Poly (List ExpressionMathematique) String
     | E
     | Pi
 
 
-parseMaths : String -> Result (List DeadEnd) Expr
-parseMaths source =
-    run expr source
+parserExpressionMathematique : String -> Result (List DeadEnd) ExpressionMathematique
+parserExpressionMathematique source =
+    run expressionMathematique source
 
 
 montrerErreurs : String -> List DeadEnd -> String
@@ -75,8 +73,8 @@ montrerAttendu err =
             "une expression"
 
 
-evaluerBis : Expr -> Fraction.Fraction
-evaluerBis expression =
+evaluerUnsafe : ExpressionMathematique -> Fraction.Fraction
+evaluerUnsafe expression =
     case resultatFractionnaire expression of
         Err _ ->
             { numerateur = 666, denominateur = 1 }
@@ -85,11 +83,7 @@ evaluerBis expression =
             a
 
 
-evaluer =
-    resultatFractionnaire
-
-
-resultatFractionnaire : Expr -> Fraction.Resultat
+resultatFractionnaire : ExpressionMathematique -> Fraction.Resultat
 resultatFractionnaire expression =
     let
         f opperation a b =
@@ -124,14 +118,8 @@ resultatFractionnaire expression =
             Err "BOOM"
 
 
-expr : Parser Expr
-expr =
-    succeed identity
-        |= mathExpression
-
-
-mathExpression : Parser Expr
-mathExpression =
+expressionMathematique : Parser ExpressionMathematique
+expressionMathematique =
     Pratt.expression
         { oneOf =
             [ constant (keyword "E") E
@@ -159,15 +147,11 @@ mathExpression =
             , postfix 6 (symbol "!") Factorielle
             , postfix 6 (symbol "°") Degre
             ]
-        , spaces = espaces
+        , spaces = Parser.spaces
         }
 
 
-espaces =
-    Parser.chompWhile <| (==) ' '
-
-
-expressionEntreParentheses : Pratt.Config Expr -> Parser Expr
+expressionEntreParentheses : Pratt.Config ExpressionMathematique -> Parser ExpressionMathematique
 expressionEntreParentheses config =
     succeed identity
         |. symbol "("
@@ -175,8 +159,8 @@ expressionEntreParentheses config =
         |. symbol ")"
 
 
-poly : Parser Expr
-poly =
+polynome : Parser ExpressionMathematique
+polynome =
     succeed Poly
         |. keyword "Poly"
         |. spaces
@@ -185,7 +169,7 @@ poly =
             , separator = ","
             , end = "]"
             , spaces = spaces
-            , item = lazy (\_ -> mathExpression)
+            , item = lazy (\_ -> expressionMathematique)
             , trailing = Forbidden
             }
         |. spaces

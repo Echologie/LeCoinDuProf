@@ -12,7 +12,7 @@ import Fraction as F exposing (Fraction)
 import Html exposing (Attribute, Html, button, div, iframe, input, p, section, textarea)
 import List as L
 import Parser as P exposing (..)
-import ParserMathsPratt as PM
+import ParserExpressionMathematique as Pem
 import Random
 import Random.Extra
 import Random.List
@@ -455,14 +455,14 @@ voirTexteVariable txtvar =
         Variable var ->
             let
                 expressionParseePotentielle =
-                    PM.parseMaths var
+                    Pem.parserExpressionMathematique var
             in
             case expressionParseePotentielle of
                 Err erreur ->
                     "L'expression est mal formée."
 
                 Ok expressionParsee ->
-                    case Result.map F.teX <| PM.evaluer <| expressionParsee of
+                    case Result.map F.teX <| Pem.resultatFractionnaire <| expressionParsee of
                         Ok a ->
                             a
 
@@ -568,7 +568,7 @@ variableAremplacer =
 
 aRemplacer : Parser Aremplacer
 aRemplacer =
-    succeed (\x y -> Aremplacer x (L.map (F.asciiMath << PM.evaluerBis) y))
+    succeed (\x y -> Aremplacer x (L.map (F.asciiMath << Pem.evaluerUnsafe) y))
         |. espaces
         |= variable
             { start = Char.isAlpha
@@ -582,7 +582,7 @@ aRemplacer =
             , separator = ","
             , end = ""
             , spaces = espaces
-            , item = PM.expr
+            , item = Pem.expressionMathematique
             , trailing = P.Optional
             }
 
