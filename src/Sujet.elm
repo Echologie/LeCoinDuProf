@@ -1,11 +1,13 @@
 module Sujet exposing (..)
 
 
-type Bloc typeDeBloc etat exportabilite
+type Bloc etat exportabilite
     = Bloc
-        { entete : Macro
-        , contenu : List Bloc
-        , commentaire : Macro
+        { entete : Maybe Macro
+        , contenu : Contenu
+        , correction : Maybe Macro
+        , tag : List String
+        , bareme : Float
         }
 
 
