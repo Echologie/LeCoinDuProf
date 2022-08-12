@@ -10,6 +10,7 @@ import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import GenerateurDeProblemes
+import GenerateurH5P
 import Html exposing (Html)
 import Html.Attributes
 import Style exposing (..)
@@ -56,12 +57,14 @@ type alias Model =
     , hauteur : Int
     , modeleGenerateurDeProblemes : GenerateurDeProblemes.Model
     , modeleCalculateurDeNotes : CalculateurDeNotes.Model
+    , modeleGenerateurH5P : GenerateurH5P.Model
     }
 
 
 type Page
     = GenerateurDeProblemes
     | CalculateurDeNotes
+    | GenerateurH5P
 
 
 type alias Flags =
@@ -81,6 +84,7 @@ init flags url key =
                 flags.h
                 GenerateurDeProblemes.init
                 CalculateurDeNotes.init
+                GenerateurH5P.init
             , Cmd.none
             )
 
@@ -92,18 +96,32 @@ init flags url key =
                 flags.h
                 GenerateurDeProblemes.init
                 CalculateurDeNotes.init
+                GenerateurH5P.init
+            , Cmd.none
+            )
+
+        Just "GenerateurH5P" ->
+            ( Model key
+                url
+                GenerateurH5P
+                flags.l
+                flags.h
+                GenerateurDeProblemes.init
+                CalculateurDeNotes.init
+                GenerateurH5P.init
             , Cmd.none
             )
 
         _ ->
             ( Model key
-                { url | fragment = Just "GenerateurDeProblemes" }
-                GenerateurDeProblemes
+                { url | fragment = Just "GenerateurH5P" }
+                GenerateurH5P
                 flags.l
                 flags.h
                 GenerateurDeProblemes.init
                 CalculateurDeNotes.init
-            , Nav.pushUrl key (Url.toString { url | fragment = Just "GenerateurDeProblemes" })
+                GenerateurH5P.init
+            , Nav.pushUrl key (Url.toString { url | fragment = Just "GenerateurH5P" })
             )
 
 
@@ -122,6 +140,7 @@ type Msg
     | UrlChanged Url.Url
     | CalculateurDeNotesMsg CalculateurDeNotes.Msg
     | GenerateurDeProblemesMsg GenerateurDeProblemes.Msg
+    | GenerateurH5PMsg GenerateurH5P.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -153,12 +172,20 @@ update msg model =
                     , Cmd.none
                     )
 
+                Just "GenerateurH5P" ->
+                    ( { model
+                        | url = url
+                        , page = GenerateurH5P
+                      }
+                    , Cmd.none
+                    )
+
                 _ ->
                     ( { model
-                        | url = { url | fragment = Just "GenerateurDeProblemes" }
-                        , page = GenerateurDeProblemes
+                        | url = { url | fragment = Just "GenerateurH5P" }
+                        , page = GenerateurH5P
                       }
-                    , Nav.pushUrl model.key (Url.toString { url | fragment = Just "GenerateurDeProblemes" })
+                    , Nav.pushUrl model.key (Url.toString { url | fragment = Just "GenerateurH5P" })
                     )
 
         ( GenerateurDeProblemesMsg message, GenerateurDeProblemes ) ->
@@ -182,6 +209,18 @@ update msg model =
                 | modeleCalculateurDeNotes = nouveauModele
               }
             , Cmd.map CalculateurDeNotesMsg commande
+            )
+
+        ( GenerateurH5PMsg message, GenerateurH5P ) ->
+            let
+                ( nouveauModele, commande ) =
+                    GenerateurH5P.update message
+                        model.modeleGenerateurH5P
+            in
+            ( { model
+                | modeleGenerateurH5P = nouveauModele
+              }
+            , Cmd.map GenerateurH5PMsg commande
             )
 
         _ ->
@@ -230,6 +269,17 @@ view model =
                     |> designGeneral
                         model.largeur
                         GenerateurDeProblemes.titre
+                ]
+            }
+
+        GenerateurH5P ->
+            { title = GenerateurH5P.titre
+            , body =
+                [ GenerateurH5P.view model.modeleGenerateurDeProblemes
+                    |> Element.map GenerateurH5PMsg
+                    |> designGeneral
+                        model.largeur
+                        GenerateurH5P.titre
                 ]
             }
 

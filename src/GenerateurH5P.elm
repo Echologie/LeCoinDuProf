@@ -22,7 +22,7 @@ import Style exposing (..)
 
 
 titre =
-    "Générateur de problèmes"
+    "Générateur d'archives H5P"
 
 
 
