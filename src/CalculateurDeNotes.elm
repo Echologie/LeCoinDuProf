@@ -160,11 +160,9 @@ view model =
             , height fill
             , width fill
             , scrollbars
-            , clip
             ]
             [ Input.multiline
-                [ height fill
-                , clip
+                [ height <| maximum 300 fill
                 , scrollbars
                 , width fill
                 , Background.color <| couleurUI <| couleurArrierePlan
@@ -186,8 +184,7 @@ view model =
                 , spellcheck = False
                 }
             , Input.multiline
-                [ height fill
-                , clip
+                [ height <| maximum 300 fill
                 , scrollbars
                 , width fill
                 , Background.color <| couleurUI <| couleurArrierePlan
@@ -209,8 +206,7 @@ view model =
                 , spellcheck = False
                 }
             , Input.multiline
-                [ height fill
-                , clip
+                [ height <| maximum 300 fill
                 , scrollbars
                 , width fill
                 , Background.color <| couleurUI <| couleurArrierePlan
@@ -236,6 +232,7 @@ view model =
             [ spacing petitEspacement
             , height fill
             , width fill
+            , scrollbars
             ]
             [ text <|
                 "Moyenne : "
