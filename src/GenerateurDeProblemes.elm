@@ -239,10 +239,6 @@ type Proposition
     | Faux Macro
 
 
-type alias NombreDeLigne =
-    Int
-
-
 voirBlocsParseAleatoire blocsPotentiel =
     case P.run (withIndent -1 blocs) blocsPotentiel of
         Ok sjt ->
