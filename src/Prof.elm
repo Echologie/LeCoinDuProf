@@ -275,7 +275,7 @@ view model =
         GenerateurH5P ->
             { title = GenerateurH5P.titre
             , body =
-                [ GenerateurH5P.view model.modeleGenerateurDeProblemes
+                [ GenerateurH5P.view model.modeleGenerateurH5P
                     |> Element.map GenerateurH5PMsg
                     |> designGeneral
                         model.largeur
