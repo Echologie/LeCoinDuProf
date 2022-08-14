@@ -7,9 +7,12 @@ import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
+import ElmCodeGenerator
 import File.Download
 import Fraction as F exposing (Fraction)
 import Html exposing (Attribute, Html, button, div, iframe, input, p, section, textarea)
+import Json.Decode
+import Json.Encode
 import List as L
 import Parser as P exposing (..)
 import ParserExpressionMathematique as Pem
@@ -181,14 +184,141 @@ view model =
 
 
 {-
-   '########:::::'###::::'########:::'######::'########:'########::
-      ##.... ##:::'## ##::: ##.... ##:'##... ##: ##.....:: ##.... ##:
-      ##:::: ##::'##:. ##:: ##:::: ##: ##:::..:: ##::::::: ##:::: ##:
-      ########::'##:::. ##: ########::. ######:: ######::: ########::
-      ##.....::: #########: ##.. ##::::..... ##: ##...:::: ##.. ##:::
-      ##:::::::: ##.... ##: ##::. ##::'##::: ##: ##::::::: ##::. ##::
-      ##:::::::: ##:::: ##: ##:::. ##:. ######:: ########: ##:::. ##:
-     ..:::::::::..:::::..::..:::::..:::......:::........::..:::::..::
+   ██╗  ██╗███████╗██████╗
+   ██║  ██║██╔════╝██╔══██╗
+   ███████║███████╗██████╔╝
+   ██╔══██║╚════██║██╔═══╝
+   ██║  ██║███████║██║
+   ╚═╝  ╚═╝╚══════╝╚═╝
+-}
+
+
+type H5P branchingScenarioComposable
+    = BranchingScenario
+        { endScreens :
+            List
+                { endScreenTitle : String
+                , endScreenSubtitle : String
+                , contentId : Int
+                , endScreenScore : Int
+                }
+        , scoringOptionGroup :
+            { scoringOption : ScoringOption
+            , includeInteractionsScores : Bool
+            }
+        , startScreen :
+            { startScreenTitle : String
+            , startScreenSubtitle : String
+            }
+        , behaviour :
+            { enableBackwardsNavigation : Bool
+            , forceContentFinished : Bool
+            }
+        , l10n :
+            { startScreenButtonText : String
+            , endScreenButtonText : String
+            , backButtonText : String
+            , proceedButtonText : String
+            , disableProceedButtonText : String
+            , replayButtonText : String
+            , scoreText : String
+            , fullscreenAria : String
+            }
+        , content : List (H5P BranchingScenarioComposable)
+        }
+
+
+nouveauBranchingScenario =
+    BranchingScenario
+        { endScreens =
+            [ { endScreenTitle = "Fin du parcours personnalisé"
+              , endScreenSubtitle = "Fin du parcours personnalisé"
+              , contentId = -1
+              , endScreenScore = 0
+              }
+            ]
+        , scoringOptionGroup =
+            { scoringOption = NoScore
+            , includeInteractionsScores = True
+            }
+        , startScreen =
+            { startScreenTitle = "<p>Préliminaires</p>\n"
+            , startScreenSubtitle = "<p>Le langage et les règles du jeux mathématiques</p>\n"
+            }
+        , behaviour =
+            { enableBackwardsNavigation = True
+            , forceContentFinished = False
+            }
+        , l10n =
+            { startScreenButtonText = "Commencer le cours"
+            , endScreenButtonText = "Recommencer le cours"
+            , backButtonText = "Revenir en arrière"
+            , proceedButtonText = "Continuer"
+            , disableProceedButtonText = "Jouer la vidéo de nouveau"
+            , replayButtonText = "Votre note:"
+            , scoreText = "Votre note:"
+            , fullscreenAria = "Plein écran"
+            }
+        , content = []
+        }
+
+
+test =
+    ElmCodeGenerator.fromJsonSample
+        { rootTypeName = "Test"
+        , decodeImport = { importAlias = "Json.Decode", exposingSpec = ElmCodeGenerator.ExposingNone }
+        , encodeImport = { importAlias = "Json.Encode", exposingSpec = ElmCodeGenerator.ExposingNone }
+        , decoderStyle = ElmCodeGenerator.PlainDecoders
+        , namingStyle = ElmCodeGenerator.NounNaming
+        }
+        """{"a": 1, "b": "str"}"""
+
+
+testOutput =
+    { decoders = [ """testDecoder : Json.Decode.Decoder Test
+testDecoder = 
+    Json.Decode.map2 Test
+        (Json.Decode.field "a" Json.Decode.int)
+        (Json.Decode.field "b" Json.Decode.string)
+    """ ]
+    , encoders =
+        [ """
+    encodedTest : Test -> Json.Encode.Value
+encodedTest test = 
+    Json.Encode.object
+        [ ( "a", Json.Encode.int test.a )
+        , ( "b", Json.Encode.string test.b )
+        ]
+    """
+        ]
+    , imports = [ "import Json.Decode", "import Json.Encode", "\n", "-- Required packages:", "-- * elm/json" ]
+    , types =
+        [ """
+    type alias Test =
+    { a : Int
+    , b : String
+    }
+    """
+        ]
+    }
+
+
+type ScoringOption
+    = NoScore
+
+
+type BranchingScenarioComposable
+    = BranchingScenarioComposable
+
+
+
+{-
+   ██████╗  █████╗ ██████╗ ███████╗███████╗██████╗
+   ██╔══██╗██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗
+   ██████╔╝███████║██████╔╝███████╗█████╗  ██████╔╝
+   ██╔═══╝ ██╔══██║██╔══██╗╚════██║██╔══╝  ██╔══██╗
+   ██║     ██║  ██║██║  ██║███████║███████╗██║  ██║
+   ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝
 -}
 
 
