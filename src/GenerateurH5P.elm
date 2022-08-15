@@ -549,7 +549,6 @@ nouveauBranchingScenario =
    ██      ██   ██ ██           ██ ██      ██  ██ ██    ██    ██   ██    ██    ██ ██    ██ ██  ██ ██
    ██      ██   ██ ███████ ███████ ███████ ██   ████    ██    ██   ██    ██    ██  ██████  ██   ████
 -}
--- Course Presentation
 
 
 type alias CoursePresentation =
