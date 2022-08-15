@@ -11,6 +11,7 @@ import Element.Events exposing (..)
 import Element.Font as Font
 import GenerateurDeProblemes
 import GenerateurH5P
+import GenerateurJson
 import Html exposing (Html)
 import Html.Attributes
 import Style exposing (..)
@@ -58,6 +59,7 @@ type alias Model =
     , modeleGenerateurDeProblemes : GenerateurDeProblemes.Model
     , modeleCalculateurDeNotes : CalculateurDeNotes.Model
     , modeleGenerateurH5P : GenerateurH5P.Model
+    , modeleGenerateurJson : GenerateurJson.Model
     }
 
 
@@ -65,6 +67,7 @@ type Page
     = GenerateurDeProblemes
     | CalculateurDeNotes
     | GenerateurH5P
+    | GenerateurJson
 
 
 type alias Flags =
@@ -85,6 +88,7 @@ init flags url key =
                 GenerateurDeProblemes.init
                 CalculateurDeNotes.init
                 GenerateurH5P.init
+                GenerateurJson.init
             , Cmd.none
             )
 
@@ -97,6 +101,7 @@ init flags url key =
                 GenerateurDeProblemes.init
                 CalculateurDeNotes.init
                 GenerateurH5P.init
+                GenerateurJson.init
             , Cmd.none
             )
 
@@ -109,19 +114,34 @@ init flags url key =
                 GenerateurDeProblemes.init
                 CalculateurDeNotes.init
                 GenerateurH5P.init
+                GenerateurJson.init
             , Cmd.none
             )
 
-        _ ->
+        Just "GenerateurJson" ->
             ( Model key
-                { url | fragment = Just "GenerateurH5P" }
-                GenerateurH5P
+                url
+                GenerateurJson
                 flags.l
                 flags.h
                 GenerateurDeProblemes.init
                 CalculateurDeNotes.init
                 GenerateurH5P.init
-            , Nav.pushUrl key (Url.toString { url | fragment = Just "GenerateurH5P" })
+                GenerateurJson.init
+            , Cmd.none
+            )
+
+        _ ->
+            ( Model key
+                { url | fragment = Just "GenerateurJson" }
+                GenerateurJson
+                flags.l
+                flags.h
+                GenerateurDeProblemes.init
+                CalculateurDeNotes.init
+                GenerateurH5P.init
+                GenerateurJson.init
+            , Nav.pushUrl key (Url.toString { url | fragment = Just "GenerateurJson" })
             )
 
 
@@ -141,6 +161,7 @@ type Msg
     | CalculateurDeNotesMsg CalculateurDeNotes.Msg
     | GenerateurDeProblemesMsg GenerateurDeProblemes.Msg
     | GenerateurH5PMsg GenerateurH5P.Msg
+    | GenerateurJsonMsg GenerateurJson.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -180,12 +201,20 @@ update msg model =
                     , Cmd.none
                     )
 
+                Just "GenerateurJson" ->
+                    ( { model
+                        | url = url
+                        , page = GenerateurJson
+                      }
+                    , Cmd.none
+                    )
+
                 _ ->
                     ( { model
-                        | url = { url | fragment = Just "GenerateurH5P" }
-                        , page = GenerateurH5P
+                        | url = { url | fragment = Just "GenerateurJson" }
+                        , page = GenerateurJson
                       }
-                    , Nav.pushUrl model.key (Url.toString { url | fragment = Just "GenerateurH5P" })
+                    , Nav.pushUrl model.key (Url.toString { url | fragment = Just "GenerateurJson" })
                     )
 
         ( GenerateurDeProblemesMsg message, GenerateurDeProblemes ) ->
@@ -221,6 +250,18 @@ update msg model =
                 | modeleGenerateurH5P = nouveauModele
               }
             , Cmd.map GenerateurH5PMsg commande
+            )
+
+        ( GenerateurJsonMsg message, GenerateurJson ) ->
+            let
+                ( nouveauModele, commande ) =
+                    GenerateurJson.update message
+                        model.modeleGenerateurJson
+            in
+            ( { model
+                | modeleGenerateurJson = nouveauModele
+              }
+            , Cmd.map GenerateurJsonMsg commande
             )
 
         _ ->
@@ -280,6 +321,17 @@ view model =
                     |> designGeneral
                         model.largeur
                         GenerateurH5P.titre
+                ]
+            }
+
+        GenerateurJson ->
+            { title = GenerateurJson.titre
+            , body =
+                [ GenerateurJson.view model.modeleGenerateurJson
+                    |> Element.map GenerateurJsonMsg
+                    |> designGeneral
+                        model.largeur
+                        GenerateurJson.titre
                 ]
             }
 
