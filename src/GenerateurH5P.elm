@@ -1314,12 +1314,5 @@ trueFalseParser =
         |. symbol "*"
 
 
-contenu : Parser Blocs
-contenu =
-    succeed (L.singleton << Contenu)
-        |= blocs
 
 
-blocs : Parser Blocs
-blocs =
-    succeed []
