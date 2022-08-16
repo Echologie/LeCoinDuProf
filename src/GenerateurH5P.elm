@@ -70,9 +70,9 @@ update msg model =
         StructureDuContenu nouvelleStructure ->
             let
                 f strCtn =
-                    case P.run (withIndent -1 contenu) strCtn of
+                    case P.run h5pParser strCtn of
                         Ok ctn ->
-                            voirBlocs ctn
+                            h5pEncode 2 ctn
 
                         Err erreurs ->
                             deadEndsToStringBis erreurs
@@ -87,9 +87,9 @@ update msg model =
         GenererContenu ->
             let
                 f strCtn =
-                    case P.run (withIndent -1 contenu) strCtn of
+                    case P.run h5pParser strCtn of
                         Ok ctn ->
-                            voirBlocs ctn
+                            h5pEncode 0 ctn
 
                         Err erreurs ->
                             deadEndsToStringBis erreurs
