@@ -1290,6 +1290,30 @@ voirErreur err =
         ++ String.fromInt err.col
 
 
+h5pParser : Parser (H5P branchingScenarioComposable coursePresentationComposable)
+h5pParser =
+    oneOf
+        [ branchingScenarioParser
+        , coursePresentationParser
+        , trueFalseParser
+        ]
+
+
+branchingScenarioParser =
+    succeed (BranchingScenarioH5P nouveauBranchingScenario)
+        |. symbol "*"
+
+
+coursePresentationParser =
+    succeed (BranchingScenarioH5P nouveauBranchingScenario)
+        |. symbol "*"
+
+
+trueFalseParser =
+    succeed (BranchingScenarioH5P nouveauBranchingScenario)
+        |. symbol "*"
+
+
 contenu : Parser Blocs
 contenu =
     succeed (L.singleton << Contenu)
