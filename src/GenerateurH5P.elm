@@ -1242,6 +1242,48 @@ encodedTrueFalseMedia trueFalseMedia =
         ]
 
 
+nouveauTrueFalse =
+    { behaviour =
+        { autoCheck = True
+        , confirmCheckDialog = False
+        , confirmRetryDialog = False
+        , enableCheckButton = True
+        , enableRetry = True
+        , enableSolutionsButton = True
+        , feedbackOnCorrect = Just "C&#039;est la base !\n"
+        , feedbackOnWrong = Nothing
+        }
+    , confirmCheck =
+        { body = "Êtes-vous sûr de vouloir terminer ?"
+        , cancelLabel = "Annuler"
+        , confirmLabel = "Confirmer"
+        , header = "Terminer ?"
+        }
+    , confirmRetry =
+        { body = "Êtes-vous sûr de vouloir recommencer ?"
+        , cancelLabel = "Annuler"
+        , confirmLabel = "Confirmer"
+        , header = "Recommencer ?"
+        }
+    , correct = "true"
+    , l10n =
+        { a11yCheck = "Check the answers. The responses will be marked as correct, incorrect, or unanswered."
+        , a11yRetry = "Retry the task. Reset all responses and start the task over again."
+        , a11yShowSolution = "Show the solution. The task will be marked with its correct solution."
+        , checkAnswer = "Vérifier"
+        , correctAnswerMessage = "Bonne réponse"
+        , falseText = "Faux"
+        , score = "Vous avez obtenu @score points sur un total de @total"
+        , scoreBarLabel = "Vous avez obtenu @score points sur un total de @total"
+        , showSolutionButton = "Voir la solution"
+        , submitAnswer = "Vérifier"
+        , trueText = "Vrai"
+        , tryAgain = "Recommencer"
+        , wrongAnswerMessage = "Réponse incorrecte"
+        }
+    , media = { disableImageZooming = False }
+    , question = ""
+    }
 
 {-
    ██████╗  █████╗ ██████╗ ███████╗███████╗██████╗
@@ -1305,12 +1347,12 @@ branchingScenarioParser =
 
 
 coursePresentationParser =
-    succeed (BranchingScenarioH5P nouveauBranchingScenario)
+    succeed (CoursePresentationH5P nouveauCoursePresentation)
         |. symbol "*"
 
 
 trueFalseParser =
-    succeed (BranchingScenarioH5P nouveauBranchingScenario)
+    succeed (TrueFalseH5P nouveauTrueFalse)
         |. symbol "*"
 
 
