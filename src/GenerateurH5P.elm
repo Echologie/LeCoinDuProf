@@ -193,37 +193,92 @@ view model =
 
 source =
     """{
-    "branchingScenario": {
-        "endScreens": [
+    "presentation": {
+        "slides": [
             {
-                "endScreenTitle": "<p>Fin du parcours personnalisé</p>\\n",
-                "endScreenSubtitle": "<p>N'hésitez pas à recommencer !</p>\\n",
-                "contentId": -1,
-                "endScreenScore": 0
+                "elements": [
+                    
+                ],
+                "slideBackgroundSelector": {"fillSlideBackground": ""}
             }
+            
         ],
-        "scoringOptionGroup": {
-            "scoringOption": "no-score",
-            "includeInteractionsScores": true
-        },
-        "startScreen": {
-            "startScreenTitle": "<p>Préliminaires</p>\\n",
-            "startScreenSubtitle": "<p>Le langage et les règles du jeux mathématiques</p>\\n"
-        },
-        "behaviour": {
-            "enableBackwardsNavigation": true,
-            "forceContentFinished": false
-        },
-        "l10n": {
-            "startScreenButtonText": "Commencer le cours",
-            "endScreenButtonText": "Recommencer le cours",
-            "backButtonText": "Revenir en arrière",
-            "proceedButtonText": "Continuer",
-            "disableProceedButtonText": "Jouer la vidéo de nouveau",
-            "replayButtonText": "Votre note:",
-            "scoreText": "Votre note:",
-            "fullscreenAria": "Plein écran"
-        }}}"""
+        "keywordListEnabled": true,
+        "globalBackgroundSelector": {"fillGlobalBackground": ""},
+        "keywordListAlwaysShow": false,
+        "keywordListAutoHide": false,
+        "keywordListOpacity": 90
+    },
+    "override": {
+        "activeSurface": false,
+        "hideSummarySlide": false,
+        "summarySlideSolutionButton": true,
+        "summarySlideRetryButton": true,
+        "enablePrintButton": false,
+        "social": {
+            "showFacebookShare": false,
+            "facebookShare": {
+                "url": "@currentpageurl",
+                "quote": "I scored @score out of @maxScore on a task at @currentpageurl."
+            },
+            "showTwitterShare": false,
+            "twitterShare": {
+                "statement": "I scored @score out of @maxScore on a task at @currentpageurl.",
+                "url": "@currentpageurl",
+                "hashtags": "h5p, course"
+            },
+            "showGoogleShare": false,
+            "googleShareUrl": "@currentpageurl"
+        }
+    },
+    "l10n": {
+        "slide": "Diapositive",
+        "score": "Score",
+        "yourScore": "Votre score",
+        "maxScore": "Score maximum",
+        "total": "Total",
+        "totalScore": "Score total",
+        "showSolutions": "Voir la correction",
+        "retry": "Recommencer",
+        "exportAnswers": "Exporter",
+        "hideKeywords": "Cacher la liste des mots-clés",
+        "showKeywords": "Afficher la liste des mots-clés",
+        "fullscreen": "Plein écran",
+        "exitFullscreen": "Quitter le plein écran",
+        "prevSlide": "Diapositive précédente",
+        "nextSlide": "Diapositive suivante",
+        "currentSlide": "Diapositive courante",
+        "lastSlide": "Dernière diapositive",
+        "solutionModeTitle": "Sortir du mode &quot;Correction&quot;",
+        "solutionModeText": "Passer en mode &quot;correction&quot;",
+        "summaryMultipleTaskText": "Activités multiples",
+        "scoreMessage": "Votre score :",
+        "shareFacebook": "Partager sur Facebook",
+        "shareTwitter": "Partager sur Twitter",
+        "shareGoogle": "Partager sur Google+",
+        "summary": "Résumé",
+        "solutionsButtonTitle": "Afficher les commentaires",
+        "printTitle": "Imprimer",
+        "printIngress": "Comment souhaitez-vous imprimer cette présentation ?",
+        "printAllSlides": "Imprimer toutes les diapositives",
+        "printCurrentSlide": "Imprimer la diapositive courante",
+        "noTitle": "Sans intitulé",
+        "accessibilitySlideNavigationExplanation": "Utilisez les fleches gauche et droite pour pour naviguer entre les diapositives",
+        "accessibilityCanvasLabel": "Le champs de présentation. Utilisez les fleches gauche et droite pour naviguer entre les diapositives.",
+        "containsNotCompleted": "@slideName contient des interactions incomplètes",
+        "containsCompleted": "@slideName ccontient des interactions complètes",
+        "slideCount": "Diapositive a @index de @total",
+        "containsOnlyCorrect": "toutes les réponses sont bonnes sur @slideName",
+        "containsIncorrectAnswers": "@slideName contient des réponses incorrectes",
+        "shareResult": "Partager le résultat",
+        "accessibilityTotalScore": "Vous avez obtenu @score sur @maxScore points au total",
+        "accessibilityEnteredFullscreen": "Mode plein-écran activé",
+        "accessibilityExitedFullscreen": "Mode plein-écran désactivé",
+        "confirmDialogHeader": "Envoyer vos réponses",
+        "confirmDialogText": "Cette action va envoyer vos réponses, voulez-vous continuer?",
+        "confirmDialogConfirmText": "Envoyer et voir les résultats"
+    }
+}"""
 
 
 
@@ -239,7 +294,8 @@ source =
 
 type H5P branchingScenarioComposable coursePresentationComposable
     = BranchingScenarioH5P BranchingScenario
-    | CoursePresentationH5P
+    | CoursePresentationH5P CoursePresentation
+    | TrueFalseH5P TrueFalse
 
 
 type BranchingScenarioComposable
@@ -552,107 +608,126 @@ nouveauBranchingScenario =
 
 
 type alias CoursePresentation =
-    { behaviour : CoursePresentationBehaviour
-    , confirmCheck : CoursePresentationConfirmCheck
-    , confirmRetry : CoursePresentationConfirmRetry
-    , correct : String
-    , l10n : CoursePresentationL10n
-    , media : CoursePresentationMedia
-    , question : String
-    }
-
-
-type alias CoursePresentationBehaviour =
-    { autoCheck : Bool
-    , confirmCheckDialog : Bool
-    , confirmRetryDialog : Bool
-    , enableCheckButton : Bool
-    , enableRetry : Bool
-    , enableSolutionsButton : Bool
-    , feedbackOnCorrect : String
-    , feedbackOnWrong : String
-    }
-
-
-type alias CoursePresentationConfirmCheck =
-    { body : String
-    , cancelLabel : String
-    , confirmLabel : String
-    , header : String
-    }
-
-
-type alias CoursePresentationConfirmRetry =
-    { body : String
-    , cancelLabel : String
-    , confirmLabel : String
-    , header : String
+    { l10n : CoursePresentationL10n
+    , override : CoursePresentationOverride
+    , presentation : CoursePresentationPresentation
     }
 
 
 type alias CoursePresentationL10n =
-    { a11yCheck : String
-    , a11yRetry : String
-    , a11yShowSolution : String
-    , checkAnswer : String
-    , correctAnswerMessage : String
-    , falseText : String
+    { accessibilityCanvasLabel : String
+    , accessibilityEnteredFullscreen : String
+    , accessibilityExitedFullscreen : String
+    , accessibilitySlideNavigationExplanation : String
+    , accessibilityTotalScore : String
+    , confirmDialogConfirmText : String
+    , confirmDialogHeader : String
+    , confirmDialogText : String
+    , containsCompleted : String
+    , containsIncorrectAnswers : String
+    , containsNotCompleted : String
+    , containsOnlyCorrect : String
+    , currentSlide : String
+    , exitFullscreen : String
+    , exportAnswers : String
+    , fullscreen : String
+    , hideKeywords : String
+    , lastSlide : String
+    , maxScore : String
+    , nextSlide : String
+    , noTitle : String
+    , prevSlide : String
+    , printAllSlides : String
+    , printCurrentSlide : String
+    , printIngress : String
+    , printTitle : String
+    , retry : String
     , score : String
-    , scoreBarLabel : String
-    , showSolutionButton : String
-    , submitAnswer : String
-    , trueText : String
-    , tryAgain : String
-    , wrongAnswerMessage : String
+    , scoreMessage : String
+    , shareFacebook : String
+    , shareGoogle : String
+    , shareResult : String
+    , shareTwitter : String
+    , showKeywords : String
+    , showSolutions : String
+    , slide : String
+    , slideCount : String
+    , solutionModeText : String
+    , solutionModeTitle : String
+    , solutionsButtonTitle : String
+    , summary : String
+    , summaryMultipleTaskText : String
+    , total : String
+    , totalScore : String
+    , yourScore : String
     }
 
 
-type alias CoursePresentationMedia =
-    { disableImageZooming : Bool
+type alias CoursePresentationOverride =
+    { activeSurface : Bool
+    , enablePrintButton : Bool
+    , hideSummarySlide : Bool
+    , social : CoursePresentationOverrideSocial
+    , summarySlideRetryButton : Bool
+    , summarySlideSolutionButton : Bool
+    }
+
+
+type alias CoursePresentationOverrideSocial =
+    { facebookShare : CoursePresentationOverrideSocialFacebookShare
+    , googleShareUrl : String
+    , showFacebookShare : Bool
+    , showGoogleShare : Bool
+    , showTwitterShare : Bool
+    , twitterShare : CoursePresentationOverrideSocialTwitterShare
+    }
+
+
+type alias CoursePresentationOverrideSocialFacebookShare =
+    { quote : String
+    , url : String
+    }
+
+
+type alias CoursePresentationOverrideSocialTwitterShare =
+    { hashtags : String
+    , statement : String
+    , url : String
+    }
+
+
+type alias CoursePresentationPresentation =
+    { globalBackgroundSelector : CoursePresentationPresentationGlobalBackgroundSelector
+    , keywordListAlwaysShow : Bool
+    , keywordListAutoHide : Bool
+    , keywordListEnabled : Bool
+    , keywordListOpacity : Int
+    , slides : List CoursePresentationPresentationSlidesObject
+    }
+
+
+type alias CoursePresentationPresentationGlobalBackgroundSelector =
+    { fillGlobalBackground : String
+    }
+
+
+type alias CoursePresentationPresentationSlidesObject =
+    { elements : List ()
+    , slideBackgroundSelector : CoursePresentationPresentationSlidesObjectSlideBackgroundSelector
+    }
+
+
+type alias CoursePresentationPresentationSlidesObjectSlideBackgroundSelector =
+    { fillSlideBackground : String
     }
 
 
 coursePresentationDecoder : Json.Decode.Decoder CoursePresentation
 coursePresentationDecoder =
-    Json.Decode.map7 CoursePresentation
-        (Json.Decode.field "behaviour" coursePresentationBehaviourDecoder)
-        (Json.Decode.field "confirmCheck" coursePresentationConfirmCheckDecoder)
-        (Json.Decode.field "confirmRetry" coursePresentationConfirmRetryDecoder)
-        (Json.Decode.field "correct" Json.Decode.string)
+    Json.Decode.map3 CoursePresentation
         (Json.Decode.field "l10n" coursePresentationL10nDecoder)
-        (Json.Decode.field "media" coursePresentationMediaDecoder)
-        (Json.Decode.field "question" Json.Decode.string)
-
-
-coursePresentationBehaviourDecoder : Json.Decode.Decoder CoursePresentationBehaviour
-coursePresentationBehaviourDecoder =
-    Json.Decode.map8 CoursePresentationBehaviour
-        (Json.Decode.field "autoCheck" Json.Decode.bool)
-        (Json.Decode.field "confirmCheckDialog" Json.Decode.bool)
-        (Json.Decode.field "confirmRetryDialog" Json.Decode.bool)
-        (Json.Decode.field "enableCheckButton" Json.Decode.bool)
-        (Json.Decode.field "enableRetry" Json.Decode.bool)
-        (Json.Decode.field "enableSolutionsButton" Json.Decode.bool)
-        (Json.Decode.field "feedbackOnCorrect" Json.Decode.string)
-        (Json.Decode.field "feedbackOnWrong" Json.Decode.string)
-
-
-coursePresentationConfirmCheckDecoder : Json.Decode.Decoder CoursePresentationConfirmCheck
-coursePresentationConfirmCheckDecoder =
-    Json.Decode.map4 CoursePresentationConfirmCheck
-        (Json.Decode.field "body" Json.Decode.string)
-        (Json.Decode.field "cancelLabel" Json.Decode.string)
-        (Json.Decode.field "confirmLabel" Json.Decode.string)
-        (Json.Decode.field "header" Json.Decode.string)
-
-
-coursePresentationConfirmRetryDecoder : Json.Decode.Decoder CoursePresentationConfirmRetry
-coursePresentationConfirmRetryDecoder =
-    Json.Decode.map4 CoursePresentationConfirmRetry
-        (Json.Decode.field "body" Json.Decode.string)
-        (Json.Decode.field "cancelLabel" Json.Decode.string)
-        (Json.Decode.field "confirmLabel" Json.Decode.string)
-        (Json.Decode.field "header" Json.Decode.string)
+        (Json.Decode.field "override" coursePresentationOverrideDecoder)
+        (Json.Decode.field "presentation" coursePresentationPresentationDecoder)
 
 
 coursePresentationL10nDecoder : Json.Decode.Decoder CoursePresentationL10n
@@ -660,100 +735,275 @@ coursePresentationL10nDecoder =
     let
         fieldSet0 =
             Json.Decode.map8 CoursePresentationL10n
-                (Json.Decode.field "a11yCheck" Json.Decode.string)
-                (Json.Decode.field "a11yRetry" Json.Decode.string)
-                (Json.Decode.field "a11yShowSolution" Json.Decode.string)
-                (Json.Decode.field "checkAnswer" Json.Decode.string)
-                (Json.Decode.field "correctAnswerMessage" Json.Decode.string)
-                (Json.Decode.field "falseText" Json.Decode.string)
+                (Json.Decode.field "accessibilityCanvasLabel" Json.Decode.string)
+                (Json.Decode.field "accessibilityEnteredFullscreen" Json.Decode.string)
+                (Json.Decode.field "accessibilityExitedFullscreen" Json.Decode.string)
+                (Json.Decode.field "accessibilitySlideNavigationExplanation" Json.Decode.string)
+                (Json.Decode.field "accessibilityTotalScore" Json.Decode.string)
+                (Json.Decode.field "confirmDialogConfirmText" Json.Decode.string)
+                (Json.Decode.field "confirmDialogHeader" Json.Decode.string)
+                (Json.Decode.field "confirmDialogText" Json.Decode.string)
+
+        fieldSet1 =
+            Json.Decode.map8 (<|)
+                fieldSet0
+                (Json.Decode.field "containsCompleted" Json.Decode.string)
+                (Json.Decode.field "containsIncorrectAnswers" Json.Decode.string)
+                (Json.Decode.field "containsNotCompleted" Json.Decode.string)
+                (Json.Decode.field "containsOnlyCorrect" Json.Decode.string)
+                (Json.Decode.field "currentSlide" Json.Decode.string)
+                (Json.Decode.field "exitFullscreen" Json.Decode.string)
+                (Json.Decode.field "exportAnswers" Json.Decode.string)
+
+        fieldSet2 =
+            Json.Decode.map8 (<|)
+                fieldSet1
+                (Json.Decode.field "fullscreen" Json.Decode.string)
+                (Json.Decode.field "hideKeywords" Json.Decode.string)
+                (Json.Decode.field "lastSlide" Json.Decode.string)
+                (Json.Decode.field "maxScore" Json.Decode.string)
+                (Json.Decode.field "nextSlide" Json.Decode.string)
+                (Json.Decode.field "noTitle" Json.Decode.string)
+                (Json.Decode.field "prevSlide" Json.Decode.string)
+
+        fieldSet3 =
+            Json.Decode.map8 (<|)
+                fieldSet2
+                (Json.Decode.field "printAllSlides" Json.Decode.string)
+                (Json.Decode.field "printCurrentSlide" Json.Decode.string)
+                (Json.Decode.field "printIngress" Json.Decode.string)
+                (Json.Decode.field "printTitle" Json.Decode.string)
+                (Json.Decode.field "retry" Json.Decode.string)
                 (Json.Decode.field "score" Json.Decode.string)
-                (Json.Decode.field "scoreBarLabel" Json.Decode.string)
+                (Json.Decode.field "scoreMessage" Json.Decode.string)
+
+        fieldSet4 =
+            Json.Decode.map8 (<|)
+                fieldSet3
+                (Json.Decode.field "shareFacebook" Json.Decode.string)
+                (Json.Decode.field "shareGoogle" Json.Decode.string)
+                (Json.Decode.field "shareResult" Json.Decode.string)
+                (Json.Decode.field "shareTwitter" Json.Decode.string)
+                (Json.Decode.field "showKeywords" Json.Decode.string)
+                (Json.Decode.field "showSolutions" Json.Decode.string)
+                (Json.Decode.field "slide" Json.Decode.string)
+
+        fieldSet5 =
+            Json.Decode.map8 (<|)
+                fieldSet4
+                (Json.Decode.field "slideCount" Json.Decode.string)
+                (Json.Decode.field "solutionModeText" Json.Decode.string)
+                (Json.Decode.field "solutionModeTitle" Json.Decode.string)
+                (Json.Decode.field "solutionsButtonTitle" Json.Decode.string)
+                (Json.Decode.field "summary" Json.Decode.string)
+                (Json.Decode.field "summaryMultipleTaskText" Json.Decode.string)
+                (Json.Decode.field "total" Json.Decode.string)
     in
-    Json.Decode.map6 (<|)
-        fieldSet0
-        (Json.Decode.field "showSolutionButton" Json.Decode.string)
-        (Json.Decode.field "submitAnswer" Json.Decode.string)
-        (Json.Decode.field "trueText" Json.Decode.string)
-        (Json.Decode.field "tryAgain" Json.Decode.string)
-        (Json.Decode.field "wrongAnswerMessage" Json.Decode.string)
+    Json.Decode.map3 (<|)
+        fieldSet5
+        (Json.Decode.field "totalScore" Json.Decode.string)
+        (Json.Decode.field "yourScore" Json.Decode.string)
 
 
-coursePresentationMediaDecoder : Json.Decode.Decoder CoursePresentationMedia
-coursePresentationMediaDecoder =
-    Json.Decode.map CoursePresentationMedia
-        (Json.Decode.field "disableImageZooming" Json.Decode.bool)
+coursePresentationOverrideDecoder : Json.Decode.Decoder CoursePresentationOverride
+coursePresentationOverrideDecoder =
+    Json.Decode.map6 CoursePresentationOverride
+        (Json.Decode.field "activeSurface" Json.Decode.bool)
+        (Json.Decode.field "enablePrintButton" Json.Decode.bool)
+        (Json.Decode.field "hideSummarySlide" Json.Decode.bool)
+        (Json.Decode.field "social" coursePresentationOverrideSocialDecoder)
+        (Json.Decode.field "summarySlideRetryButton" Json.Decode.bool)
+        (Json.Decode.field "summarySlideSolutionButton" Json.Decode.bool)
+
+
+coursePresentationOverrideSocialDecoder : Json.Decode.Decoder CoursePresentationOverrideSocial
+coursePresentationOverrideSocialDecoder =
+    Json.Decode.map6 CoursePresentationOverrideSocial
+        (Json.Decode.field "facebookShare" coursePresentationOverrideSocialFacebookShareDecoder)
+        (Json.Decode.field "googleShareUrl" Json.Decode.string)
+        (Json.Decode.field "showFacebookShare" Json.Decode.bool)
+        (Json.Decode.field "showGoogleShare" Json.Decode.bool)
+        (Json.Decode.field "showTwitterShare" Json.Decode.bool)
+        (Json.Decode.field "twitterShare" coursePresentationOverrideSocialTwitterShareDecoder)
+
+
+coursePresentationOverrideSocialFacebookShareDecoder : Json.Decode.Decoder CoursePresentationOverrideSocialFacebookShare
+coursePresentationOverrideSocialFacebookShareDecoder =
+    Json.Decode.map2 CoursePresentationOverrideSocialFacebookShare
+        (Json.Decode.field "quote" Json.Decode.string)
+        (Json.Decode.field "url" Json.Decode.string)
+
+
+coursePresentationOverrideSocialTwitterShareDecoder : Json.Decode.Decoder CoursePresentationOverrideSocialTwitterShare
+coursePresentationOverrideSocialTwitterShareDecoder =
+    Json.Decode.map3 CoursePresentationOverrideSocialTwitterShare
+        (Json.Decode.field "hashtags" Json.Decode.string)
+        (Json.Decode.field "statement" Json.Decode.string)
+        (Json.Decode.field "url" Json.Decode.string)
+
+
+coursePresentationPresentationDecoder : Json.Decode.Decoder CoursePresentationPresentation
+coursePresentationPresentationDecoder =
+    Json.Decode.map6 CoursePresentationPresentation
+        (Json.Decode.field "globalBackgroundSelector" coursePresentationPresentationGlobalBackgroundSelectorDecoder)
+        (Json.Decode.field "keywordListAlwaysShow" Json.Decode.bool)
+        (Json.Decode.field "keywordListAutoHide" Json.Decode.bool)
+        (Json.Decode.field "keywordListEnabled" Json.Decode.bool)
+        (Json.Decode.field "keywordListOpacity" Json.Decode.int)
+        (Json.Decode.field "slides" <| Json.Decode.list coursePresentationPresentationSlidesObjectDecoder)
+
+
+coursePresentationPresentationGlobalBackgroundSelectorDecoder : Json.Decode.Decoder CoursePresentationPresentationGlobalBackgroundSelector
+coursePresentationPresentationGlobalBackgroundSelectorDecoder =
+    Json.Decode.map CoursePresentationPresentationGlobalBackgroundSelector
+        (Json.Decode.field "fillGlobalBackground" Json.Decode.string)
+
+
+coursePresentationPresentationSlidesObjectDecoder : Json.Decode.Decoder CoursePresentationPresentationSlidesObject
+coursePresentationPresentationSlidesObjectDecoder =
+    Json.Decode.map2 CoursePresentationPresentationSlidesObject
+        (Json.Decode.field "elements" <| Json.Decode.list <| Json.Decode.succeed ())
+        (Json.Decode.field "slideBackgroundSelector" coursePresentationPresentationSlidesObjectSlideBackgroundSelectorDecoder)
+
+
+coursePresentationPresentationSlidesObjectSlideBackgroundSelectorDecoder : Json.Decode.Decoder CoursePresentationPresentationSlidesObjectSlideBackgroundSelector
+coursePresentationPresentationSlidesObjectSlideBackgroundSelectorDecoder =
+    Json.Decode.map CoursePresentationPresentationSlidesObjectSlideBackgroundSelector
+        (Json.Decode.field "fillSlideBackground" Json.Decode.string)
 
 
 encodedCoursePresentation : CoursePresentation -> Json.Encode.Value
 encodedCoursePresentation coursePresentation =
     Json.Encode.object
-        [ ( "behaviour", encodedCoursePresentationBehaviour coursePresentation.behaviour )
-        , ( "confirmCheck", encodedCoursePresentationConfirmCheck coursePresentation.confirmCheck )
-        , ( "confirmRetry", encodedCoursePresentationConfirmRetry coursePresentation.confirmRetry )
-        , ( "correct", Json.Encode.string coursePresentation.correct )
-        , ( "l10n", encodedCoursePresentationL10n coursePresentation.l10n )
-        , ( "media", encodedCoursePresentationMedia coursePresentation.media )
-        , ( "question", Json.Encode.string coursePresentation.question )
-        ]
-
-
-encodedCoursePresentationBehaviour : CoursePresentationBehaviour -> Json.Encode.Value
-encodedCoursePresentationBehaviour coursePresentationBehaviour =
-    Json.Encode.object
-        [ ( "autoCheck", Json.Encode.bool coursePresentationBehaviour.autoCheck )
-        , ( "confirmCheckDialog", Json.Encode.bool coursePresentationBehaviour.confirmCheckDialog )
-        , ( "confirmRetryDialog", Json.Encode.bool coursePresentationBehaviour.confirmRetryDialog )
-        , ( "enableCheckButton", Json.Encode.bool coursePresentationBehaviour.enableCheckButton )
-        , ( "enableRetry", Json.Encode.bool coursePresentationBehaviour.enableRetry )
-        , ( "enableSolutionsButton", Json.Encode.bool coursePresentationBehaviour.enableSolutionsButton )
-        , ( "feedbackOnCorrect", Json.Encode.string coursePresentationBehaviour.feedbackOnCorrect )
-        , ( "feedbackOnWrong", Json.Encode.string coursePresentationBehaviour.feedbackOnWrong )
-        ]
-
-
-encodedCoursePresentationConfirmCheck : CoursePresentationConfirmCheck -> Json.Encode.Value
-encodedCoursePresentationConfirmCheck coursePresentationConfirmCheck =
-    Json.Encode.object
-        [ ( "body", Json.Encode.string coursePresentationConfirmCheck.body )
-        , ( "cancelLabel", Json.Encode.string coursePresentationConfirmCheck.cancelLabel )
-        , ( "confirmLabel", Json.Encode.string coursePresentationConfirmCheck.confirmLabel )
-        , ( "header", Json.Encode.string coursePresentationConfirmCheck.header )
-        ]
-
-
-encodedCoursePresentationConfirmRetry : CoursePresentationConfirmRetry -> Json.Encode.Value
-encodedCoursePresentationConfirmRetry coursePresentationConfirmRetry =
-    Json.Encode.object
-        [ ( "body", Json.Encode.string coursePresentationConfirmRetry.body )
-        , ( "cancelLabel", Json.Encode.string coursePresentationConfirmRetry.cancelLabel )
-        , ( "confirmLabel", Json.Encode.string coursePresentationConfirmRetry.confirmLabel )
-        , ( "header", Json.Encode.string coursePresentationConfirmRetry.header )
+        [ ( "l10n", encodedCoursePresentationL10n coursePresentation.l10n )
+        , ( "override", encodedCoursePresentationOverride coursePresentation.override )
+        , ( "presentation", encodedCoursePresentationPresentation coursePresentation.presentation )
         ]
 
 
 encodedCoursePresentationL10n : CoursePresentationL10n -> Json.Encode.Value
 encodedCoursePresentationL10n coursePresentationL10n =
     Json.Encode.object
-        [ ( "a11yCheck", Json.Encode.string coursePresentationL10n.a11yCheck )
-        , ( "a11yRetry", Json.Encode.string coursePresentationL10n.a11yRetry )
-        , ( "a11yShowSolution", Json.Encode.string coursePresentationL10n.a11yShowSolution )
-        , ( "checkAnswer", Json.Encode.string coursePresentationL10n.checkAnswer )
-        , ( "correctAnswerMessage", Json.Encode.string coursePresentationL10n.correctAnswerMessage )
-        , ( "falseText", Json.Encode.string coursePresentationL10n.falseText )
+        [ ( "accessibilityCanvasLabel", Json.Encode.string coursePresentationL10n.accessibilityCanvasLabel )
+        , ( "accessibilityEnteredFullscreen", Json.Encode.string coursePresentationL10n.accessibilityEnteredFullscreen )
+        , ( "accessibilityExitedFullscreen", Json.Encode.string coursePresentationL10n.accessibilityExitedFullscreen )
+        , ( "accessibilitySlideNavigationExplanation", Json.Encode.string coursePresentationL10n.accessibilitySlideNavigationExplanation )
+        , ( "accessibilityTotalScore", Json.Encode.string coursePresentationL10n.accessibilityTotalScore )
+        , ( "confirmDialogConfirmText", Json.Encode.string coursePresentationL10n.confirmDialogConfirmText )
+        , ( "confirmDialogHeader", Json.Encode.string coursePresentationL10n.confirmDialogHeader )
+        , ( "confirmDialogText", Json.Encode.string coursePresentationL10n.confirmDialogText )
+        , ( "containsCompleted", Json.Encode.string coursePresentationL10n.containsCompleted )
+        , ( "containsIncorrectAnswers", Json.Encode.string coursePresentationL10n.containsIncorrectAnswers )
+        , ( "containsNotCompleted", Json.Encode.string coursePresentationL10n.containsNotCompleted )
+        , ( "containsOnlyCorrect", Json.Encode.string coursePresentationL10n.containsOnlyCorrect )
+        , ( "currentSlide", Json.Encode.string coursePresentationL10n.currentSlide )
+        , ( "exitFullscreen", Json.Encode.string coursePresentationL10n.exitFullscreen )
+        , ( "exportAnswers", Json.Encode.string coursePresentationL10n.exportAnswers )
+        , ( "fullscreen", Json.Encode.string coursePresentationL10n.fullscreen )
+        , ( "hideKeywords", Json.Encode.string coursePresentationL10n.hideKeywords )
+        , ( "lastSlide", Json.Encode.string coursePresentationL10n.lastSlide )
+        , ( "maxScore", Json.Encode.string coursePresentationL10n.maxScore )
+        , ( "nextSlide", Json.Encode.string coursePresentationL10n.nextSlide )
+        , ( "noTitle", Json.Encode.string coursePresentationL10n.noTitle )
+        , ( "prevSlide", Json.Encode.string coursePresentationL10n.prevSlide )
+        , ( "printAllSlides", Json.Encode.string coursePresentationL10n.printAllSlides )
+        , ( "printCurrentSlide", Json.Encode.string coursePresentationL10n.printCurrentSlide )
+        , ( "printIngress", Json.Encode.string coursePresentationL10n.printIngress )
+        , ( "printTitle", Json.Encode.string coursePresentationL10n.printTitle )
+        , ( "retry", Json.Encode.string coursePresentationL10n.retry )
         , ( "score", Json.Encode.string coursePresentationL10n.score )
-        , ( "scoreBarLabel", Json.Encode.string coursePresentationL10n.scoreBarLabel )
-        , ( "showSolutionButton", Json.Encode.string coursePresentationL10n.showSolutionButton )
-        , ( "submitAnswer", Json.Encode.string coursePresentationL10n.submitAnswer )
-        , ( "trueText", Json.Encode.string coursePresentationL10n.trueText )
-        , ( "tryAgain", Json.Encode.string coursePresentationL10n.tryAgain )
-        , ( "wrongAnswerMessage", Json.Encode.string coursePresentationL10n.wrongAnswerMessage )
+        , ( "scoreMessage", Json.Encode.string coursePresentationL10n.scoreMessage )
+        , ( "shareFacebook", Json.Encode.string coursePresentationL10n.shareFacebook )
+        , ( "shareGoogle", Json.Encode.string coursePresentationL10n.shareGoogle )
+        , ( "shareResult", Json.Encode.string coursePresentationL10n.shareResult )
+        , ( "shareTwitter", Json.Encode.string coursePresentationL10n.shareTwitter )
+        , ( "showKeywords", Json.Encode.string coursePresentationL10n.showKeywords )
+        , ( "showSolutions", Json.Encode.string coursePresentationL10n.showSolutions )
+        , ( "slide", Json.Encode.string coursePresentationL10n.slide )
+        , ( "slideCount", Json.Encode.string coursePresentationL10n.slideCount )
+        , ( "solutionModeText", Json.Encode.string coursePresentationL10n.solutionModeText )
+        , ( "solutionModeTitle", Json.Encode.string coursePresentationL10n.solutionModeTitle )
+        , ( "solutionsButtonTitle", Json.Encode.string coursePresentationL10n.solutionsButtonTitle )
+        , ( "summary", Json.Encode.string coursePresentationL10n.summary )
+        , ( "summaryMultipleTaskText", Json.Encode.string coursePresentationL10n.summaryMultipleTaskText )
+        , ( "total", Json.Encode.string coursePresentationL10n.total )
+        , ( "totalScore", Json.Encode.string coursePresentationL10n.totalScore )
+        , ( "yourScore", Json.Encode.string coursePresentationL10n.yourScore )
         ]
 
 
-encodedCoursePresentationMedia : CoursePresentationMedia -> Json.Encode.Value
-encodedCoursePresentationMedia coursePresentationMedia =
+encodedCoursePresentationOverride : CoursePresentationOverride -> Json.Encode.Value
+encodedCoursePresentationOverride coursePresentationOverride =
     Json.Encode.object
-        [ ( "disableImageZooming", Json.Encode.bool coursePresentationMedia.disableImageZooming )
+        [ ( "activeSurface", Json.Encode.bool coursePresentationOverride.activeSurface )
+        , ( "enablePrintButton", Json.Encode.bool coursePresentationOverride.enablePrintButton )
+        , ( "hideSummarySlide", Json.Encode.bool coursePresentationOverride.hideSummarySlide )
+        , ( "social", encodedCoursePresentationOverrideSocial coursePresentationOverride.social )
+        , ( "summarySlideRetryButton", Json.Encode.bool coursePresentationOverride.summarySlideRetryButton )
+        , ( "summarySlideSolutionButton", Json.Encode.bool coursePresentationOverride.summarySlideSolutionButton )
+        ]
+
+
+encodedCoursePresentationOverrideSocial : CoursePresentationOverrideSocial -> Json.Encode.Value
+encodedCoursePresentationOverrideSocial coursePresentationOverrideSocial =
+    Json.Encode.object
+        [ ( "facebookShare", encodedCoursePresentationOverrideSocialFacebookShare coursePresentationOverrideSocial.facebookShare )
+        , ( "googleShareUrl", Json.Encode.string coursePresentationOverrideSocial.googleShareUrl )
+        , ( "showFacebookShare", Json.Encode.bool coursePresentationOverrideSocial.showFacebookShare )
+        , ( "showGoogleShare", Json.Encode.bool coursePresentationOverrideSocial.showGoogleShare )
+        , ( "showTwitterShare", Json.Encode.bool coursePresentationOverrideSocial.showTwitterShare )
+        , ( "twitterShare", encodedCoursePresentationOverrideSocialTwitterShare coursePresentationOverrideSocial.twitterShare )
+        ]
+
+
+encodedCoursePresentationOverrideSocialFacebookShare : CoursePresentationOverrideSocialFacebookShare -> Json.Encode.Value
+encodedCoursePresentationOverrideSocialFacebookShare coursePresentationOverrideSocialFacebookShare =
+    Json.Encode.object
+        [ ( "quote", Json.Encode.string coursePresentationOverrideSocialFacebookShare.quote )
+        , ( "url", Json.Encode.string coursePresentationOverrideSocialFacebookShare.url )
+        ]
+
+
+encodedCoursePresentationOverrideSocialTwitterShare : CoursePresentationOverrideSocialTwitterShare -> Json.Encode.Value
+encodedCoursePresentationOverrideSocialTwitterShare coursePresentationOverrideSocialTwitterShare =
+    Json.Encode.object
+        [ ( "hashtags", Json.Encode.string coursePresentationOverrideSocialTwitterShare.hashtags )
+        , ( "statement", Json.Encode.string coursePresentationOverrideSocialTwitterShare.statement )
+        , ( "url", Json.Encode.string coursePresentationOverrideSocialTwitterShare.url )
+        ]
+
+
+encodedCoursePresentationPresentation : CoursePresentationPresentation -> Json.Encode.Value
+encodedCoursePresentationPresentation coursePresentationPresentation =
+    Json.Encode.object
+        [ ( "globalBackgroundSelector", encodedCoursePresentationPresentationGlobalBackgroundSelector coursePresentationPresentation.globalBackgroundSelector )
+        , ( "keywordListAlwaysShow", Json.Encode.bool coursePresentationPresentation.keywordListAlwaysShow )
+        , ( "keywordListAutoHide", Json.Encode.bool coursePresentationPresentation.keywordListAutoHide )
+        , ( "keywordListEnabled", Json.Encode.bool coursePresentationPresentation.keywordListEnabled )
+        , ( "keywordListOpacity", Json.Encode.int coursePresentationPresentation.keywordListOpacity )
+        , ( "slides", Json.Encode.list encodedCoursePresentationPresentationSlidesObject coursePresentationPresentation.slides )
+        ]
+
+
+encodedCoursePresentationPresentationGlobalBackgroundSelector : CoursePresentationPresentationGlobalBackgroundSelector -> Json.Encode.Value
+encodedCoursePresentationPresentationGlobalBackgroundSelector coursePresentationPresentationGlobalBackgroundSelector =
+    Json.Encode.object
+        [ ( "fillGlobalBackground", Json.Encode.string coursePresentationPresentationGlobalBackgroundSelector.fillGlobalBackground )
+        ]
+
+
+encodedCoursePresentationPresentationSlidesObject : CoursePresentationPresentationSlidesObject -> Json.Encode.Value
+encodedCoursePresentationPresentationSlidesObject coursePresentationPresentationSlidesObject =
+    Json.Encode.object
+        [ ( "elements", Json.Encode.list (\_ -> Json.Encode.null) coursePresentationPresentationSlidesObject.elements )
+        , ( "slideBackgroundSelector", encodedCoursePresentationPresentationSlidesObjectSlideBackgroundSelector coursePresentationPresentationSlidesObject.slideBackgroundSelector )
+        ]
+
+
+encodedCoursePresentationPresentationSlidesObjectSlideBackgroundSelector : CoursePresentationPresentationSlidesObjectSlideBackgroundSelector -> Json.Encode.Value
+encodedCoursePresentationPresentationSlidesObjectSlideBackgroundSelector coursePresentationPresentationSlidesObjectSlideBackgroundSelector =
+    Json.Encode.object
+        [ ( "fillSlideBackground", Json.Encode.string coursePresentationPresentationSlidesObjectSlideBackgroundSelector.fillSlideBackground )
         ]
 
 
