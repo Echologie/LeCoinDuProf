@@ -1357,7 +1357,9 @@ h5pParser =
 
 branchingScenarioParser =
     succeed (BranchingScenarioH5P nouveauBranchingScenario)
+        -- |. espaces
         |. symbol "*"
+        |. espaces
 
 
 coursePresentationParser =
@@ -1368,6 +1370,22 @@ coursePresentationParser =
 trueFalseParser =
     succeed (TrueFalseH5P nouveauTrueFalse)
         |. symbol "*"
+
+
+title =
+    getChompedString <|
+        succeed ()
+            |. chompWhile ((==) '\n')
+
+
+blankLine =
+    succeed ()
+        |. espaces
+        |. token "\n"
+
+
+espaces =
+    chompWhile <| \x -> x == ' ' || x == '\t'
 
 
 
