@@ -405,11 +405,15 @@ branchingScenarioStartScreenDecoder =
 encodedBranchingScenario : BranchingScenario -> E.Value
 encodedBranchingScenario branchingScenario =
     E.object
-        [ ( "behaviour", encodedBranchingScenarioBehaviour branchingScenario.behaviour )
-        , ( "endScreens", E.list encodedBranchingScenarioEndScreensObject branchingScenario.endScreens )
-        , ( "l10n", encodedBranchingScenarioL10n branchingScenario.l10n )
-        , ( "scoringOptionGroup", encodedBranchingScenarioScoringOptionGroup branchingScenario.scoringOptionGroup )
-        , ( "startScreen", encodedBranchingScenarioStartScreen branchingScenario.startScreen )
+        [ ( "branchingScenario"
+          , E.object
+                [ ( "behaviour", encodedBranchingScenarioBehaviour branchingScenario.behaviour )
+                , ( "endScreens", E.list encodedBranchingScenarioEndScreensObject branchingScenario.endScreens )
+                , ( "l10n", encodedBranchingScenarioL10n branchingScenario.l10n )
+                , ( "scoringOptionGroup", encodedBranchingScenarioScoringOptionGroup branchingScenario.scoringOptionGroup )
+                , ( "startScreen", encodedBranchingScenarioStartScreen branchingScenario.startScreen )
+                ]
+          )
         ]
 
 
