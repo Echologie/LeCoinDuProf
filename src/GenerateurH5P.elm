@@ -1350,7 +1350,23 @@ nouveauTrueFalse =
 -}
 
 
-h5pParser : Parser (H5P branchingScenarioComposable coursePresentationComposable)
+parser =
+    loop {} <| bloc 1
+
+
+bloc : Int -> H5P bSC cPC -> Parser (Step (H5P bSC cPC) (H5P bSC cPC))
+bloc n blocState =
+    succeed (Done <| BranchingScenarioH5P nouveauBranchingScenario)
+        |. symbol (S.repeat n "*")
+        |. espaces
+        |. keyword "f"
+
+
+type alias BlocState =
+    {}
+
+
+h5pParser : Parser (H5P bSC cPC)
 h5pParser =
     oneOf
         [ branchingScenarioParser
