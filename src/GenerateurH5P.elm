@@ -1380,33 +1380,6 @@ h5psParser =
         }
 
 
-bloc : Int -> String -> Parser (H5P bSC cPC)
-bloc profondeur typeDeBloc =
-    let
-        f =
-            case typeDeBloc of
-                "BranchingScenario" ->
-                    BranchingScenarioH5P nouveauBranchingScenario
-
-                "CoursePresentation" ->
-                    CoursePresentationH5P nouveauCoursePresentation
-
-                "TrueFalse" ->
-                    TrueFalseH5P nouveauTrueFalse
-
-                _ ->
-                    BranchingScenarioH5P nouveauBranchingScenario
-    in
-    succeed f
-        |. symbol (S.repeat profondeur "*")
-        |. espaces
-        |. keyword typeDeBloc
-
-
-type alias BlocState =
-    {}
-
-
 h5pParser : Parser (H5P bSC cPC)
 h5pParser =
     oneOf
@@ -1455,22 +1428,6 @@ title =
     getChompedString <|
         succeed ()
             |. chompWhile ((/=) '\n')
-
-
-blankLines =
-    sequence
-        { start = ""
-        , separator = "\n"
-        , end = ""
-        , spaces = blankLine
-        , item =
-            oneOf
-                [ bloc 1 "BranchingScenario"
-                , bloc 1 "CoursePresentation"
-                , bloc 1 "TrueFalse"
-                ]
-        , trailing = Optional
-        }
 
 
 blankLine =
