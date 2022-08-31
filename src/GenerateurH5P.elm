@@ -538,8 +538,8 @@ nouveauBranchingScenario =
         , includeInteractionsScores = True
         }
     , startScreen =
-        { startScreenTitle = "<p>Préliminaires</p>\n"
-        , startScreenSubtitle = "<p>Le langage et les règles du jeux mathématiques</p>\n"
+        { startScreenTitle = "<p>Début du parcours</p>\n"
+        , startScreenSubtitle = "<p>Préparez-vous à l'aventure !</p>\n"
         }
     , behaviour =
         { enableBackwardsNavigation = True
@@ -1368,16 +1368,38 @@ withStartScreenSubtitle string record =
 -}
 
 
-parser =
-    loop {} <| bloc 1
+h5psParser =
+    sequence
+        { start = ""
+        , separator = ""
+        , end = ""
+        , spaces = blankLine
+        , item = h5pParser
+        , trailing = Optional
+        }
 
 
-bloc : Int -> H5P bSC cPC -> Parser (Step (H5P bSC cPC) (H5P bSC cPC))
-bloc n blocState =
-    succeed (Done <| BranchingScenarioH5P nouveauBranchingScenario)
-        |. symbol (S.repeat n "*")
+bloc : Int -> String -> Parser (H5P bSC cPC)
+bloc profondeur typeDeBloc =
+    let
+        f =
+            case typeDeBloc of
+                "BranchingScenario" ->
+                    BranchingScenarioH5P nouveauBranchingScenario
+
+                "CoursePresentation" ->
+                    CoursePresentationH5P nouveauCoursePresentation
+
+                "TrueFalse" ->
+                    TrueFalseH5P nouveauTrueFalse
+
+                _ ->
+                    BranchingScenarioH5P nouveauBranchingScenario
+    in
+    succeed f
+        |. symbol (S.repeat profondeur "*")
         |. espaces
-        |. keyword "f"
+        |. keyword typeDeBloc
 
 
 type alias BlocState =
@@ -1387,33 +1409,67 @@ type alias BlocState =
 h5pParser : Parser (H5P bSC cPC)
 h5pParser =
     oneOf
-        [ branchingScenarioParser
-        , coursePresentationParser
-        , trueFalseParser
+        [ branchingScenarioParser 1
+        , coursePresentationParser 1
+        , trueFalseParser 1
         ]
 
 
-branchingScenarioParser =
-    succeed (BranchingScenarioH5P nouveauBranchingScenario)
-        -- |. espaces
-        |. symbol "*"
+branchingScenarioParser profondeur =
+    let
+        f startScreenTitle startScreenSubtitle =
+            BranchingScenarioH5P
+                { nouveauBranchingScenario
+                    | startScreen =
+                        nouveauBranchingScenario.startScreen
+                            |> withStartScreenTitle startScreenTitle
+                            |> withStartScreenSubtitle startScreenSubtitle
+                }
+    in
+    succeed f
+        |. symbol (S.repeat profondeur "*")
         |. espaces
+        |. keyword "BranchingScenario"
+        |. espaces
+        |= title
+        |. token "\n"
+        |= title
 
 
-coursePresentationParser =
+coursePresentationParser profondeur =
     succeed (CoursePresentationH5P nouveauCoursePresentation)
-        |. symbol "*"
+        |. symbol (S.repeat profondeur "*")
+        |. espaces
+        |. keyword "CoursePresentation"
 
 
-trueFalseParser =
+trueFalseParser profondeur =
     succeed (TrueFalseH5P nouveauTrueFalse)
-        |. symbol "*"
+        |. symbol (S.repeat profondeur "*")
+        |. espaces
+        |. keyword "TrueFalse"
 
 
 title =
     getChompedString <|
         succeed ()
-            |. chompWhile ((==) '\n')
+            |. chompWhile ((/=) '\n')
+
+
+blankLines =
+    sequence
+        { start = ""
+        , separator = "\n"
+        , end = ""
+        , spaces = blankLine
+        , item =
+            oneOf
+                [ bloc 1 "BranchingScenario"
+                , bloc 1 "CoursePresentation"
+                , bloc 1 "TrueFalse"
+                ]
+        , trailing = Optional
+        }
 
 
 blankLine =
