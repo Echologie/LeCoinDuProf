@@ -349,6 +349,39 @@ type alias BranchingScenarioStartScreen =
     }
 
 
+type alias BranchingScenarioContent =
+    { contentBehaviour : String
+    , feedback : BranchingScenarioContentFeedback
+    , forceContentFinished : String
+    , showContentTitle : Bool
+    , type_ : BranchingScenarioContentType
+    }
+
+
+type alias BranchingScenarioContentFeedback =
+    { subtitle : String
+    }
+
+
+type alias BranchingScenarioContentType =
+    { library : String
+    , metadata : BranchingScenarioContentTypeMetadata
+    , params : BranchingScenarioContentTypeParams
+    , subContentId : String
+    }
+
+
+type alias BranchingScenarioContentTypeMetadata =
+    { contentType : String
+    , license : String
+    , title : String
+    }
+
+
+type alias BranchingScenarioContentTypeParams =
+    {}
+
+
 branchingScenarioDecoder : D.Decoder BranchingScenario
 branchingScenarioDecoder =
     D.map6 BranchingScenario
@@ -401,6 +434,44 @@ branchingScenarioStartScreenDecoder =
     D.map2 BranchingScenarioStartScreen
         (D.field "startScreenSubtitle" D.string)
         (D.field "startScreenTitle" D.string)
+
+
+branchingScenarioContentDecoder : D.Decoder BranchingScenarioContent
+branchingScenarioContentDecoder =
+    D.map5 BranchingScenarioContent
+        (D.field "contentBehaviour" D.string)
+        (D.field "feedback" branchingScenarioContentFeedbackDecoder)
+        (D.field "forceContentFinished" D.string)
+        (D.field "showContentTitle" D.bool)
+        (D.field "type" branchingScenarioContentTypeDecoder)
+
+
+branchingScenarioContentFeedbackDecoder : D.Decoder BranchingScenarioContentFeedback
+branchingScenarioContentFeedbackDecoder =
+    D.map BranchingScenarioContentFeedback
+        (D.field "subtitle" D.string)
+
+
+branchingScenarioContentTypeDecoder : D.Decoder BranchingScenarioContentType
+branchingScenarioContentTypeDecoder =
+    D.map4 BranchingScenarioContentType
+        (D.field "library" D.string)
+        (D.field "metadata" branchingScenarioContentTypeMetadataDecoder)
+        (D.field "params" branchingScenarioContentTypeParamsDecoder)
+        (D.field "subContentId" D.string)
+
+
+branchingScenarioContentTypeMetadataDecoder : D.Decoder BranchingScenarioContentTypeMetadata
+branchingScenarioContentTypeMetadataDecoder =
+    D.map3 BranchingScenarioContentTypeMetadata
+        (D.field "contentType" D.string)
+        (D.field "license" D.string)
+        (D.field "title" D.string)
+
+
+branchingScenarioContentTypeParamsDecoder : D.Decoder BranchingScenarioContentTypeParams
+branchingScenarioContentTypeParamsDecoder =
+    D.succeed BranchingScenarioContentTypeParams
 
 
 encodedBranchingScenario : BranchingScenario -> E.Value
@@ -466,47 +537,11 @@ encodedBranchingScenarioStartScreen branchingScenarioStartScreen =
         ]
 
 
-type alias BranchingScenarioContent =
-    { feedback : BranchingScenarioContentFeedback
-    , forceContentFinished : String
-    , showContentTitle : Bool
-    , type_ : BranchingScenarioContentType
-    }
-
-
-type alias BranchingScenarioContentFeedback =
-    { subtitle : String
-    }
-
-
-type alias BranchingScenarioContentType =
-    {}
-
-
-branchingScenarioContentDecoder : D.Decoder BranchingScenarioContent
-branchingScenarioContentDecoder =
-    D.map4 BranchingScenarioContent
-        (D.field "feedback" branchingScenarioContentFeedbackDecoder)
-        (D.field "forceContentFinished" D.string)
-        (D.field "showContentTitle" D.bool)
-        (D.field "type" branchingScenarioContentTypeDecoder)
-
-
-branchingScenarioContentFeedbackDecoder : D.Decoder BranchingScenarioContentFeedback
-branchingScenarioContentFeedbackDecoder =
-    D.map BranchingScenarioContentFeedback
-        (D.field "subtitle" D.string)
-
-
-branchingScenarioContentTypeDecoder : D.Decoder BranchingScenarioContentType
-branchingScenarioContentTypeDecoder =
-    D.succeed BranchingScenarioContentType
-
-
 encodedBranchingScenarioContent : BranchingScenarioContent -> E.Value
 encodedBranchingScenarioContent branchingScenarioContent =
     E.object
-        [ ( "feedback", encodedBranchingScenarioContentFeedback branchingScenarioContent.feedback )
+        [ ( "contentBehaviour", E.string branchingScenarioContent.contentBehaviour )
+        , ( "feedback", encodedBranchingScenarioContentFeedback branchingScenarioContent.feedback )
         , ( "forceContentFinished", E.string branchingScenarioContent.forceContentFinished )
         , ( "showContentTitle", E.bool branchingScenarioContent.showContentTitle )
         , ( "type", encodedBranchingScenarioContentType branchingScenarioContent.type_ )
@@ -522,6 +557,25 @@ encodedBranchingScenarioContentFeedback branchingScenarioContentFeedback =
 
 encodedBranchingScenarioContentType : BranchingScenarioContentType -> E.Value
 encodedBranchingScenarioContentType branchingScenarioContentType =
+    E.object
+        [ ( "library", E.string branchingScenarioContentType.library )
+        , ( "metadata", encodedBranchingScenarioContentTypeMetadata branchingScenarioContentType.metadata )
+        , ( "params", encodedBranchingScenarioContentTypeParams branchingScenarioContentType.params )
+        , ( "subContentId", E.string branchingScenarioContentType.subContentId )
+        ]
+
+
+encodedBranchingScenarioContentTypeMetadata : BranchingScenarioContentTypeMetadata -> E.Value
+encodedBranchingScenarioContentTypeMetadata branchingScenarioContentTypeMetadata =
+    E.object
+        [ ( "contentType", E.string branchingScenarioContentTypeMetadata.contentType )
+        , ( "license", E.string branchingScenarioContentTypeMetadata.license )
+        , ( "title", E.string branchingScenarioContentTypeMetadata.title )
+        ]
+
+
+encodedBranchingScenarioContentTypeParams : BranchingScenarioContentTypeParams -> E.Value
+encodedBranchingScenarioContentTypeParams branchingScenarioContentTypeParams =
     E.object
         []
 
@@ -539,16 +593,16 @@ nouveauBranchingScenario =
         , includeInteractionsScores = True
         }
     , startScreen =
-        { startScreenTitle = "<p>Début du parcours</p>\n"
-        , startScreenSubtitle = "<p>Préparez-vous à l'aventure !</p>\n"
+        { startScreenTitle = "<p>Parcours personnalisé</p>\n"
+        , startScreenSubtitle = "<p>Préparez bien vos méninges !</p>\n"
         }
     , behaviour =
         { enableBackwardsNavigation = True
         , forceContentFinished = False
         }
     , l10n =
-        { startScreenButtonText = "Commencer le cours"
-        , endScreenButtonText = "Recommencer le cours"
+        { startScreenButtonText = "Commencer le parcours"
+        , endScreenButtonText = "Recommencer le parcours"
         , backButtonText = "Revenir en arrière"
         , proceedButtonText = "Continuer"
         , disableProceedButtonText = "Jouer la vidéo de nouveau"
@@ -986,7 +1040,7 @@ nouveauCoursePresentation =
         , confirmDialogConfirmText = "Envoyer et voir les résultats"
         , confirmDialogHeader = "Envoyer vos réponses"
         , confirmDialogText = "Cette action va envoyer vos réponses, voulez-vous continuer?"
-        , containsCompleted = "@slideName ccontient des interactions complètes"
+        , containsCompleted = "@slideName contient des interactions complètes"
         , containsIncorrectAnswers = "@slideName contient des réponses incorrectes"
         , containsNotCompleted = "@slideName contient des interactions incomplètes"
         , containsOnlyCorrect = "toutes les réponses sont bonnes sur @slideName"
@@ -1015,7 +1069,7 @@ nouveauCoursePresentation =
         , showSolutions = "Voir la correction"
         , slide = "Diapositive"
         , slideCount = "Diapositive a @index de @total"
-        , solutionModeText = "Passer en mode &quot;correction&quot;"
+        , solutionModeText = "Passer en mode &quot;Correction&quot;"
         , solutionModeTitle = "Sortir du mode &quot;Correction&quot;"
         , solutionsButtonTitle = "Afficher les commentaires"
         , summary = "Résumé"
@@ -1404,39 +1458,98 @@ h5pParser =
         ]
 
 
+questionParser =
+    tillEndOfLine
+
+
+titleParser =
+    tillEndOfLine
+
+
+tillEndOfLine =
+    getChompedString <|
+        succeed ()
+            |. chompWhile ((/=) '\n')
+
+
+blankLines =
+    succeed ()
+        |. chompWhile (\x -> x == ' ' || x == '\t' || x == '\n' || x == '\u{000D}')
+        |. (getPosition
+                |> andThen
+                    (\( row, col ) ->
+                        if col == 1 then
+                            succeed ()
+
+                        else
+                            problem
+                                ("N'y aurait-il pas des espaces en trop au débul de la ligne "
+                                    ++ String.fromInt row
+                                )
+                    )
+           )
+
+
+espaces =
+    chompWhile <| \x -> x == ' ' || x == '\t'
+
+
+
+{-
+   ██████  ██████   █████  ███    ██  ██████ ██   ██ ██ ███    ██  ██████
+   ██   ██ ██   ██ ██   ██ ████   ██ ██      ██   ██ ██ ████   ██ ██
+   ██████  ██████  ███████ ██ ██  ██ ██      ███████ ██ ██ ██  ██ ██   ███
+   ██   ██ ██   ██ ██   ██ ██  ██ ██ ██      ██   ██ ██ ██  ██ ██ ██    ██
+   ██████  ██   ██ ██   ██ ██   ████  ██████ ██   ██ ██ ██   ████  ██████
+
+   ███████  ██████ ███████ ███    ██  █████  ██████  ██  ██████
+   ██      ██      ██      ████   ██ ██   ██ ██   ██ ██ ██    ██
+   ███████ ██      █████   ██ ██  ██ ███████ ██████  ██ ██    ██
+        ██ ██      ██      ██  ██ ██ ██   ██ ██   ██ ██ ██    ██
+   ███████  ██████ ███████ ██   ████ ██   ██ ██   ██ ██  ██████
+-}
+
+
 branchingScenarioParser profondeur =
     let
-        f startScreenTitle startScreenSubtitle =
+        f title contentList =
             BranchingScenarioH5P
                 { nouveauBranchingScenario
                     | startScreen =
                         nouveauBranchingScenario.startScreen
-                            |> withStartScreenTitle startScreenTitle
-                            |> withStartScreenSubtitle startScreenSubtitle
+                            |> withStartScreenSubtitle title
+                    , content = [] -- TODO
                 }
     in
     succeed f
-        |. symbol (S.repeat profondeur "*")
-        |. espaces
+        |. stars profondeur
         |. keyword "BranchingScenario"
         |. espaces
-        |= title
+        |= titleParser
         |. token "\n"
-        |= title
+        |= sequence
+            { start = ""
+            , separator = ""
+            , end = ""
+            , spaces = blankLines
+            , item = contentParser (profondeur + 1)
+            , trailing = Optional
+            }
+        |. spaces
 
 
-coursePresentationParser profondeur =
-    succeed (CoursePresentationH5P nouveauCoursePresentation)
+stars profondeur =
+    succeed ()
         |. symbol (S.repeat profondeur "*")
         |. espaces
-        |. keyword "CoursePresentation"
 
 
-trueFalseParser profondeur =
-    succeed (TrueFalseH5P nouveauTrueFalse)
-        |. symbol (S.repeat profondeur "*")
-        |. espaces
-        |. keyword "TrueFalse"
+contentParser profondeur =
+    oneOf
+        [ --branchingQuestionParser profondeur
+          coursePresentationParser profondeur
+        , trueFalseParser profondeur
+        ]
 
 
 uuid n =
@@ -1446,14 +1559,87 @@ uuid n =
         |> UUID.toString
 
 
-blankLine =
-    succeed ()
-        |. espaces
-        |. token "\n"
+
+{-
+   ██████╗ ██████╗  █████╗ ███╗   ██╗ ██████╗██╗  ██╗██╗███╗   ██╗ ██████╗
+   ██╔══██╗██╔══██╗██╔══██╗████╗  ██║██╔════╝██║  ██║██║████╗  ██║██╔════╝
+   ██████╔╝██████╔╝███████║██╔██╗ ██║██║     ███████║██║██╔██╗ ██║██║  ███╗
+   ██╔══██╗██╔══██╗██╔══██║██║╚██╗██║██║     ██╔══██║██║██║╚██╗██║██║   ██║
+   ██████╔╝██║  ██║██║  ██║██║ ╚████║╚██████╗██║  ██║██║██║ ╚████║╚██████╔╝
+   ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝
+
+    ██████╗ ██╗   ██╗███████╗███████╗████████╗██╗ ██████╗ ███╗   ██╗
+   ██╔═══██╗██║   ██║██╔════╝██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║
+   ██║   ██║██║   ██║█████╗  ███████╗   ██║   ██║██║   ██║██╔██╗ ██║
+   ██║▄▄ ██║██║   ██║██╔══╝  ╚════██║   ██║   ██║██║   ██║██║╚██╗██║
+   ╚██████╔╝╚██████╔╝███████╗███████║   ██║   ██║╚██████╔╝██║ ╚████║
+    ╚══▀▀═╝  ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+-}
+--branchingQuestionParser profondeur =
+--    let
+--        f question branchList =
+--            case branchList of
+--                [] ->
+--                    0
+--    in
+--    succeed f
+--        |. stars profondeur
+--        |. keyword "BranchingQuestion"
+--        |. espaces
+--        |= questionParser
+--        |. token "\n"
+--        |= sequence
+--            { start = ""
+--            , separator = ""
+--            , end = ""
+--            , spaces = blankLines
+--            , item = branchingQuestionAlternativeParser (profondeur + 1)
+--            , trailing = Optional
+--            }
+--branchingQuestionAlternativeParser profondeur =
+--    0
+{-
+    ██████  ██████  ██    ██ ██████  ███████ ███████
+   ██      ██    ██ ██    ██ ██   ██ ██      ██
+   ██      ██    ██ ██    ██ ██████  ███████ █████
+   ██      ██    ██ ██    ██ ██   ██      ██ ██
+    ██████  ██████   ██████  ██   ██ ███████ ███████
+
+   ██████  ██████  ███████ ███████ ███████ ███    ██ ████████  █████  ████████ ██  ██████  ███    ██
+   ██   ██ ██   ██ ██      ██      ██      ████   ██    ██    ██   ██    ██    ██ ██    ██ ████   ██
+   ██████  ██████  █████   ███████ █████   ██ ██  ██    ██    ███████    ██    ██ ██    ██ ██ ██  ██
+   ██      ██   ██ ██           ██ ██      ██  ██ ██    ██    ██   ██    ██    ██ ██    ██ ██  ██ ██
+   ██      ██   ██ ███████ ███████ ███████ ██   ████    ██    ██   ██    ██    ██  ██████  ██   ████
+-}
 
 
-espaces =
-    chompWhile <| \x -> x == ' ' || x == '\t'
+coursePresentationParser profondeur =
+    succeed (CoursePresentationH5P nouveauCoursePresentation)
+        |. stars profondeur
+        |. keyword "CoursePresentation"
+
+
+
+{-
+   ████████ ██████  ██    ██ ███████     ██ ███████  █████  ██      ███████ ███████
+      ██    ██   ██ ██    ██ ██         ██  ██      ██   ██ ██      ██      ██
+      ██    ██████  ██    ██ █████     ██   █████   ███████ ██      ███████ █████
+      ██    ██   ██ ██    ██ ██       ██    ██      ██   ██ ██           ██ ██
+      ██    ██   ██  ██████  ███████ ██     ██      ██   ██ ███████ ███████ ███████
+
+    ██████  ██    ██ ███████ ███████ ████████ ██  ██████  ███    ██
+   ██    ██ ██    ██ ██      ██         ██    ██ ██    ██ ████   ██
+   ██    ██ ██    ██ █████   ███████    ██    ██ ██    ██ ██ ██  ██
+   ██ ▄▄ ██ ██    ██ ██           ██    ██    ██ ██    ██ ██  ██ ██
+    ██████   ██████  ███████ ███████    ██    ██  ██████  ██   ████
+       ▀▀
+-}
+
+
+trueFalseParser profondeur =
+    succeed (TrueFalseH5P nouveauTrueFalse)
+        |. stars profondeur
+        |. keyword "TrueFalse"
 
 
 
