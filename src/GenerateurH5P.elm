@@ -19,6 +19,7 @@ import Random.List
 import Set
 import String as S
 import Style exposing (..)
+import UUID exposing (UUID)
 
 
 titre =
@@ -1424,10 +1425,11 @@ trueFalseParser profondeur =
         |. keyword "TrueFalse"
 
 
-title =
-    getChompedString <|
-        succeed ()
-            |. chompWhile ((/=) '\n')
+uuid n =
+    Random.initialSeed n
+        |> Random.step UUID.generator
+        |> Tuple.first
+        |> UUID.toString
 
 
 blankLine =
