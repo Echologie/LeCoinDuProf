@@ -39,7 +39,6 @@ titre =
 type alias Model =
     { structureDuContenu : String
     , contenuGenere : String
-    , uuid : String
     }
 
 
@@ -47,7 +46,6 @@ init : Model
 init =
     { structureDuContenu = ""
     , contenuGenere = ""
-    , uuid = "123e4567-e89b-42d3-a456-426655440000"
     }
 
 
@@ -65,8 +63,6 @@ type Msg
     = StructureDuContenu String
     | GenererContenu
     | TelechargerContenu
-    | GenererUUID
-    | UUIDgenere String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -106,16 +102,6 @@ update msg model =
         TelechargerContenu ->
             ( model
             , File.Download.string "content.json" "text/json" model.contenuGenere
-            )
-
-        GenererUUID ->
-            ( model
-            , Random.generate UUIDgenere <| Random.map UUID.toString UUID.generator
-            )
-
-        UUIDgenere id ->
-            ( { model | uuid = id }
-            , Cmd.none
             )
 
 
