@@ -1482,11 +1482,21 @@ h5pParser =
         ]
 
 
+stars profondeur =
+    succeed ()
+        |. symbol (S.repeat profondeur "*")
+        |. espaces
+
+
+titleParser =
+    tillEndOfLine
+
+
 questionParser =
     tillEndOfLine
 
 
-titleParser =
+alternativeParser =
     tillEndOfLine
 
 
@@ -1496,10 +1506,25 @@ tillEndOfLine =
             |. chompWhile ((/=) '\n')
 
 
+{-| Avale tout l'espace blanc et impose de s'arrêter
+soit en début de ligne soit en fin de fichier.
+-}
 blankLines =
     succeed ()
-        |. chompWhile (\x -> x == ' ' || x == '\t' || x == '\n' || x == '\u{000D}')
-        |. (getPosition
+        |. chompWhile
+            (\x ->
+                x
+                    == ' '
+                    || x
+                    == '\t'
+                    || x
+                    == '\n'
+                    || x
+                    == '\u{000D}'
+            )
+        |. oneOf
+            [ end
+            , getPosition
                 |> andThen
                     (\( row, col ) ->
                         if col == 1 then
@@ -1507,11 +1532,11 @@ blankLines =
 
                         else
                             problem
-                                ("N'y aurait-il pas des espaces en trop au débul de la ligne "
+                                ("N'y aurait-il pas des espaces en trop au débul de la ligne ?"
                                     ++ String.fromInt row
                                 )
                     )
-           )
+            ]
 
 
 espaces =
@@ -1550,29 +1575,28 @@ branchingScenarioParser profondeur =
         |. keyword "BranchingScenario"
         |. espaces
         |= titleParser
-        |. token "\n"
-        |= sequence
-            { start = ""
-            , separator = ""
-            , end = ""
-            , spaces = blankLines
-            , item = contentParser (profondeur + 1)
-            , trailing = Optional
-            }
-        |. spaces
+        |. blankLines
+        |= loop ( [], 0 ) (branchingScenarioParserHelp (profondeur + 1))
+        |. blankLines
 
 
-stars profondeur =
-    succeed ()
-        |. symbol (S.repeat profondeur "*")
-        |. espaces
-
-
-contentParser profondeur =
+branchingScenarioParserHelp profondeur ( contentList, contentId ) =
     oneOf
-        [ --branchingQuestionParser profondeur
-          coursePresentationParser profondeur
-        , trueFalseParser profondeur
+        [ succeed Loop
+            |= contentParser profondeur contentId
+        , succeed ()
+            |> P.map (\_ -> Done (List.concat contentList))
+        ]
+
+
+contentParser profondeur contentId =
+    oneOf
+        [ branchingQuestionParser profondeur contentId
+        , succeed (\x -> ( [ x ], contentId + 1 ))
+            |= oneOf
+                [ coursePresentationParser profondeur
+                , trueFalseParser profondeur
+                ]
         ]
 
 
@@ -1599,29 +1623,63 @@ uuid n =
    ╚██████╔╝╚██████╔╝███████╗███████║   ██║   ██║╚██████╔╝██║ ╚████║
     ╚══▀▀═╝  ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 -}
---branchingQuestionParser profondeur =
---    let
---        f question branchList =
---            case branchList of
---                [] ->
---                    0
---    in
---    succeed f
---        |. stars profondeur
---        |. keyword "BranchingQuestion"
---        |. espaces
---        |= questionParser
---        |. token "\n"
---        |= sequence
---            { start = ""
---            , separator = ""
---            , end = ""
---            , spaces = blankLines
---            , item = branchingQuestionAlternativeParser (profondeur + 1)
---            , trailing = Optional
---            }
---branchingQuestionAlternativeParser profondeur =
---    0
+
+
+{-| Ici branchList est un enregistrement forçant la liste à avoir au moins deux éléments
+-}
+branchingQuestionParser profondeur contentId =
+    let
+        f question ( branchList, id ) =
+            ( branchList.first :: branchList.second :: branchList.others
+            , contentId + L.length branchList.others + 2
+            )
+    in
+    succeed f
+        |. stars profondeur
+        |. keyword "BranchingQuestion"
+        |. espaces
+        |= questionParser
+        |. blankLines
+        |= loop ( [], contentId ) (branchingQuestionAlternativeParser (profondeur + 1))
+
+
+{-| Ici branchList est une liste
+-}
+branchingQuestionAlternativeParser profondeur ( branchList, contentId ) =
+    oneOf
+        [ let
+            f alternative ( alternativeList, id ) =
+                case branchList of
+                    [] ->
+                        -- TODO
+                        Loop ( alternativeList, id )
+
+                    _ ->
+                        -- TODO
+                        Loop ( alternativeList, id )
+          in
+          succeed f
+            |. stars profondeur
+            |= alternativeParser
+            |= lazy (loop ( [], contentId ) (branchingQuestionAlternativeParserHelp (profondeur + 1) (contentId + 1)))
+        , succeed ()
+            |> P.map (\_ -> Done (List.concat branchList))
+        ]
+
+
+branchingQuestionAlternativeParserHelp profondeur contentId =
+    -- À réécrire
+    sequence
+        { start = ""
+        , separator = ""
+        , end = ""
+        , spaces = blankLines
+        , item = h5pParser
+        , trailing = Optional
+        }
+
+
+
 {-
     ██████  ██████  ██    ██ ██████  ███████ ███████
    ██      ██    ██ ██    ██ ██   ██ ██      ██
