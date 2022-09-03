@@ -1602,11 +1602,7 @@ branchingScenarioParserHelp profondeur ( contentList, contentId ) =
           succeed f
             |= contentParser profondeur contentId
             |. blankLines
-
-        -- Je me demande pourquoi on ne se contente pas d'écrire :
-        -- succeed (Done contentList)
-        , succeed ()
-            |> P.map (\_ -> Done contentList)
+        , succeed (Done contentList)
         ]
 
 
