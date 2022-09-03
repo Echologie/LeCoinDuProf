@@ -1580,12 +1580,33 @@ branchingScenarioParser profondeur =
         |. blankLines
 
 
+
+{- Dans une configuration de la forme :
+
+       *BranchingScenario Titre du cours
+       ** BranchingQuestion Cxu ?
+           ...
+       ** CoursePresentation
+           ...
+
+   Récupère tout ce qui se trouve au niveau ** sous la forme d'une liste
+-}
+
+
 branchingScenarioParserHelp profondeur ( contentList, contentId ) =
     oneOf
-        [ succeed Loop
+        [ let
+            f ( contents, id ) =
+                Loop ( contentList ++ contents, id + 1 )
+          in
+          succeed f
             |= contentParser profondeur contentId
+            |. blankLines
+
+        -- Je me demande pourquoi on ne se contente pas d'écrire :
+        -- succeed (Done contentList)
         , succeed ()
-            |> P.map (\_ -> Done (List.concat contentList))
+            |> P.map (\_ -> Done contentList)
         ]
 
 
@@ -1640,6 +1661,7 @@ branchingQuestionParser profondeur contentId =
         |. espaces
         |= questionParser
         |. blankLines
+        -- Je dirais qu'il faut un contentId + 1 ici
         |= loop ( [], contentId ) (branchingQuestionAlternativeParser (profondeur + 1))
 
 
@@ -1661,22 +1683,33 @@ branchingQuestionAlternativeParser profondeur ( branchList, contentId ) =
           succeed f
             |. stars profondeur
             |= alternativeParser
-            |= lazy (loop ( [], contentId ) (branchingQuestionAlternativeParserHelp (profondeur + 1) (contentId + 1)))
-        , succeed ()
-            |> P.map (\_ -> Done (List.concat branchList))
+            |= loop ( [], contentId ) (branchingQuestionAlternativeParserHelp (profondeur + 1))
+        , (succeed ()
+            |> P.map (\_ -> List.concat branchList)
+          )
+            |> andThen
+                (\xx ->
+                    case xx of
+                        [] ->
+                            problem "Un embranchement doit avoir au moins deux branches !"
+
+                        x :: [] ->
+                            problem "Un embranchement doit avoir au moins deux branches !"
+
+                        x :: y :: zz ->
+                            succeed ()
+                                |> P.map (\_ -> Done ( { first = x, second = y, others = zz }, contentId ))
+                )
         ]
 
 
-branchingQuestionAlternativeParserHelp profondeur contentId =
-    -- À réécrire
-    sequence
-        { start = ""
-        , separator = ""
-        , end = ""
-        , spaces = blankLines
-        , item = h5pParser
-        , trailing = Optional
-        }
+{-| Tout le travail reste à faire !
+-}
+branchingQuestionAlternativeParserHelp profondeur ( branchList, contentId ) =
+    oneOf
+        [ succeed ()
+            |> P.map (\_ -> Done ( [], contentId ))
+        ]
 
 
 
