@@ -1448,7 +1448,7 @@ withContent cntnt record =
    \ \/\ \                                                    /\ \/ /
     \/ /\ \ ██████╗  █████╗ ██████╗ ███████╗███████╗██████╗  / /\/ /
     / /\/ / ██╔══██╗██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗ \ \/ /\
-   / /\ \/  ██████╔╝███████║██████╔╝███████╗█████╗  ██████╔╝ \ \/\ \
+   / /\ \/  ██████╔╝███████║██████╔╝███████╗█████╗  ██████╔╝  \ \/\ \
    \ \/\ \  ██╔═══╝ ██╔══██║██╔══██╗╚════██║██╔══╝  ██╔══██╗  /\ \/ /
     \/ /\ \ ██║     ██║  ██║██║  ██║███████║███████╗██║  ██║ / /\/ /
     / /\/ / ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝ \ \/ /\
@@ -1476,8 +1476,8 @@ h5psParser =
 h5pParser : Parser (H5P bSC cPC)
 h5pParser =
     oneOf
-        [ branchingScenarioParser 1
-        , coursePresentationParser 1
+        [ backtrackable <| branchingScenarioParser 1
+        , backtrackable <| coursePresentationParser 1
         , trueFalseParser 1
         ]
 
@@ -1496,7 +1496,7 @@ questionParser =
     tillEndOfLine
 
 
-alternativeParser =
+alternativeAnswerParser =
     tillEndOfLine
 
 
@@ -1532,7 +1532,7 @@ blankLines =
 
                         else
                             problem
-                                ("N'y aurait-il pas des espaces en trop au débul de la ligne ?"
+                                ("N'y aurait-il pas des espaces en trop au début de la ligne ?"
                                     ++ String.fromInt row
                                 )
                     )
@@ -1608,12 +1608,14 @@ branchingScenarioParserHelp profondeur ( contentList, contentId ) =
 
 contentParser profondeur contentId =
     oneOf
-        [ branchingQuestionParser profondeur contentId
+        [ backtrackable <| branchingQuestionParser profondeur contentId
         , succeed (\x -> ( [ x ], contentId + 1 ))
             |= oneOf
-                [ coursePresentationParser profondeur
+                [ backtrackable <| coursePresentationParser profondeur
                 , trueFalseParser profondeur
                 ]
+
+        --, problem "Oups"
         ]
 
 
@@ -1678,7 +1680,7 @@ branchingQuestionAlternativeParser profondeur ( branchList, contentId ) =
           in
           succeed f
             |. stars profondeur
-            |= alternativeParser
+            |= alternativeAnswerParser
             |= loop ( [], contentId ) (branchingQuestionAlternativeParserHelp (profondeur + 1))
         , (succeed ()
             |> P.map (\_ -> List.concat branchList)
@@ -1687,7 +1689,7 @@ branchingQuestionAlternativeParser profondeur ( branchList, contentId ) =
                 (\xx ->
                     case xx of
                         [] ->
-                            problem "Un embranchement doit avoir au moins deux branches !"
+                            problem "Un embranchement doit avoir des branches !"
 
                         x :: [] ->
                             problem "Un embranchement doit avoir au moins deux branches !"
@@ -1703,8 +1705,14 @@ branchingQuestionAlternativeParser profondeur ( branchList, contentId ) =
 -}
 branchingQuestionAlternativeParserHelp profondeur ( branchList, contentId ) =
     oneOf
-        [ succeed ()
-            |> P.map (\_ -> Done ( [], contentId ))
+        [ succeed
+            (Done
+                ( [ [ CoursePresentationH5P nouveauCoursePresentation ]
+                  , [ TrueFalseH5P nouveauTrueFalse ]
+                  ]
+                , contentId
+                )
+            )
         ]
 
 
@@ -1782,3 +1790,11 @@ voirErreur err =
         ++ String.fromInt err.row
         ++ " | Colonne : "
         ++ String.fromInt err.col
+        ++ "\n"
+        ++ (case err.problem of
+                Problem p ->
+                    p
+
+                _ ->
+                    ""
+           )
