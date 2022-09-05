@@ -12,7 +12,7 @@ import Html exposing (Attribute, Html, button, div, iframe, input, p, section, t
 import Json.Decode as D
 import Json.Encode as E
 import List as L
-import Parser as P exposing (..)
+import Parser.Advanced as P exposing (..)
 import Random
 import Random.Extra
 import Random.List
@@ -71,9 +71,9 @@ update msg model =
         StructureDuContenu nouvelleStructure ->
             let
                 f strCtn =
-                    case P.run h5pParser strCtn of
+                    case P.run h5psParser strCtn of
                         Ok ctn ->
-                            h5pEncode 2 ctn
+                            S.join "\n\n" <| L.map (h5pEncode 2) ctn
 
                         Err erreurs ->
                             deadEndsToStringBis erreurs
@@ -88,9 +88,9 @@ update msg model =
         GenererContenu ->
             let
                 f strCtn =
-                    case P.run h5pParser strCtn of
+                    case P.run h5psParser strCtn of
                         Ok ctn ->
-                            h5pEncode 0 ctn
+                            S.join "\n\n" <| L.map (h5pEncode 0) ctn
 
                         Err erreurs ->
                             deadEndsToStringBis erreurs
@@ -1462,29 +1462,114 @@ withContent cntnt record =
 -}
 
 
+type alias H5Parser a =
+    Parser Context Problem a
+
+
+type Context
+    = Preamble
+    | BranchingScenarioContext
+    | BranchingQuestionContext
+    | BranchingQuestionAlternativeContext
+    | CoursePresentationContext
+    | TrueFalseContext
+
+
 h5psParser =
-    sequence
-        { start = ""
-        , separator = ""
-        , end = ""
-        , spaces = blankLines
-        , item = h5pParser
-        , trailing = Optional
-        }
-
-
-h5pParser : Parser (H5P bSC cPC)
-h5pParser =
     oneOf
-        [ backtrackable <| branchingScenarioParser 1
-        , backtrackable <| coursePresentationParser 1
-        , trueFalseParser 1
+        [ succeed identity
+            |. preambleParser
+            |= loop [] h5psParserHelp
+        , problem NoContent
         ]
+
+
+preambleParser =
+    inContext Preamble <|
+        whileNoStarOnFirstColumn
+
+
+whileNoStarOnFirstColumn =
+    succeed identity
+        |. chompWhile ((/=) '*')
+        |= getCol
+        |> andThen
+            (\col ->
+                if col > 1 then
+                    succeed ()
+                        |. symbol (Token "*" EndOfFile)
+                        |. whileNoStarOnFirstColumn
+
+                else
+                    oneOf
+                        [ succeed ()
+                            |. end NoContent
+                            -- Pourquoi ça ne marche pas ???
+                            |. problem NoContent
+                        , succeed ()
+                        ]
+            )
+
+
+h5psParserHelp h5ps =
+    countStars
+        |> andThen
+            (\profondeur ->
+                if profondeur == 0 then
+                    h5ps
+                        |> L.reverse
+                        |> Done
+                        |> succeed
+
+                else
+                    succeed (\h5p -> Loop <| h5p :: h5ps)
+                        |= h5pParser profondeur
+            )
+
+
+
+-- h5pParser : Int -> H5Parser (H5P bSC cPC)
+
+
+h5pParser profondeur =
+    succeed identity
+        |. espaces
+        |= variable
+            { start = Char.isUpper
+            , inner = Char.isAlphaNum
+            , reserved = Set.fromList []
+            , expecting = ExpectingH5PcontentType
+            }
+        |. espaces
+        |> andThen
+            (\contentType ->
+                case contentType of
+                    "BranchingScenario" ->
+                        inContext BranchingScenarioContext <|
+                            branchingScenarioParser profondeur
+
+                    "CoursePresentation" ->
+                        inContext BranchingScenarioContext <|
+                            coursePresentationParser profondeur
+
+                    "TrueFalse" ->
+                        inContext BranchingScenarioContext <|
+                            trueFalseParser profondeur
+
+                    _ ->
+                        problem <| UnknownH5PcontentType contentType
+            )
+
+
+countStars : H5Parser Int
+countStars =
+    succeed S.length
+        |= getChompedString (chompWhile ((==) '*'))
 
 
 stars profondeur =
     succeed ()
-        |. symbol (S.repeat profondeur "*")
+        |. symbol (Token (S.repeat profondeur "*") GenericProblem)
         |. espaces
 
 
@@ -1523,7 +1608,7 @@ blankLines =
                     == '\u{000D}'
             )
         |. oneOf
-            [ end
+            [ end GenericProblem
             , getPosition
                 |> andThen
                     (\( row, col ) ->
@@ -1531,7 +1616,7 @@ blankLines =
                             succeed ()
 
                         else
-                            problem
+                            problemBis
                                 ("N'y aurait-il pas des espaces en trop au début de la ligne ?"
                                     ++ String.fromInt row
                                 )
@@ -1541,6 +1626,14 @@ blankLines =
 
 espaces =
     chompWhile <| \x -> x == ' ' || x == '\t'
+
+
+keywordBis x =
+    keyword <| Token x GenericProblem
+
+
+problemBis x =
+    problem <| Problem x
 
 
 
@@ -1571,9 +1664,6 @@ branchingScenarioParser profondeur =
                 }
     in
     succeed f
-        |. stars profondeur
-        |. keyword "BranchingScenario"
-        |. espaces
         |= titleParser
         |. blankLines
         |= loop ( [], 0 ) (branchingScenarioParserHelp (profondeur + 1))
@@ -1615,7 +1705,7 @@ contentParser profondeur contentId =
                 , trueFalseParser profondeur
                 ]
 
-        --, problem "Oups"
+        --, problemBis "Oups"
         ]
 
 
@@ -1655,7 +1745,7 @@ branchingQuestionParser profondeur contentId =
     in
     succeed f
         |. stars profondeur
-        |. keyword "BranchingQuestion"
+        |. keywordBis "BranchingQuestion"
         |. espaces
         |= questionParser
         |. blankLines
@@ -1689,10 +1779,10 @@ branchingQuestionAlternativeParser profondeur ( branchList, contentId ) =
                 (\xx ->
                     case xx of
                         [] ->
-                            problem "Un embranchement doit avoir des branches !"
+                            problemBis "Un embranchement doit avoir des branches !"
 
                         x :: [] ->
-                            problem "Un embranchement doit avoir au moins deux branches !"
+                            problemBis "Un embranchement doit avoir au moins deux branches !"
 
                         x :: y :: zz ->
                             succeed ()
@@ -1733,9 +1823,10 @@ branchingQuestionAlternativeParserHelp profondeur ( branchList, contentId ) =
 
 
 coursePresentationParser profondeur =
-    succeed (CoursePresentationH5P nouveauCoursePresentation)
-        |. stars profondeur
-        |. keyword "CoursePresentation"
+    inContext CoursePresentationContext <|
+        succeed (CoursePresentationH5P nouveauCoursePresentation)
+            |. stars profondeur
+            |. keywordBis "CoursePresentation"
 
 
 
@@ -1758,7 +1849,7 @@ coursePresentationParser profondeur =
 trueFalseParser profondeur =
     succeed (TrueFalseH5P nouveauTrueFalse)
         |. stars profondeur
-        |. keyword "TrueFalse"
+        |. keywordBis "TrueFalse"
 
 
 
@@ -1778,23 +1869,90 @@ trueFalseParser profondeur =
 -}
 
 
+type Problem
+    = NoContent
+    | BadKeyword String
+    | Problem String
+    | GenericProblem
+    | EndOfFile
+    | ExpectingH5PcontentType
+    | UnknownH5PcontentType String
+
+
 deadEndsToStringBis errs =
     errs
-        |> List.map voirErreur
-        |> String.concat
-        |> (++) "Il y a des problèmes aux endroits suivants :\n"
+        |> L.map voirErreur
+        |> S.join "\n\n"
+        |> (++) "J'ai rencontré les problèmes suivants :\n\n"
 
 
 voirErreur err =
-    "Ligne : "
+    "Problème : "
+        ++ showProblem err.problem
+        ++ "Ligne : "
         ++ String.fromInt err.row
         ++ " | Colonne : "
         ++ String.fromInt err.col
-        ++ "\n"
-        ++ (case err.problem of
-                Problem p ->
-                    p
+        ++ showContext (L.map .context err.contextStack)
+        ++ "\n\n-----------------------------------------\n"
 
-                _ ->
-                    ""
-           )
+
+showProblem prob =
+    case prob of
+        Problem p ->
+            p ++ "\n"
+
+        NoContent ->
+            """Je n'ai aucun contenu à produire !
+Y a-t-il autre chose qu'un préambule à analyser ?
+Est-ce que vos * ne seraient pas trop indentées ?
+"""
+
+        EndOfFile ->
+            "Fin de fichier\n"
+
+        ExpectingH5PcontentType ->
+            """Je m'attends à trouver l'un des mots clefs suivants :
+    BranchingScenario
+    CoursePresentation
+    TrueFalse
+"""
+
+        UnknownH5PcontentType x ->
+            "Contenu H5P inconnu : " ++ x ++ "\n"
+
+        _ ->
+            "Problème inconnu\n"
+
+
+showContext ccc =
+    case ccc of
+        [] ->
+            ""
+
+        _ ->
+            "\nContexte :\n" ++ showContextHelp ccc
+
+
+showContextHelp ccc =
+    case ccc of
+        [] ->
+            "\n"
+
+        Preamble :: cc ->
+            "Préambule"
+
+        BranchingScenarioContext :: cc ->
+            "BranchingScenario > " ++ showContextHelp cc
+
+        BranchingQuestionContext :: cc ->
+            "BranchingQuestion > " ++ showContextHelp cc
+
+        BranchingQuestionAlternativeContext :: cc ->
+            "Alternative > " ++ showContextHelp cc
+
+        CoursePresentationContext :: cc ->
+            "CoursePresentation > " ++ showContextHelp cc
+
+        TrueFalseContext :: cc ->
+            "TrueFalse"
