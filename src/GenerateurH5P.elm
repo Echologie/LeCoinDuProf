@@ -1422,7 +1422,7 @@ nouveauTrueFalse =
 
 
 type H5pTree
-    = H5pTree Context String (A.Array H5pTree)
+    = H5pTree Context String (List H5pTree)
 
 
 fromH5pTree tree =
@@ -1431,7 +1431,7 @@ fromH5pTree tree =
             BranchingScenarioH5P
                 (nouveauBranchingScenario
                     |> withMap startScreenField startScreenSubtitleField title
-                    |> .with contentField (A.map fromBranchingScenario subTrees)
+                    |> .with contentField (L.map fromBranchingScenario subTrees)
                 )
 
         H5pTree CoursePresentationContext title subTrees ->
@@ -1561,15 +1561,8 @@ type Context
 parser =
     succeed (L.map fromH5pTree)
         |. preambleParser
-        |= loop (State 0 0 []) contentsParser
+        |= inContext RootContext (contentsParser RootContext 1)
         |. end EndOfFile
-
-
-type alias State =
-    { depth : Int
-    , maxDepth : Int
-    , h5pTree : List H5pTree
-    }
 
 
 preambleParser =
@@ -1579,31 +1572,20 @@ preambleParser =
             |. whileNoStarOnFirstColumnOrEndOfFile
 
 
-contentsParser profondeur context state =
-    succeed Tuple.pair
-        |= countStars
-        |= contentParser
-        |> andThen
-            (\( numberOfStars, content ) ->
-                if numberOfStars <= 0 then
-                    state.h5pTree
-
-                else if Dict.member numberOfStars State.starsDepth then
-                    state.h5pTree
-                        |> A.set A.push content state.h5pTree
-                        |> Done
-                        |> succeed
-
-                else if numberOfStars < L.maximum (Dict.keys state.starsDepth) then
-                    problem InconsistantStructure
-
-                else
-                    succeed (\content -> Loop <| State (content :: state.contents) numberOfStars)
-            )
+contentsParser context depth =
+    sequence
+        { start = Token "" GenericProblem
+        , separator = Token "" GenericProblem
+        , end = Token "" GenericProblem
+        , spaces = succeed ()
+        , item = contentParser context depth
+        , trailing = Optional
+        }
 
 
-contentParser profondeur context =
+contentParser context depth =
     succeed identity
+        |. stars depth
         |. espaces
         |= getChompedString
             (chompWhile
@@ -1622,28 +1604,28 @@ contentParser profondeur context =
             (\maybeContentType ->
                 case ( maybeContentType, context ) of
                     ( "BranchingScenario", RootContext ) ->
-                        contentParserHelp profondeur BranchingScenarioContext ""
+                        contentParserHelp BranchingScenarioContext depth ""
 
                     ( "BranchingScenario", _ ) ->
                         problem (Problem "Un BranchingScenario doit se trouver à la racine")
 
                     ( "CoursePresentation", RootContext ) ->
-                        contentParserHelp profondeur CoursePresentationContext ""
+                        contentParserHelp CoursePresentationContext depth ""
 
                     ( "CoursePresentation", BranchingScenarioContext ) ->
-                        contentParserHelp profondeur CoursePresentationContext ""
+                        contentParserHelp CoursePresentationContext depth ""
 
                     ( "CoursePresentation", BranchingQuestionAlternativeContext ) ->
-                        contentParserHelp profondeur CoursePresentationContext ""
+                        contentParserHelp CoursePresentationContext depth ""
 
                     ( "CoursePresentation", _ ) ->
                         problem (Problem "Un CoursePresentation doit se trouver à la racine, sous un BranchingScenario ou dans une alternative de BranchingQuestion")
 
                     ( "TrueFalse", RootContext ) ->
-                        contentParserHelp profondeur TrueFalseContext ""
+                        contentParserHelp TrueFalseContext depth ""
 
                     ( "TrueFalse", CoursePresentationContext ) ->
-                        contentParserHelp profondeur TrueFalseContext ""
+                        contentParserHelp TrueFalseContext depth ""
 
                     ( "TrueFalse", _ ) ->
                         problem (Problem "Un TrueFalse doit se trouver à la racine ou dans un CoursePresentation")
@@ -1652,13 +1634,13 @@ contentParser profondeur context =
                     -- pas un contentType, c'est une astuce pour récupérer le texte avaler.
                     -- (cf. bit dans la définition de contentParserHelp)
                     ( _, BranchingScenarioContext ) ->
-                        contentParserHelp profondeur BranchingQuestionContext maybeContentType
+                        contentParserHelp BranchingQuestionContext depth maybeContentType
 
                     ( _, BranchingQuestionAlternativeContext ) ->
-                        contentParserHelp profondeur BranchingQuestionContext maybeContentType
+                        contentParserHelp BranchingQuestionContext depth maybeContentType
 
                     ( _, BranchingQuestionContext ) ->
-                        contentParserHelp profondeur BranchingQuestionAlternativeContext maybeContentType
+                        contentParserHelp BranchingQuestionAlternativeContext depth maybeContentType
 
                     _ ->
                         problem <| UnknownContentType maybeContentType
@@ -1674,7 +1656,7 @@ test =
 * CoursePresentation"""
 
 
-contentParserHelp profondeurAdegager context bit =
+contentParserHelp context depth bit =
     --TODO
     let
         f endOfLine contentList =
@@ -1683,6 +1665,8 @@ contentParserHelp profondeurAdegager context bit =
     inContext context <|
         succeed f
             |= tillEndOfLine
+            |. whileNoStarOnFirstColumnOrEndOfFile
+            |= contentsParser context (depth + 1)
             |. whileNoStarOnFirstColumnOrEndOfFile
 
 
