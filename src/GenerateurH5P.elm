@@ -71,7 +71,7 @@ update msg model =
         StructureDuContenu nouvelleStructure ->
             let
                 f strCtn =
-                    case P.run h5psParser strCtn of
+                    case P.run parser strCtn of
                         Ok ctn ->
                             S.join "\n\n" <| L.map (h5pEncode 2) ctn
 
@@ -88,7 +88,7 @@ update msg model =
         GenererContenu ->
             let
                 f strCtn =
-                    case P.run h5psParser strCtn of
+                    case P.run parser strCtn of
                         Ok ctn ->
                             S.join "\n\n" <| L.map (h5pEncode 0) ctn
 
@@ -270,31 +270,19 @@ source =
 -}
 
 
-type H5P branchingScenarioComposable coursePresentationComposable
-    = BranchingScenarioH5P BranchingScenario
+type H5P
+    = EmptyH5p
+    | BranchingScenarioH5P BranchingScenario
     | CoursePresentationH5P CoursePresentation
     | TrueFalseH5P TrueFalse
-
-
-type BranchingScenarioComposable
-    = BranchingScenarioComposable
-
-
-type BranchingScenarioNonComposable
-    = BranchingScenarioNonComposable
-
-
-type CoursePresentationComposable
-    = CoursePresentationComposable
-
-
-type CoursePresentationNonComposable
-    = CoursePresentationNonComposable
 
 
 h5pEncode indent content =
     E.encode indent <|
         case content of
+            EmptyH5p ->
+                E.object []
+
             BranchingScenarioH5P branchingScenario ->
                 encodedBranchingScenario branchingScenario
 
@@ -399,7 +387,7 @@ type alias BranchingScenarioContentTypeMetadata =
 
 
 type alias BranchingScenarioContentTypeParams =
-    {}
+    H5P
 
 
 branchingScenarioDecoder : D.Decoder BranchingScenario
@@ -491,7 +479,7 @@ branchingScenarioContentTypeMetadataDecoder =
 
 branchingScenarioContentTypeParamsDecoder : D.Decoder BranchingScenarioContentTypeParams
 branchingScenarioContentTypeParamsDecoder =
-    D.succeed BranchingScenarioContentTypeParams
+    D.succeed EmptyH5p
 
 
 encodedBranchingScenario : BranchingScenario -> E.Value
@@ -596,8 +584,13 @@ encodedBranchingScenarioContentTypeMetadata branchingScenarioContentTypeMetadata
 
 encodedBranchingScenarioContentTypeParams : BranchingScenarioContentTypeParams -> E.Value
 encodedBranchingScenarioContentTypeParams branchingScenarioContentTypeParams =
-    E.object
-        []
+    case branchingScenarioContentTypeParams of
+        CoursePresentationH5P x ->
+            encodedCoursePresentation x
+
+        --TODO
+        _ ->
+            E.object []
 
 
 nouveauBranchingScenario =
@@ -1425,16 +1418,141 @@ nouveauTrueFalse =
 -}
 
 
-withStartScreenTitle string record =
-    { record | startScreenTitle = string }
+type H5pTree
+    = H5pTree Context String (List H5pTree)
 
 
-withStartScreenSubtitle string record =
-    { record | startScreenSubtitle = string }
+type Valid
+    = Valid
 
 
-withContent cntnt record =
-    { record | content = List.append record.content cntnt }
+
+{-
+   type BranchingScenarioTree
+       = BranchingScenarioTree String (List (H5pTree BranchingScenarioComposable))
+
+
+   type BranchingQuestionTree
+       = BranchingQuestionTree String (List (H5pTree BranchingQuestionComposable))
+
+
+   type CoursePresentationTree
+       = CoursePresentationTree String (List (H5pTree CoursePresentationComposable))
+
+
+   type H5pComposable
+       = H5pComposable
+
+
+   type BranchingScenarioComposable
+       = BranchingScenarioComposable
+
+
+   type BranchingQuestionComposable
+       = BranchingQuestionComposable
+
+
+   type CoursePresentationComposable
+       = CoursePresentationComposable
+-}
+
+
+fromH5pTree tree =
+    case tree of
+        H5pTree BranchingScenarioContext title subTrees ->
+            BranchingScenarioH5P
+                (nouveauBranchingScenario
+                    |> withMap startScreenField startScreenSubtitleField title
+                    |> .with contentField (L.map fromBranchingScenario subTrees)
+                )
+
+        H5pTree CoursePresentationContext title subTrees ->
+            CoursePresentationH5P nouveauCoursePresentation
+
+        H5pTree TrueFalseContext title subTrees ->
+            TrueFalseH5P nouveauTrueFalse
+
+        _ ->
+            TrueFalseH5P nouveauTrueFalse
+
+
+
+{- { nouveauBranchingScenario
+       | startScreen =
+           nouveauBranchingScenario.startScreen
+               |> withStartScreenSubtitle title
+       , content = L.map fromH5Ptree subTrees
+   }
+-}
+{- H5Ptree CoursePresentationContext title subTrees ->
+       CoursePresentationH5P nouveauCoursePresentation
+
+   H5Ptree TrueFalseContext title subTrees ->
+       TrueFalseH5P nouveauTrueFalse
+
+   _ ->
+       TrueFalseH5P nouveauTrueFalse
+
+-}
+
+
+fromBranchingScenario subTree =
+    case subTree of
+        H5pTree CoursePresentationContext title subTrees ->
+            { contentBehaviour = "useBehavioural"
+            , feedback = { subtitle = "" }
+            , forceContentFinished = "useBehavioural"
+            , showContentTitle = False
+            , type_ =
+                { library = "H5P.CoursePresentation 1.24"
+                , metadata =
+                    { contentType = "Branching Question"
+                    , license = "U"
+                    , title = "Untitled Branching Question"
+                    }
+                , params = CoursePresentationH5P nouveauCoursePresentation
+                , subContentId = uuid 1
+                }
+            }
+
+        H5pTree context title subTrees ->
+            { contentBehaviour = "useBehavioural"
+            , feedback = { subtitle = "" }
+            , forceContentFinished = "useBehavioural"
+            , showContentTitle = False
+            , type_ =
+                { library = "H5P.CoursePresentation 1.24"
+                , metadata =
+                    { contentType = "Branching Question"
+                    , license = "U"
+                    , title = "Untitled Branching Question"
+                    }
+                , params = CoursePresentationH5P nouveauCoursePresentation
+                , subContentId = uuid 1
+                }
+            }
+
+
+withMap field fieldInside value record =
+    field.with (fieldInside.with value (field.field record)) record
+
+
+startScreenField =
+    { with = \value record -> { record | startScreen = value }
+    , field = .startScreen
+    }
+
+
+startScreenSubtitleField =
+    { with = \value record -> { record | startScreenSubtitle = value }
+    , field = .startScreenSubtitle
+    }
+
+
+contentField =
+    { with = \value record -> { record | content = value }
+    , field = .content
+    }
 
 
 
@@ -1467,7 +1585,8 @@ type alias H5Parser a =
 
 
 type Context
-    = Preamble
+    = PreambleContext
+    | RootContext
     | BranchingScenarioContext
     | BranchingQuestionContext
     | BranchingQuestionAlternativeContext
@@ -1475,18 +1594,154 @@ type Context
     | TrueFalseContext
 
 
-h5psParser =
-    oneOf
-        [ succeed identity
-            |. preambleParser
-            |= loop [] h5psParserHelp
-        , problem NoContent
-        ]
+parser =
+    succeed (L.map fromH5pTree)
+        |. preambleParser
+        |= loop (State [] 0) (contentsParser 0 RootContext)
+        |. end EndOfFile
+
+
+type alias State =
+    { contents : List H5pTree
+    , numberOfStarsChomped : Int
+    }
 
 
 preambleParser =
-    inContext Preamble <|
-        whileNoStarOnFirstColumn
+    inContext PreambleContext <|
+        -- Plus compliqué que nécessaire, en vue d'amélioration
+        succeed identity
+            |. whileNoStarOnFirstColumnOrEndOfFile
+
+
+contentsParserHelp profondeur context state =
+    countStars
+        |> andThen
+            (\numberOfStars ->
+                if max numberOfStars state.numberOfStarsChomped <= profondeur then
+                    state.contents
+                        |> L.reverse
+                        |> Done
+                        |> succeed
+
+                else
+                    succeed (\content -> Loop <| State (content :: state.contents) numberOfStars)
+                        |= contentParser numberOfStars context
+            )
+
+
+contentsParser profondeur context =
+    countStars
+        |> andThen
+            (\numberOfStars ->
+                if max numberOfStars state.numberOfStarsChomped <= profondeur then
+                    state.contents
+                        |> L.reverse
+                        |> Done
+                        |> succeed
+
+                else
+                    succeed (\content -> Loop <| State (content :: state.contents) numberOfStars)
+                        |= contentParser numberOfStars context
+            )
+
+
+contentsParserHelp profondeur context contents =
+    oneOf
+        -- backtrackable ?
+        [ succeed (\content -> Loop <| content :: contents)
+            |. stars profondeur
+            |= contentParser numberOfStars context
+        , contents
+            |> L.reverse
+            |> Done
+            |> succeed
+        ]
+
+
+contentParser profondeur context =
+    succeed identity
+        |. espaces
+        |= getChompedString
+            (chompWhile
+                (\c ->
+                    c
+                        /= ' '
+                        && c
+                        /= '\n'
+                        && c
+                        /= '\u{000D}'
+                        && c
+                        /= '\u{000D}'
+                )
+            )
+        |> andThen
+            (\maybeContentType ->
+                case ( maybeContentType, context ) of
+                    ( "BranchingScenario", RootContext ) ->
+                        contentParserHelp profondeur BranchingScenarioContext ""
+
+                    ( "BranchingScenario", _ ) ->
+                        problem (Problem "Un BranchingScenario doit se trouver à la racine")
+
+                    ( "CoursePresentation", RootContext ) ->
+                        contentParserHelp profondeur CoursePresentationContext ""
+
+                    ( "CoursePresentation", BranchingScenarioContext ) ->
+                        contentParserHelp profondeur CoursePresentationContext ""
+
+                    ( "CoursePresentation", BranchingQuestionAlternativeContext ) ->
+                        contentParserHelp profondeur CoursePresentationContext ""
+
+                    ( "CoursePresentation", _ ) ->
+                        problem (Problem "Un CoursePresentation doit se trouver à la racine, sous un BranchingScenario ou dans une alternative de BranchingQuestion")
+
+                    ( "TrueFalse", RootContext ) ->
+                        contentParserHelp profondeur TrueFalseContext ""
+
+                    ( "TrueFalse", CoursePresentationContext ) ->
+                        contentParserHelp profondeur TrueFalseContext ""
+
+                    ( "TrueFalse", _ ) ->
+                        problem (Problem "Un TrueFalse doit se trouver à la racine ou dans un CoursePresentation")
+
+                    -- Dans les trois cas ci-dessous, le maybeContentType ne désigne
+                    -- pas un contentType, c'est une astuce pour récupérer le texte avaler.
+                    -- (cf. bit dans la définition de contentParserHelp)
+                    ( _, BranchingScenarioContext ) ->
+                        contentParserHelp profondeur BranchingQuestionContext maybeContentType
+
+                    ( _, BranchingQuestionAlternativeContext ) ->
+                        contentParserHelp profondeur BranchingQuestionContext maybeContentType
+
+                    ( _, BranchingQuestionContext ) ->
+                        contentParserHelp profondeur BranchingQuestionAlternativeContext maybeContentType
+
+                    _ ->
+                        problem <| UnknownContentType maybeContentType
+            )
+
+
+test =
+    """* BranchingScenario Titre
+** BranchingQuestion Question
+*** trueFalse
+**** CoursePresentation
+***** TrueFalse
+* CoursePresentation"""
+
+
+contentParserHelp profondeur context bit =
+    let
+        f endOfLine contentList =
+            H5pTree context (bit ++ endOfLine) contentList
+    in
+    inContext context <|
+        succeed f
+            |= tillEndOfLine
+            |. whileNoStarOnFirstColumnOrEndOfFile
+            |= loop (State [] 0) (contentsParserHelp (profondeur + 1) context)
+            |. whileNoStarOnFirstColumnOrEndOfFile
 
 
 whileNoStarOnFirstColumn =
@@ -1501,63 +1756,27 @@ whileNoStarOnFirstColumn =
                         |. whileNoStarOnFirstColumn
 
                 else
-                    oneOf
-                        [ succeed ()
-                            |. end NoContent
-                            -- Pourquoi ça ne marche pas ???
-                            |. problem NoContent
-                        , succeed ()
-                        ]
+                    succeed
+                        ()
             )
 
 
-h5psParserHelp h5ps =
-    countStars
+whileNoStarOnFirstColumnOrEndOfFile =
+    succeed identity
+        |. chompWhile ((/=) '*')
+        |= getCol
         |> andThen
-            (\profondeur ->
-                if profondeur == 0 then
-                    h5ps
-                        |> L.reverse
-                        |> Done
-                        |> succeed
+            (\col ->
+                if col > 1 then
+                    oneOf
+                        [ end EndOfFile
+                        , succeed ()
+                            |. token (Token "*" EndOfFile)
+                            |. whileNoStarOnFirstColumnOrEndOfFile
+                        ]
 
                 else
-                    succeed (\h5p -> Loop <| h5p :: h5ps)
-                        |= h5pParser profondeur
-            )
-
-
-
--- h5pParser : Int -> H5Parser (H5P bSC cPC)
-
-
-h5pParser profondeur =
-    succeed identity
-        |. espaces
-        |= variable
-            { start = Char.isUpper
-            , inner = Char.isAlphaNum
-            , reserved = Set.fromList []
-            , expecting = ExpectingH5PcontentType
-            }
-        |. espaces
-        |> andThen
-            (\contentType ->
-                case contentType of
-                    "BranchingScenario" ->
-                        inContext BranchingScenarioContext <|
-                            branchingScenarioParser profondeur
-
-                    "CoursePresentation" ->
-                        inContext BranchingScenarioContext <|
-                            coursePresentationParser profondeur
-
-                    "TrueFalse" ->
-                        inContext BranchingScenarioContext <|
-                            trueFalseParser profondeur
-
-                    _ ->
-                        problem <| UnknownH5PcontentType contentType
+                    succeed ()
             )
 
 
@@ -1571,18 +1790,6 @@ stars profondeur =
     succeed ()
         |. symbol (Token (S.repeat profondeur "*") GenericProblem)
         |. espaces
-
-
-titleParser =
-    tillEndOfLine
-
-
-questionParser =
-    tillEndOfLine
-
-
-alternativeAnswerParser =
-    tillEndOfLine
 
 
 tillEndOfLine =
@@ -1617,8 +1824,9 @@ blankLines =
 
                         else
                             problemBis
-                                ("N'y aurait-il pas des espaces en trop au début de la ligne ?"
+                                ("N'y aurait-il pas des espaces en trop au début de la ligne "
                                     ++ String.fromInt row
+                                    ++ " ?"
                                 )
                     )
             ]
@@ -1650,27 +1858,27 @@ problemBis x =
         ██ ██      ██      ██  ██ ██ ██   ██ ██   ██ ██ ██    ██
    ███████  ██████ ███████ ██   ████ ██   ██ ██   ██ ██  ██████
 -}
+{-
 
+   branchingScenarioParser profondeur =
+       let
+           f title contentList =
+               BranchingScenarioH5P
+                   { nouveauBranchingScenario
+                       | startScreen =
+                           nouveauBranchingScenario.startScreen
+                               |> withStartScreenSubtitle title
+                       , content = [] -- TODO
+                   }
+       in
+       succeed f
+           |= titleParser
+           |. blankLines
+           |= loop [] (contentsParser (profondeur + 1) BranchingScenarioContext)
 
-branchingScenarioParser profondeur =
-    let
-        f title contentList =
-            BranchingScenarioH5P
-                { nouveauBranchingScenario
-                    | startScreen =
-                        nouveauBranchingScenario.startScreen
-                            |> withStartScreenSubtitle title
-                    , content = [] -- TODO
-                }
-    in
-    succeed f
-        |= titleParser
-        |. blankLines
-        |= loop ( [], 0 ) (branchingScenarioParserHelp (profondeur + 1))
-        |. blankLines
-
-
-
+-}
+--|= loop ( [], 0 ) (branchingScenarioParserHelp (profondeur + 1))
+--|. blankLines
 {- Dans une configuration de la forme :
 
        *BranchingScenario Titre du cours
@@ -1681,32 +1889,34 @@ branchingScenarioParser profondeur =
 
    Récupère tout ce qui se trouve au niveau ** sous la forme d'une liste
 -}
+{-
+   branchingScenarioParserHelp profondeur ( contentList, contentId ) =
+       oneOf
+           [ let
+               f ( contents, id ) =
+                   Loop ( contentList ++ contents, id + 1 )
+             in
+             succeed f
+               |= contentParser profondeur contentId
+               |. blankLines
+           , succeed (Done contentList)
+           ]
+-}
+{-
 
+   contentParserBis profondeur contentId =
+       oneOf
+           [ backtrackable <| branchingQuestionParser profondeur contentId
+           , succeed (\x -> ( [ x ], contentId + 1 ))
+               |= oneOf
+                   [ backtrackable <| coursePresentationParser profondeur
+                   , trueFalseParser profondeur
+                   ]
 
-branchingScenarioParserHelp profondeur ( contentList, contentId ) =
-    oneOf
-        [ let
-            f ( contents, id ) =
-                Loop ( contentList ++ contents, id + 1 )
-          in
-          succeed f
-            |= contentParser profondeur contentId
-            |. blankLines
-        , succeed (Done contentList)
-        ]
+           --, problemBis "Oups"
+           ]
 
-
-contentParser profondeur contentId =
-    oneOf
-        [ backtrackable <| branchingQuestionParser profondeur contentId
-        , succeed (\x -> ( [ x ], contentId + 1 ))
-            |= oneOf
-                [ backtrackable <| coursePresentationParser profondeur
-                , trueFalseParser profondeur
-                ]
-
-        --, problemBis "Oups"
-        ]
+-}
 
 
 uuid n =
@@ -1732,127 +1942,79 @@ uuid n =
    ╚██████╔╝╚██████╔╝███████╗███████║   ██║   ██║╚██████╔╝██║ ╚████║
     ╚══▀▀═╝  ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 -}
-
-
-{-| Ici branchList est un enregistrement forçant la liste à avoir au moins deux éléments
--}
-branchingQuestionParser profondeur contentId =
-    let
-        f question ( branchList, id ) =
-            ( branchList.first :: branchList.second :: branchList.others
-            , contentId + L.length branchList.others + 2
-            )
-    in
-    succeed f
-        |. stars profondeur
-        |. keywordBis "BranchingQuestion"
-        |. espaces
-        |= questionParser
-        |. blankLines
-        -- Je dirais qu'il faut un contentId + 1 ici
-        |= loop ( [], contentId ) (branchingQuestionAlternativeParser (profondeur + 1))
-
-
-{-| Ici branchList est une liste
--}
-branchingQuestionAlternativeParser profondeur ( branchList, contentId ) =
-    oneOf
-        [ let
-            f alternative ( alternativeList, id ) =
-                case branchList of
-                    [] ->
-                        -- TODO
-                        Loop ( alternativeList, id )
-
-                    _ ->
-                        -- TODO
-                        Loop ( alternativeList, id )
-          in
-          succeed f
-            |. stars profondeur
-            |= alternativeAnswerParser
-            |= loop ( [], contentId ) (branchingQuestionAlternativeParserHelp (profondeur + 1))
-        , (succeed ()
-            |> P.map (\_ -> List.concat branchList)
-          )
-            |> andThen
-                (\xx ->
-                    case xx of
-                        [] ->
-                            problemBis "Un embranchement doit avoir des branches !"
-
-                        x :: [] ->
-                            problemBis "Un embranchement doit avoir au moins deux branches !"
-
-                        x :: y :: zz ->
-                            succeed ()
-                                |> P.map (\_ -> Done ( { first = x, second = y, others = zz }, contentId ))
-                )
-        ]
-
-
-{-| Tout le travail reste à faire !
--}
-branchingQuestionAlternativeParserHelp profondeur ( branchList, contentId ) =
-    oneOf
-        [ succeed
-            (Done
-                ( [ [ CoursePresentationH5P nouveauCoursePresentation ]
-                  , [ TrueFalseH5P nouveauTrueFalse ]
-                  ]
-                , contentId
-                )
-            )
-        ]
-
-
-
 {-
-    ██████  ██████  ██    ██ ██████  ███████ ███████
-   ██      ██    ██ ██    ██ ██   ██ ██      ██
-   ██      ██    ██ ██    ██ ██████  ███████ █████
-   ██      ██    ██ ██    ██ ██   ██      ██ ██
-    ██████  ██████   ██████  ██   ██ ███████ ███████
+   {-| Ici branchList est un enregistrement forçant la liste à avoir au moins deux éléments
+   -}
+   branchingQuestionParser profondeur contentId =
+       let
+           f question ( branchList, id ) =
+               ( branchList.first :: branchList.second :: branchList.others
+               , contentId + L.length branchList.others + 2
+               )
+       in
+       succeed f
+           |. stars profondeur
+           |. keywordBis "BranchingQuestion"
+           |. espaces
+           |= questionParser
+           |. blankLines
+           -- Je dirais qu'il faut un contentId + 1 ici
+           |= loop ( [], contentId ) (branchingQuestionAlternativeParser (profondeur + 1))
 
-   ██████  ██████  ███████ ███████ ███████ ███    ██ ████████  █████  ████████ ██  ██████  ███    ██
-   ██   ██ ██   ██ ██      ██      ██      ████   ██    ██    ██   ██    ██    ██ ██    ██ ████   ██
-   ██████  ██████  █████   ███████ █████   ██ ██  ██    ██    ███████    ██    ██ ██    ██ ██ ██  ██
-   ██      ██   ██ ██           ██ ██      ██  ██ ██    ██    ██   ██    ██    ██ ██    ██ ██  ██ ██
-   ██      ██   ██ ███████ ███████ ███████ ██   ████    ██    ██   ██    ██    ██  ██████  ██   ████
+
+   {-| Ici branchList est une liste
+   -}
+   branchingQuestionAlternativeParser profondeur ( branchList, contentId ) =
+       oneOf
+           [ let
+               f alternative ( alternativeList, id ) =
+                   case branchList of
+                       [] ->
+                           -- TODO
+                           Loop ( alternativeList, id )
+
+                       _ ->
+                           -- TODO
+                           Loop ( alternativeList, id )
+             in
+             succeed f
+               |. stars profondeur
+               |= alternativeAnswerParser
+               |= loop ( [], contentId ) (branchingQuestionAlternativeParserHelp (profondeur + 1))
+           , (succeed ()
+               |> P.map (\_ -> List.concat branchList)
+             )
+               |> andThen
+                   (\xx ->
+                       case xx of
+                           [] ->
+                               problemBis "Un embranchement doit avoir des branches !"
+
+                           x :: [] ->
+                               problemBis "Un embranchement doit avoir au moins deux branches !"
+
+                           x :: y :: zz ->
+                               succeed ()
+                                   |> P.map (\_ -> Done ( { first = x, second = y, others = zz }, contentId ))
+                   )
+           ]
+
+
+   {-| Tout le travail reste à faire !
+   -}
+   branchingQuestionAlternativeParserHelp profondeur ( branchList, contentId ) =
+       oneOf
+           [ succeed
+               (Done
+                   ( [ [ CoursePresentationH5P nouveauCoursePresentation ]
+                     , [ TrueFalseH5P nouveauTrueFalse ]
+                     ]
+                   , contentId
+                   )
+               )
+           ]
+
 -}
-
-
-coursePresentationParser profondeur =
-    inContext CoursePresentationContext <|
-        succeed (CoursePresentationH5P nouveauCoursePresentation)
-            |. stars profondeur
-            |. keywordBis "CoursePresentation"
-
-
-
-{-
-   ████████ ██████  ██    ██ ███████     ██ ███████  █████  ██      ███████ ███████
-      ██    ██   ██ ██    ██ ██         ██  ██      ██   ██ ██      ██      ██
-      ██    ██████  ██    ██ █████     ██   █████   ███████ ██      ███████ █████
-      ██    ██   ██ ██    ██ ██       ██    ██      ██   ██ ██           ██ ██
-      ██    ██   ██  ██████  ███████ ██     ██      ██   ██ ███████ ███████ ███████
-
-    ██████  ██    ██ ███████ ███████ ████████ ██  ██████  ███    ██
-   ██    ██ ██    ██ ██      ██         ██    ██ ██    ██ ████   ██
-   ██    ██ ██    ██ █████   ███████    ██    ██ ██    ██ ██ ██  ██
-   ██ ▄▄ ██ ██    ██ ██           ██    ██    ██ ██    ██ ██  ██ ██
-    ██████   ██████  ███████ ███████    ██    ██  ██████  ██   ████
-       ▀▀
--}
-
-
-trueFalseParser profondeur =
-    succeed (TrueFalseH5P nouveauTrueFalse)
-        |. stars profondeur
-        |. keywordBis "TrueFalse"
-
-
-
 {-
     ██████╗ ███████╗███████╗████████╗██╗ ██████╗ ███╗   ██╗    ██████╗ ███████╗███████╗
    ██╔════╝ ██╔════╝██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║    ██╔══██╗██╔════╝██╔════╝
@@ -1875,8 +2037,8 @@ type Problem
     | Problem String
     | GenericProblem
     | EndOfFile
-    | ExpectingH5PcontentType
-    | UnknownH5PcontentType String
+    | ExpectingContentType
+    | UnknownContentType String
 
 
 deadEndsToStringBis errs =
@@ -1911,14 +2073,14 @@ Est-ce que vos * ne seraient pas trop indentées ?
         EndOfFile ->
             "Fin de fichier\n"
 
-        ExpectingH5PcontentType ->
+        ExpectingContentType ->
             """Je m'attends à trouver l'un des mots clefs suivants :
     BranchingScenario
     CoursePresentation
     TrueFalse
 """
 
-        UnknownH5PcontentType x ->
+        UnknownContentType x ->
             "Contenu H5P inconnu : " ++ x ++ "\n"
 
         _ ->
@@ -1931,7 +2093,7 @@ showContext ccc =
             ""
 
         _ ->
-            "\nContexte :\n" ++ showContextHelp ccc
+            "\nContexte :\n" ++ showContextHelp (L.reverse ccc)
 
 
 showContextHelp ccc =
@@ -1939,8 +2101,11 @@ showContextHelp ccc =
         [] ->
             "\n"
 
-        Preamble :: cc ->
+        PreambleContext :: cc ->
             "Préambule"
+
+        RootContext :: cc ->
+            showContextHelp cc
 
         BranchingScenarioContext :: cc ->
             "BranchingScenario > " ++ showContextHelp cc
