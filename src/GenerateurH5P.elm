@@ -1548,6 +1548,15 @@ contentField =
 -}
 
 
+test =
+    """* BranchingScenario Titre
+** BranchingQuestion Question
+*** trueFalse
+**** CoursePresentation
+***** TrueFalse
+* CoursePresentation"""
+
+
 type Context
     = PreambleContext
     | RootContext
@@ -1584,9 +1593,10 @@ contentsParser context depth =
 
 
 contentParser context depth =
-    succeed identity
+    succeed Tuple.pair
         |. stars depth
-        |. espaces
+        |= star
+        |. mySpaces
         |= getChompedString
             (chompWhile
                 (\c ->
@@ -1601,63 +1611,60 @@ contentParser context depth =
                 )
             )
         |> andThen
-            (\maybeContentType ->
-                case ( maybeContentType, context ) of
-                    ( "BranchingScenario", RootContext ) ->
-                        contentParserHelp BranchingScenarioContext depth ""
+            (\( maybeStar, maybeContentType ) ->
+                if maybeStar then
+                    problem InconsistantStructure
 
-                    ( "BranchingScenario", _ ) ->
-                        problem (Problem "Un BranchingScenario doit se trouver à la racine")
+                else
+                    case ( maybeContentType, context ) of
+                        ( "BranchingScenario", RootContext ) ->
+                            contentParserHelp BranchingScenarioContext depth ""
 
-                    ( "CoursePresentation", RootContext ) ->
-                        contentParserHelp CoursePresentationContext depth ""
+                        ( "BranchingScenario", _ ) ->
+                            problem (Problem "Un BranchingScenario doit se trouver à la racine")
 
-                    ( "CoursePresentation", BranchingScenarioContext ) ->
-                        contentParserHelp CoursePresentationContext depth ""
+                        ( "CoursePresentation", RootContext ) ->
+                            contentParserHelp CoursePresentationContext depth ""
 
-                    ( "CoursePresentation", BranchingQuestionAlternativeContext ) ->
-                        contentParserHelp CoursePresentationContext depth ""
+                        ( "CoursePresentation", BranchingScenarioContext ) ->
+                            contentParserHelp CoursePresentationContext depth ""
 
-                    ( "CoursePresentation", _ ) ->
-                        problem (Problem "Un CoursePresentation doit se trouver à la racine, sous un BranchingScenario ou dans une alternative de BranchingQuestion")
+                        ( "CoursePresentation", BranchingQuestionAlternativeContext ) ->
+                            contentParserHelp CoursePresentationContext depth ""
 
-                    ( "TrueFalse", RootContext ) ->
-                        contentParserHelp TrueFalseContext depth ""
+                        ( "CoursePresentation", _ ) ->
+                            problem (Problem "Un CoursePresentation doit se trouver à la racine, sous un BranchingScenario ou dans une alternative de BranchingQuestion")
 
-                    ( "TrueFalse", CoursePresentationContext ) ->
-                        contentParserHelp TrueFalseContext depth ""
+                        ( "TrueFalse", RootContext ) ->
+                            contentParserHelp TrueFalseContext depth ""
 
-                    ( "TrueFalse", _ ) ->
-                        problem (Problem "Un TrueFalse doit se trouver à la racine ou dans un CoursePresentation")
+                        ( "TrueFalse", CoursePresentationContext ) ->
+                            contentParserHelp TrueFalseContext depth ""
 
-                    -- Dans les trois cas ci-dessous, le maybeContentType ne désigne
-                    -- pas un contentType, c'est une astuce pour récupérer le texte avaler.
-                    -- (cf. bit dans la définition de contentParserHelp)
-                    ( _, BranchingScenarioContext ) ->
-                        contentParserHelp BranchingQuestionContext depth maybeContentType
+                        ( "TrueFalse", _ ) ->
+                            problem (Problem "Un TrueFalse doit se trouver à la racine ou dans un CoursePresentation")
 
-                    ( _, BranchingQuestionAlternativeContext ) ->
-                        contentParserHelp BranchingQuestionContext depth maybeContentType
+                        ( "", _ ) ->
+                            problem NoContent
 
-                    ( _, BranchingQuestionContext ) ->
-                        contentParserHelp BranchingQuestionAlternativeContext depth maybeContentType
+                        -- Dans les trois cas ci-dessous, le maybeContentType ne désigne
+                        -- pas un contentType, c'est une astuce pour récupérer le texte avaler.
+                        -- (cf. bit dans la définition de contentParserHelp)
+                        ( _, BranchingScenarioContext ) ->
+                            contentParserHelp BranchingQuestionContext depth maybeContentType
 
-                    _ ->
-                        problem <| UnknownContentType maybeContentType
+                        ( _, BranchingQuestionAlternativeContext ) ->
+                            contentParserHelp BranchingQuestionContext depth maybeContentType
+
+                        ( _, BranchingQuestionContext ) ->
+                            contentParserHelp BranchingQuestionAlternativeContext depth maybeContentType
+
+                        _ ->
+                            problem <| UnknownContentType maybeContentType
             )
 
 
-test =
-    """* BranchingScenario Titre
-** BranchingQuestion Question
-*** trueFalse
-**** CoursePresentation
-***** TrueFalse
-* CoursePresentation"""
-
-
 contentParserHelp context depth bit =
-    --TODO
     let
         f endOfLine contentList =
             H5pTree context (bit ++ endOfLine) contentList
@@ -1667,24 +1674,6 @@ contentParserHelp context depth bit =
             |= tillEndOfLine
             |. whileNoStarOnFirstColumnOrEndOfFile
             |= contentsParser context (depth + 1)
-            |. whileNoStarOnFirstColumnOrEndOfFile
-
-
-whileNoStarOnFirstColumn =
-    succeed identity
-        |. chompWhile ((/=) '*')
-        |= getCol
-        |> andThen
-            (\col ->
-                if col > 1 then
-                    succeed ()
-                        |. symbol (Token "*" EndOfFile)
-                        |. whileNoStarOnFirstColumn
-
-                else
-                    succeed
-                        ()
-            )
 
 
 whileNoStarOnFirstColumnOrEndOfFile =
@@ -1706,67 +1695,28 @@ whileNoStarOnFirstColumnOrEndOfFile =
             )
 
 
-countStars =
-    succeed S.length
+stars depth =
+    symbol (Token (S.repeat depth "*") GenericProblem)
+
+
+star =
+    succeed
+        (\x ->
+            if S.length x == 0 then
+                False
+
+            else
+                True
+        )
         |= getChompedString (chompWhile ((==) '*'))
 
 
-stars profondeur =
-    succeed ()
-        |. symbol (Token (S.repeat profondeur "*") GenericProblem)
-        |. espaces
-
-
 tillEndOfLine =
-    getChompedString <|
-        succeed ()
-            |. chompWhile ((/=) '\n')
+    getChompedString <| chompWhile ((/=) '\n')
 
 
-{-| Avale tout l'espace blanc et impose de s'arrêter
-soit en début de ligne soit en fin de fichier.
--}
-blankLines =
-    succeed ()
-        |. chompWhile
-            (\x ->
-                x
-                    == ' '
-                    || x
-                    == '\t'
-                    || x
-                    == '\n'
-                    || x
-                    == '\u{000D}'
-            )
-        |. oneOf
-            [ end GenericProblem
-            , getPosition
-                |> andThen
-                    (\( row, col ) ->
-                        if col == 1 then
-                            succeed ()
-
-                        else
-                            problemBis
-                                ("N'y aurait-il pas des espaces en trop au début de la ligne "
-                                    ++ String.fromInt row
-                                    ++ " ?"
-                                )
-                    )
-            ]
-
-
-espaces =
+mySpaces =
     chompWhile <| \x -> x == ' ' || x == '\t'
-
-
-keywordBis x =
-    keyword <| Token x GenericProblem
-
-
-problemBis x =
-    problem <| Problem x
 
 
 
@@ -1785,7 +1735,7 @@ problemBis x =
 -}
 {-
 
-   branchingScenarioParser profondeur =
+   branchingScenarioParser depth =
        let
            f title contentList =
                BranchingScenarioH5P
@@ -1799,10 +1749,10 @@ problemBis x =
        succeed f
            |= titleParser
            |. blankLines
-           |= loop [] (contentsParser (profondeur + 1) BranchingScenarioContext)
+           |= loop [] (contentsParser (depth + 1) BranchingScenarioContext)
 
 -}
---|= loop ( [], 0 ) (branchingScenarioParserHelp (profondeur + 1))
+--|= loop ( [], 0 ) (branchingScenarioParserHelp (depth + 1))
 --|. blankLines
 {- Dans une configuration de la forme :
 
@@ -1815,27 +1765,27 @@ problemBis x =
    Récupère tout ce qui se trouve au niveau ** sous la forme d'une liste
 -}
 {-
-   branchingScenarioParserHelp profondeur ( contentList, contentId ) =
+   branchingScenarioParserHelp depth ( contentList, contentId ) =
        oneOf
            [ let
                f ( contents, id ) =
                    Loop ( contentList ++ contents, id + 1 )
              in
              succeed f
-               |= contentParser profondeur contentId
+               |= contentParser depth contentId
                |. blankLines
            , succeed (Done contentList)
            ]
 -}
 {-
 
-   contentParserBis profondeur contentId =
+   contentParserBis depth contentId =
        oneOf
-           [ backtrackable <| branchingQuestionParser profondeur contentId
+           [ backtrackable <| branchingQuestionParser depth contentId
            , succeed (\x -> ( [ x ], contentId + 1 ))
                |= oneOf
-                   [ backtrackable <| coursePresentationParser profondeur
-                   , trueFalseParser profondeur
+                   [ backtrackable <| coursePresentationParser depth
+                   , trueFalseParser depth
                    ]
 
            --, problemBis "Oups"
@@ -1870,7 +1820,7 @@ uuid n =
 {-
    {-| Ici branchList est un enregistrement forçant la liste à avoir au moins deux éléments
    -}
-   branchingQuestionParser profondeur contentId =
+   branchingQuestionParser depth contentId =
        let
            f question ( branchList, id ) =
                ( branchList.first :: branchList.second :: branchList.others
@@ -1878,18 +1828,18 @@ uuid n =
                )
        in
        succeed f
-           |. stars profondeur
+           |. stars depth
            |. keywordBis "BranchingQuestion"
-           |. espaces
+           |. mySpaces
            |= questionParser
            |. blankLines
            -- Je dirais qu'il faut un contentId + 1 ici
-           |= loop ( [], contentId ) (branchingQuestionAlternativeParser (profondeur + 1))
+           |= loop ( [], contentId ) (branchingQuestionAlternativeParser (depth + 1))
 
 
    {-| Ici branchList est une liste
    -}
-   branchingQuestionAlternativeParser profondeur ( branchList, contentId ) =
+   branchingQuestionAlternativeParser depth ( branchList, contentId ) =
        oneOf
            [ let
                f alternative ( alternativeList, id ) =
@@ -1903,9 +1853,9 @@ uuid n =
                            Loop ( alternativeList, id )
              in
              succeed f
-               |. stars profondeur
+               |. stars depth
                |= alternativeAnswerParser
-               |= loop ( [], contentId ) (branchingQuestionAlternativeParserHelp (profondeur + 1))
+               |= loop ( [], contentId ) (branchingQuestionAlternativeParserHelp (depth + 1))
            , (succeed ()
                |> P.map (\_ -> List.concat branchList)
              )
@@ -1927,7 +1877,7 @@ uuid n =
 
    {-| Tout le travail reste à faire !
    -}
-   branchingQuestionAlternativeParserHelp profondeur ( branchList, contentId ) =
+   branchingQuestionAlternativeParserHelp depth ( branchList, contentId ) =
        oneOf
            [ succeed
                (Done
@@ -1975,14 +1925,14 @@ deadEndsToStringBis errs =
 
 
 voirErreur err =
-    "Problème : "
-        ++ showProblem err.problem
-        ++ "Ligne : "
+    "Ligne "
         ++ String.fromInt err.row
-        ++ " | Colonne : "
+        ++ ", Colonne "
         ++ String.fromInt err.col
+        ++ " : "
+        ++ showProblem err.problem
         ++ showContext (L.map .context err.contextStack)
-        ++ "\n\n-----------------------------------------\n"
+        ++ "\n\n---------------------------------------------------------\n"
 
 
 showProblem prob =
@@ -1991,10 +1941,7 @@ showProblem prob =
             p ++ "\n"
 
         NoContent ->
-            """Je n'ai aucun contenu à produire !
-Y a-t-il autre chose qu'un préambule à analyser ?
-Est-ce que vos * ne seraient pas trop indentées ?
-"""
+            "Je ne peux pas produire de contenu à partir de rien !\n"
 
         EndOfFile ->
             "Fin de fichier\n"
@@ -2010,43 +1957,55 @@ Est-ce que vos * ne seraient pas trop indentées ?
             "Contenu H5P inconnu : " ++ x ++ "\n"
 
         InconsistantStructure ->
-            "La structure du document n'est pas consistante !"
+            "La structure du document n'est pas consistante !\n"
 
         _ ->
             "Problème inconnu\n"
 
 
-showContext ccc =
-    case ccc of
+showContext contextStack =
+    case contextStack of
         [] ->
             ""
 
         _ ->
-            "\nContexte :\n" ++ showContextHelp (L.reverse ccc)
+            "\nDans le contexte suivant :\n" ++ showContextHelp 0 (L.reverse contextStack)
 
 
-showContextHelp ccc =
+showContextHelp depth ccc =
     case ccc of
         [] ->
-            "\n"
+            ""
 
-        PreambleContext :: cc ->
-            "Préambule"
+        c :: cc ->
+            let
+                f x =
+                    S.repeat depth "*"
+                        ++ x
+                        ++ showContextHelp (depth + 1) cc
+            in
+            case c of
+                PreambleContext ->
+                    "Préambule"
 
-        RootContext :: cc ->
-            showContextHelp cc
+                RootContext ->
+                    if cc == [] then
+                        "Root"
 
-        BranchingScenarioContext :: cc ->
-            "BranchingScenario > " ++ showContextHelp cc
+                    else
+                        showContextHelp 1 cc
 
-        BranchingQuestionContext :: cc ->
-            "BranchingQuestion > " ++ showContextHelp cc
+                BranchingScenarioContext ->
+                    f "BranchingScenario\n"
 
-        BranchingQuestionAlternativeContext :: cc ->
-            "Alternative > " ++ showContextHelp cc
+                BranchingQuestionContext ->
+                    f "BranchingQuestion\n"
 
-        CoursePresentationContext :: cc ->
-            "CoursePresentation > " ++ showContextHelp cc
+                BranchingQuestionAlternativeContext ->
+                    f "Alternative\n"
 
-        TrueFalseContext :: cc ->
-            "TrueFalse"
+                CoursePresentationContext ->
+                    f "CoursePresentation\n"
+
+                TrueFalseContext ->
+                    f "TrueFalse\n"
