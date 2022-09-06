@@ -1,6 +1,8 @@
 module GenerateurH5P exposing (..)
 
+import Array as A
 import Browser exposing (Document)
+import Dict
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -19,6 +21,7 @@ import Random.List
 import Set
 import String as S
 import Style exposing (..)
+import Tuple
 import UUID exposing (UUID)
 
 
@@ -1419,42 +1422,7 @@ nouveauTrueFalse =
 
 
 type H5pTree
-    = H5pTree Context String (List H5pTree)
-
-
-type Valid
-    = Valid
-
-
-
-{-
-   type BranchingScenarioTree
-       = BranchingScenarioTree String (List (H5pTree BranchingScenarioComposable))
-
-
-   type BranchingQuestionTree
-       = BranchingQuestionTree String (List (H5pTree BranchingQuestionComposable))
-
-
-   type CoursePresentationTree
-       = CoursePresentationTree String (List (H5pTree CoursePresentationComposable))
-
-
-   type H5pComposable
-       = H5pComposable
-
-
-   type BranchingScenarioComposable
-       = BranchingScenarioComposable
-
-
-   type BranchingQuestionComposable
-       = BranchingQuestionComposable
-
-
-   type CoursePresentationComposable
-       = CoursePresentationComposable
--}
+    = H5pTree Context String (A.Array H5pTree)
 
 
 fromH5pTree tree =
@@ -1463,7 +1431,7 @@ fromH5pTree tree =
             BranchingScenarioH5P
                 (nouveauBranchingScenario
                     |> withMap startScreenField startScreenSubtitleField title
-                    |> .with contentField (L.map fromBranchingScenario subTrees)
+                    |> .with contentField (A.map fromBranchingScenario subTrees)
                 )
 
         H5pTree CoursePresentationContext title subTrees ->
@@ -1580,10 +1548,6 @@ contentField =
 -}
 
 
-type alias H5Parser a =
-    Parser Context Problem a
-
-
 type Context
     = PreambleContext
     | RootContext
@@ -1597,13 +1561,14 @@ type Context
 parser =
     succeed (L.map fromH5pTree)
         |. preambleParser
-        |= loop (State [] 0) (contentsParser 0 RootContext)
+        |= loop (State 0 0 []) contentsParser
         |. end EndOfFile
 
 
 type alias State =
-    { contents : List H5pTree
-    , numberOfStarsChomped : Int
+    { depth : Int
+    , maxDepth : Int
+    , h5pTree : List H5pTree
     }
 
 
@@ -1614,49 +1579,27 @@ preambleParser =
             |. whileNoStarOnFirstColumnOrEndOfFile
 
 
-contentsParserHelp profondeur context state =
-    countStars
+contentsParser profondeur context state =
+    succeed Tuple.pair
+        |= countStars
+        |= contentParser
         |> andThen
-            (\numberOfStars ->
-                if max numberOfStars state.numberOfStarsChomped <= profondeur then
-                    state.contents
-                        |> L.reverse
+            (\( numberOfStars, content ) ->
+                if numberOfStars <= 0 then
+                    state.h5pTree
+
+                else if Dict.member numberOfStars State.starsDepth then
+                    state.h5pTree
+                        |> A.set A.push content state.h5pTree
                         |> Done
                         |> succeed
 
-                else
-                    succeed (\content -> Loop <| State (content :: state.contents) numberOfStars)
-                        |= contentParser numberOfStars context
-            )
-
-
-contentsParser profondeur context =
-    countStars
-        |> andThen
-            (\numberOfStars ->
-                if max numberOfStars state.numberOfStarsChomped <= profondeur then
-                    state.contents
-                        |> L.reverse
-                        |> Done
-                        |> succeed
+                else if numberOfStars < L.maximum (Dict.keys state.starsDepth) then
+                    problem InconsistantStructure
 
                 else
                     succeed (\content -> Loop <| State (content :: state.contents) numberOfStars)
-                        |= contentParser numberOfStars context
             )
-
-
-contentsParserHelp profondeur context contents =
-    oneOf
-        -- backtrackable ?
-        [ succeed (\content -> Loop <| content :: contents)
-            |. stars profondeur
-            |= contentParser numberOfStars context
-        , contents
-            |> L.reverse
-            |> Done
-            |> succeed
-        ]
 
 
 contentParser profondeur context =
@@ -1731,7 +1674,8 @@ test =
 * CoursePresentation"""
 
 
-contentParserHelp profondeur context bit =
+contentParserHelp profondeurAdegager context bit =
+    --TODO
     let
         f endOfLine contentList =
             H5pTree context (bit ++ endOfLine) contentList
@@ -1739,8 +1683,6 @@ contentParserHelp profondeur context bit =
     inContext context <|
         succeed f
             |= tillEndOfLine
-            |. whileNoStarOnFirstColumnOrEndOfFile
-            |= loop (State [] 0) (contentsParserHelp (profondeur + 1) context)
             |. whileNoStarOnFirstColumnOrEndOfFile
 
 
@@ -1780,7 +1722,6 @@ whileNoStarOnFirstColumnOrEndOfFile =
             )
 
 
-countStars : H5Parser Int
 countStars =
     succeed S.length
         |= getChompedString (chompWhile ((==) '*'))
@@ -2039,6 +1980,7 @@ type Problem
     | EndOfFile
     | ExpectingContentType
     | UnknownContentType String
+    | InconsistantStructure
 
 
 deadEndsToStringBis errs =
@@ -2082,6 +2024,9 @@ Est-ce que vos * ne seraient pas trop indentées ?
 
         UnknownContentType x ->
             "Contenu H5P inconnu : " ++ x ++ "\n"
+
+        InconsistantStructure ->
+            "La structure du document n'est pas consistante !"
 
         _ ->
             "Problème inconnu\n"
