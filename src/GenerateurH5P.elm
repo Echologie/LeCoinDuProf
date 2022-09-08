@@ -15,8 +15,8 @@ import Json.Decode as D
 import Json.Encode as E
 import List as L
 import Parser.Advanced as P exposing (..)
-import Random
-import Random.Extra
+import Random as R
+import Random.Extra as REx
 import Random.List
 import Set
 import String as S
@@ -40,15 +40,16 @@ titre =
 
 
 type alias Model =
-    { contentStructure : String
-    , contenuGenere : String
+    { source : String
+    , generatedContent : String
     }
 
 
 init : Model
 init =
-    { contentStructure = ""
-    , contenuGenere = ""
+    { source = ""
+    , generatedContent =
+        "Copiez-Collez votre contenu à gauche pour voir apparaître le contenu du fichier content.json"
     }
 
 
@@ -63,51 +64,42 @@ init =
 
 
 type Msg
-    = StructureDuContenu String
-    | GenererContenu
-    | TelechargerContenu
+    = NewContent ( String, String )
+    | Generate String
+    | Download
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        StructureDuContenu nouvelleStructure ->
-            let
-                f strCtn =
-                    case P.run parser strCtn of
-                        Ok ctn ->
-                            S.join "\n\n" <| L.map (h5pEncode 2) ctn
-
-                        Err erreurs ->
-                            deadEndsToStringBis erreurs
-            in
-            ( let
-                modelHelp =
-                    { model
-                        | contentStructure = nouvelleStructure
-                    }
-              in
-              { modelHelp | contenuGenere = f modelHelp.contentStructure }
+        NewContent ( source, generatedContent ) ->
+            ( { model | source = source, generatedContent = generatedContent }
             , Cmd.none
             )
 
-        GenererContenu ->
+        Generate source ->
             let
-                f strCtn =
-                    case P.run parser strCtn of
-                        Ok ctn ->
-                            S.join "\n\n" <| L.map (h5pEncode 0) ctn
+                h5pGenerator =
+                    case P.run parser source of
+                        Ok gen ->
+                            R.map f <| REx.sequence gen
 
                         Err erreurs ->
-                            deadEndsToStringBis erreurs
-            in
-            ( { model | contenuGenere = f model.contentStructure }
-            , Cmd.none
-            )
+                            R.constant <| deadEndsToStringBis erreurs
 
-        TelechargerContenu ->
+                f =
+                    S.join "\n\n" << L.map (h5pEncode 2)
+
+                generator =
+                    R.map (Tuple.pair source) h5pGenerator
+            in
             ( model
-            , File.Download.string "content.json" "text/json" model.contenuGenere
+            , R.generate NewContent generator
+            )
+
+        Download ->
+            ( model
+            , File.Download.string "content.json" "text/json" model.generatedContent
             )
 
 
@@ -154,13 +146,13 @@ view model =
                 , size = 2
                 }
             ]
-            { onChange = StructureDuContenu
+            { onChange = Generate
             , label = Input.labelHidden "Structure du contenu"
             , placeholder =
                 Just <|
                     Input.placeholder [] <|
                         text "Structure du contenu"
-            , text = model.contentStructure
+            , text = model.source
             , spellcheck = True
             }
         , column [ spacing petitEspacement, height fill, width fill, scrollbars ]
@@ -171,8 +163,7 @@ view model =
                 , padding petitEspacement
                 , spacing tresGrandEspacement
                 ]
-                [ bouton GenererContenu "Générer le contenu"
-                , bouton TelechargerContenu "Télécharger"
+                [ bouton Download "Télécharger"
                 ]
             , el
                 --^^ Cet élément ci
@@ -193,90 +184,37 @@ view model =
                     }
                 ]
               <|
-                text model.contenuGenere
+                text model.generatedContent
             ]
         ]
 
 
-source =
-    """{
-    "media": {
-        "disableImageZooming": false
-    },
-    "correct": "true",
-    "behaviour": {
-        "enableRetry": true,
-        "enableSolutionsButton": true,
-        "enableCheckButton": true,
-        "confirmCheckDialog": false,
-        "confirmRetryDialog": false,
-        "autoCheck": true,
-        "feedbackOnCorrect": "C&#039;est la base !\\n"
-    },
-    "l10n": {
-        "trueText": "Vrai",
-        "falseText": "Faux",
-        "score": "Vous avez obtenu @score points sur un total de @total",
-        "checkAnswer": "Vérifier",
-        "submitAnswer": "Vérifier",
-        "showSolutionButton": "Voir la solution",
-        "tryAgain": "Recommencer",
-        "wrongAnswerMessage": "Réponse incorrecte",
-        "correctAnswerMessage": "Bonne réponse",
-        "scoreBarLabel": "Vous avez obtenu @score points sur un total de @total",
-        "a11yCheck": "Check the answers. The responses will be marked as correct, incorrect, or unanswered.",
-        "a11yShowSolution": "Show the solution. The task will be marked with its correct solution.",
-        "a11yRetry": "Retry the task. Reset all responses and start the task over again."
-    },
-    "confirmCheck": {
-        "header": "Terminer ?",
-        "body": "Êtes-vous sûr de vouloir terminer ?",
-        "cancelLabel": "Annuler",
-        "confirmLabel": "Confirmer"
-    },
-    "confirmRetry": {
-        "header": "Recommencer ?",
-        "body": "Êtes-vous sûr de vouloir recommencer ?",
-        "cancelLabel": "Annuler",
-        "confirmLabel": "Confirmer"
-    },
-    "question": "<p>Est-ce que \\\\(2+2=4\\\\) ?</p>\\n"
-                                                
-}"""
-
-
 
 {-
-    .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
-   / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
-   \ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/ /
-    \/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /
-    / /\/ /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /\/ /\
-   / /\ \/`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'\ \/\ \
-   \ \/\ \                                                    /\ \/ /
-    \/ /\ \              ██╗  ██╗███████╗██████╗             / /\/ /
-    / /\/ /              ██║  ██║██╔════╝██╔══██╗            \ \/ /\
-   / /\ \/               ███████║███████╗██████╔╝             \ \/\ \
-   \ \/\ \               ██╔══██║╚════██║██╔═══╝              /\ \/ /
-    \/ /\ \              ██║  ██║███████║██║                 / /\/ /
-    / /\/ /              ╚═╝  ╚═╝╚══════╝╚═╝                 \ \/ /\
-   / /\ \/                                                    \ \/\ \
-   \ \/\ \.--..--..--..--..--..--..--..--..--..--..--..--..--./\ \/ /
-    \/ /\/ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ /\/ /
-    / /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\
-   / /\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \
-   \ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
-    `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'
-
-
-
-
-
-
+    .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
+   / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
+   \ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/ /
+    \/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /
+    / /\/ /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /\/ /\
+   / /\ \/`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'\ \/\ \
+   \ \/\ \                                                                                    /\ \/ /
+    \/ /\ \                              ██╗  ██╗███████╗██████╗                             / /\/ /
+    / /\/ /                              ██║  ██║██╔════╝██╔══██╗                            \ \/ /\
+   / /\ \/                               ███████║███████╗██████╔╝                             \ \/\ \
+   \ \/\ \                               ██╔══██║╚════██║██╔═══╝                              /\ \/ /
+    \/ /\ \                              ██║  ██║███████║██║                                 / /\/ /
+    / /\/ /                              ╚═╝  ╚═╝╚══════╝╚═╝                                 \ \/ /\
+   / /\ \/                                                                                    \ \/\ \
+   \ \/\ \.--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--./\ \/ /
+    \/ /\/ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ /\/ /
+    / /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\
+   / /\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \
+   \ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
+    `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'
 -}
 
 
-type H5P
+type H5p
     = EmptyH5p
     | BranchingScenarioH5P BranchingScenario
     | CoursePresentationH5P CoursePresentation
@@ -393,7 +331,7 @@ type alias BranchingScenarioContentTypeMetadata =
 
 
 type alias BranchingScenarioContentTypeParams =
-    H5P
+    H5p
 
 
 branchingScenarioDecoder : D.Decoder BranchingScenario
@@ -485,6 +423,7 @@ branchingScenarioContentTypeMetadataDecoder =
 
 branchingScenarioContentTypeParamsDecoder : D.Decoder BranchingScenarioContentTypeParams
 branchingScenarioContentTypeParamsDecoder =
+    --TODO
     D.succeed EmptyH5p
 
 
@@ -498,6 +437,7 @@ encodedBranchingScenario branchingScenario =
                 , ( "l10n", encodedBranchingScenarioL10n branchingScenario.l10n )
                 , ( "scoringOptionGroup", encodedBranchingScenarioScoringOptionGroup branchingScenario.scoringOptionGroup )
                 , ( "startScreen", encodedBranchingScenarioStartScreen branchingScenario.startScreen )
+                , ( "content", E.list encodedBranchingScenarioContent branchingScenario.content )
                 ]
           )
         ]
@@ -590,16 +530,16 @@ encodedBranchingScenarioContentTypeMetadata branchingScenarioContentTypeMetadata
 
 encodedBranchingScenarioContentTypeParams : BranchingScenarioContentTypeParams -> E.Value
 encodedBranchingScenarioContentTypeParams branchingScenarioContentTypeParams =
-    let
-        f x =
-            case branchingScenarioContentTypeParams of
-                CoursePresentationH5P p ->
-                    encodedCoursePresentation p
+    case branchingScenarioContentTypeParams of
+        CoursePresentationH5P p ->
+            encodedCoursePresentation p
 
-                _ ->
-                    E.object []
-    in
-    f branchingScenarioContentTypeParams
+        TrueFalseH5P q ->
+            encodedTrueFalse q
+
+        --TODO
+        _ ->
+            E.object []
 
 
 nouveauBranchingScenario =
@@ -633,6 +573,26 @@ nouveauBranchingScenario =
         , fullscreenAria = "Plein écran"
         }
     , content = []
+    }
+
+
+newBranchingScenarioContent =
+    { contentBehaviour = "useBehavioural"
+    , feedback = { subtitle = "" }
+    , forceContentFinished = "useBehavioural"
+    , showContentTitle = False
+    , type_ =
+        { library = "Unknown library"
+        , metadata =
+            { contentType = "Course Presentation"
+            , license = "U"
+            , title = "Unknown title"
+            }
+        , params = EmptyH5p
+        , subContentId = ""
+        }
+
+    -- TODO nextContentId
     }
 
 
@@ -747,7 +707,7 @@ type alias CoursePresentationPresentation =
     , keywordListAutoHide : Bool
     , keywordListEnabled : Bool
     , keywordListOpacity : Int
-    , slides : List CoursePresentationPresentationSlidesObject
+    , slides : List CoursePresentationPresentationSlides
     }
 
 
@@ -756,13 +716,48 @@ type alias CoursePresentationPresentationGlobalBackgroundSelector =
     }
 
 
-type alias CoursePresentationPresentationSlidesObject =
-    { elements : List ()
-    , slideBackgroundSelector : CoursePresentationPresentationSlidesObjectSlideBackgroundSelector
+type alias CoursePresentationPresentationSlides =
+    { elements : List CoursePresentationPresentationSlidesElements
+    , slideBackgroundSelector : CoursePresentationPresentationSlidesSlideBackgroundSelector
     }
 
 
-type alias CoursePresentationPresentationSlidesObjectSlideBackgroundSelector =
+type alias CoursePresentationPresentationSlidesElements =
+    { action : CoursePresentationPresentationSlidesElementsAction
+    , alwaysDisplayComments : Bool
+    , backgroundOpacity : Int
+    , buttonSize : String
+    , displayAsButton : Bool
+    , goToSlideType : String
+    , height : Int
+    , invisible : Bool
+    , solution : String
+    , width : Int
+    , x : Int
+    , y : Int
+    }
+
+
+type alias CoursePresentationPresentationSlidesElementsAction =
+    { library : String
+    , metadata : CoursePresentationPresentationSlidesElementsActionMetadata
+    , params : CoursePresentationPresentationSlidesElementsActionParams
+    , subContentId : String
+    }
+
+
+type alias CoursePresentationPresentationSlidesElementsActionMetadata =
+    { contentType : String
+    , license : String
+    , title : String
+    }
+
+
+type alias CoursePresentationPresentationSlidesElementsActionParams =
+    H5p
+
+
+type alias CoursePresentationPresentationSlidesSlideBackgroundSelector =
     { fillSlideBackground : String
     }
 
@@ -895,7 +890,7 @@ coursePresentationPresentationDecoder =
         (D.field "keywordListAutoHide" D.bool)
         (D.field "keywordListEnabled" D.bool)
         (D.field "keywordListOpacity" D.int)
-        (D.field "slides" <| D.list coursePresentationPresentationSlidesObjectDecoder)
+        (D.field "slides" <| D.list coursePresentationPresentationSlidesDecoder)
 
 
 coursePresentationPresentationGlobalBackgroundSelectorDecoder : D.Decoder CoursePresentationPresentationGlobalBackgroundSelector
@@ -904,16 +899,17 @@ coursePresentationPresentationGlobalBackgroundSelectorDecoder =
         (D.field "fillGlobalBackground" D.string)
 
 
-coursePresentationPresentationSlidesObjectDecoder : D.Decoder CoursePresentationPresentationSlidesObject
-coursePresentationPresentationSlidesObjectDecoder =
-    D.map2 CoursePresentationPresentationSlidesObject
-        (D.field "elements" <| D.list <| D.succeed ())
-        (D.field "slideBackgroundSelector" coursePresentationPresentationSlidesObjectSlideBackgroundSelectorDecoder)
+coursePresentationPresentationSlidesDecoder : D.Decoder CoursePresentationPresentationSlides
+coursePresentationPresentationSlidesDecoder =
+    D.map2 CoursePresentationPresentationSlides
+        -- TODO avec un <| D.list <| h5pDecoder
+        (D.field "elements" <| D.succeed [])
+        (D.field "slideBackgroundSelector" coursePresentationPresentationSlidesSlideBackgroundSelectorDecoder)
 
 
-coursePresentationPresentationSlidesObjectSlideBackgroundSelectorDecoder : D.Decoder CoursePresentationPresentationSlidesObjectSlideBackgroundSelector
-coursePresentationPresentationSlidesObjectSlideBackgroundSelectorDecoder =
-    D.map CoursePresentationPresentationSlidesObjectSlideBackgroundSelector
+coursePresentationPresentationSlidesSlideBackgroundSelectorDecoder : D.Decoder CoursePresentationPresentationSlidesSlideBackgroundSelector
+coursePresentationPresentationSlidesSlideBackgroundSelectorDecoder =
+    D.map CoursePresentationPresentationSlidesSlideBackgroundSelector
         (D.field "fillSlideBackground" D.string)
 
 
@@ -1026,7 +1022,7 @@ encodedCoursePresentationPresentation coursePresentationPresentation =
         , ( "keywordListAutoHide", E.bool coursePresentationPresentation.keywordListAutoHide )
         , ( "keywordListEnabled", E.bool coursePresentationPresentation.keywordListEnabled )
         , ( "keywordListOpacity", E.int coursePresentationPresentation.keywordListOpacity )
-        , ( "slides", E.list encodedCoursePresentationPresentationSlidesObject coursePresentationPresentation.slides )
+        , ( "slides", E.list encodedCoursePresentationPresentationSlides coursePresentationPresentation.slides )
         ]
 
 
@@ -1037,18 +1033,18 @@ encodedCoursePresentationPresentationGlobalBackgroundSelector coursePresentation
         ]
 
 
-encodedCoursePresentationPresentationSlidesObject : CoursePresentationPresentationSlidesObject -> E.Value
-encodedCoursePresentationPresentationSlidesObject coursePresentationPresentationSlidesObject =
+encodedCoursePresentationPresentationSlides : CoursePresentationPresentationSlides -> E.Value
+encodedCoursePresentationPresentationSlides coursePresentationPresentationSlides =
     E.object
-        [ ( "elements", E.list (\_ -> E.null) coursePresentationPresentationSlidesObject.elements )
-        , ( "slideBackgroundSelector", encodedCoursePresentationPresentationSlidesObjectSlideBackgroundSelector coursePresentationPresentationSlidesObject.slideBackgroundSelector )
+        [ ( "elements", E.list (\_ -> E.null) coursePresentationPresentationSlides.elements )
+        , ( "slideBackgroundSelector", encodedCoursePresentationPresentationSlidesSlideBackgroundSelector coursePresentationPresentationSlides.slideBackgroundSelector )
         ]
 
 
-encodedCoursePresentationPresentationSlidesObjectSlideBackgroundSelector : CoursePresentationPresentationSlidesObjectSlideBackgroundSelector -> E.Value
-encodedCoursePresentationPresentationSlidesObjectSlideBackgroundSelector coursePresentationPresentationSlidesObjectSlideBackgroundSelector =
+encodedCoursePresentationPresentationSlidesSlideBackgroundSelector : CoursePresentationPresentationSlidesSlideBackgroundSelector -> E.Value
+encodedCoursePresentationPresentationSlidesSlideBackgroundSelector coursePresentationPresentationSlidesSlideBackgroundSelector =
     E.object
-        [ ( "fillSlideBackground", E.string coursePresentationPresentationSlidesObjectSlideBackgroundSelector.fillSlideBackground )
+        [ ( "fillSlideBackground", E.string coursePresentationPresentationSlidesSlideBackgroundSelector.fillSlideBackground )
         ]
 
 
@@ -1418,148 +1414,27 @@ nouveauTrueFalse =
 
 
 {-
-   ██████╗ ██╗   ██╗██╗██╗     ██████╗ ███████╗██████╗ ███████╗
-   ██╔══██╗██║   ██║██║██║     ██╔══██╗██╔════╝██╔══██╗██╔════╝
-   ██████╔╝██║   ██║██║██║     ██║  ██║█████╗  ██████╔╝███████╗
-   ██╔══██╗██║   ██║██║██║     ██║  ██║██╔══╝  ██╔══██╗╚════██║
-   ██████╔╝╚██████╔╝██║███████╗██████╔╝███████╗██║  ██║███████║
-   ╚═════╝  ╚═════╝ ╚═╝╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚══════╝
+    .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
+   / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
+   \ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/ /
+    \/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /
+    / /\/ /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /\/ /\
+   / /\ \/`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'\ \/\ \
+   \ \/\ \                                                                                    /\ \/ /
+    \/ /\ \                 ██████╗  █████╗ ██████╗ ███████╗███████╗██████╗                  / /\/ /
+    / /\/ /                 ██╔══██╗██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗                 \ \/ /\
+   / /\ \/                  ██████╔╝███████║██████╔╝███████╗█████╗  ██████╔╝                  \ \/\ \
+   \ \/\ \                  ██╔═══╝ ██╔══██║██╔══██╗╚════██║██╔══╝  ██╔══██╗                  /\ \/ /
+    \/ /\ \                 ██║     ██║  ██║██║  ██║███████║███████╗██║  ██║                 / /\/ /
+    / /\/ /                 ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝                 \ \/ /\
+   / /\ \/                                                                                    \ \/\ \
+   \ \/\ \.--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--./\ \/ /
+    \/ /\/ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ /\/ /
+    / /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\
+   / /\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \
+   \ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
+    `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'
 -}
-
-
-type H5pTree
-    = H5pTree Context String (List H5pTree)
-
-
-fromH5pTree tree =
-    case tree of
-        H5pTree BranchingScenarioContext title subTrees ->
-            nouveauBranchingScenario
-                |> withMap startScreenField startScreenSubtitleField title
-                |> .with contentField (L.map fromBranchingScenario subTrees)
-                |> BranchingScenarioH5P
-
-        H5pTree CoursePresentationContext title subTrees ->
-            CoursePresentationH5P nouveauCoursePresentation
-
-        H5pTree TrueFalseContext title subTrees ->
-            TrueFalseH5P nouveauTrueFalse
-
-        _ ->
-            TrueFalseH5P nouveauTrueFalse
-
-
-
-{- { nouveauBranchingScenario
-       | startScreen =
-           nouveauBranchingScenario.startScreen
-               |> withStartScreenSubtitle title
-       , content = L.map fromH5Ptree subTrees
-   }
--}
-{- H5Ptree CoursePresentationContext title subTrees ->
-       CoursePresentationH5P nouveauCoursePresentation
-
-   H5Ptree TrueFalseContext title subTrees ->
-       TrueFalseH5P nouveauTrueFalse
-
-   _ ->
-       TrueFalseH5P nouveauTrueFalse
-
--}
-
-
-fromBranchingScenario subTree =
-    case subTree of
-        H5pTree CoursePresentationContext title subTrees ->
-            { contentBehaviour = "useBehavioural"
-            , feedback = { subtitle = "" }
-            , forceContentFinished = "useBehavioural"
-            , showContentTitle = False
-            , type_ =
-                { library = "H5P.CoursePresentation 1.24"
-                , metadata =
-                    { contentType = "Branching Question"
-                    , license = "U"
-                    , title = title
-                    }
-                , params = fromH5pTree subTree
-                , subContentId = uuid 1
-                }
-            }
-
-        H5pTree context title subTrees ->
-            { contentBehaviour = "useBehavioural"
-            , feedback = { subtitle = "" }
-            , forceContentFinished = "useBehavioural"
-            , showContentTitle = False
-            , type_ =
-                { library = "H5P.CoursePresentation 1.24"
-                , metadata =
-                    { contentType = "Branching Question"
-                    , license = "U"
-                    , title = "Untitled Branching Question"
-                    }
-                , params = fromH5pTree subTree
-                , subContentId = uuid 1
-                }
-            }
-
-
-withMap field fieldInside value record =
-    field.with (fieldInside.with value (field.field record)) record
-
-
-startScreenField =
-    { with = \value record -> { record | startScreen = value }
-    , field = .startScreen
-    }
-
-
-startScreenSubtitleField =
-    { with = \value record -> { record | startScreenSubtitle = value }
-    , field = .startScreenSubtitle
-    }
-
-
-contentField =
-    { with = \value record -> { record | content = value }
-    , field = .content
-    }
-
-
-
-{-
-    .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
-   / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
-   \ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/ /
-    \/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /
-    / /\/ /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /\/ /\
-   / /\ \/`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'\ \/\ \
-   \ \/\ \                                                    /\ \/ /
-    \/ /\ \ ██████╗  █████╗ ██████╗ ███████╗███████╗██████╗  / /\/ /
-    / /\/ / ██╔══██╗██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗ \ \/ /\
-   / /\ \/  ██████╔╝███████║██████╔╝███████╗█████╗  ██████╔╝  \ \/\ \
-   \ \/\ \  ██╔═══╝ ██╔══██║██╔══██╗╚════██║██╔══╝  ██╔══██╗  /\ \/ /
-    \/ /\ \ ██║     ██║  ██║██║  ██║███████║███████╗██║  ██║ / /\/ /
-    / /\/ / ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝ \ \/ /\
-   / /\ \/                                                    \ \/\ \
-   \ \/\ \.--..--..--..--..--..--..--..--..--..--..--..--..--./\ \/ /
-    \/ /\/ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ /\/ /
-    / /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\
-   / /\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \
-   \ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
-    `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'
--}
-
-
-test =
-    """* BranchingScenario Titre
-** BranchingQuestion Question
-*** trueFalse
-**** CoursePresentation
-***** TrueFalse
-* CoursePresentation"""
 
 
 type Context
@@ -1797,16 +1672,6 @@ mySpaces =
            ]
 
 -}
-
-
-uuid n =
-    Random.initialSeed n
-        |> Random.step UUID.generator
-        |> Tuple.first
-        |> UUID.toString
-
-
-
 {-
    ██████╗ ██████╗  █████╗ ███╗   ██╗ ██████╗██╗  ██╗██╗███╗   ██╗ ██████╗
    ██╔══██╗██╔══██╗██╔══██╗████╗  ██║██╔════╝██║  ██║██║████╗  ██║██╔════╝
@@ -1912,7 +1777,8 @@ uuid n =
 
 
 type Problem
-    = NoContent
+    = --TODO
+      NoContent
     | BadKeyword String
     | Problem String
     | GenericProblem
@@ -2014,3 +1880,171 @@ showContextHelp depth ccc =
 
                 TrueFalseContext ->
                     f "TrueFalse\n"
+
+
+
+{-
+    .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
+   / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
+   \ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/ /
+    \/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /
+    / /\/ /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /\/ /\
+   / /\ \/`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'\ \/\ \
+   \ \/\ \                                                                                    /\ \/ /
+    \/ /\ \               ██████╗ ██╗   ██╗██╗██╗     ██████╗ ███████╗██████╗                / /\/ /
+    / /\/ /               ██╔══██╗██║   ██║██║██║     ██╔══██╗██╔════╝██╔══██╗               \ \/ /\
+   / /\ \/                ██████╔╝██║   ██║██║██║     ██║  ██║█████╗  ██████╔╝                \ \/\ \
+   \ \/\ \                ██╔══██╗██║   ██║██║██║     ██║  ██║██╔══╝  ██╔══██╗                /\ \/ /
+    \/ /\ \               ██████╔╝╚██████╔╝██║███████╗██████╔╝███████╗██║  ██║               / /\/ /
+    / /\/ /               ╚═════╝  ╚═════╝ ╚═╝╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝               \ \/ /\
+   / /\ \/                                                                                    \ \/\ \
+   \ \/\ \.--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--./\ \/ /
+    \/ /\/ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ /\/ /
+    / /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\
+   / /\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \
+   \ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
+    `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'
+-}
+
+
+type H5pTree
+    = H5pTree Context String (List H5pTree)
+
+
+fromH5pTree tree =
+    case tree of
+        H5pTree BranchingScenarioContext title subTrees ->
+            let
+                f x =
+                    nouveauBranchingScenario
+                        |> with2 startScreenField startScreenSubtitleField title
+                        |> with contentField x
+                        |> BranchingScenarioH5P
+            in
+            R.map f <| REx.sequence <| L.map fromBranchingScenario subTrees
+
+        H5pTree CoursePresentationContext title subTrees ->
+            R.constant <| CoursePresentationH5P nouveauCoursePresentation
+
+        H5pTree TrueFalseContext title subTrees ->
+            R.constant <| TrueFalseH5P nouveauTrueFalse
+
+        _ ->
+            R.constant <| TrueFalseH5P nouveauTrueFalse
+
+
+fromBranchingScenario subTree =
+    case subTree of
+        H5pTree CoursePresentationContext title subTrees ->
+            let
+                f x uuid =
+                    newBranchingScenarioContent
+                        -- TODO nextContentId
+                        |> with2 typeField libraryField "H5P.CoursePresentation 1.24"
+                        |> with3 typeField metadataField contentTypeField "Course Presentation"
+                        |> with3 typeField metadataField titleField title
+                        |> with2 typeField paramsField x
+                        |> with2 typeField subContentIdField (UUID.toString uuid)
+            in
+            R.map2 f (fromH5pTree subTree) UUID.generator
+
+        H5pTree context title subTrees ->
+            R.constant newBranchingScenarioContent
+
+
+with field =
+    field.with
+
+
+map field =
+    field.accessor
+
+
+with2 field fieldInside value record =
+    record
+        |> with field
+            (map field record
+                |> with fieldInside value
+            )
+
+
+with3 field fieldInside fieldInsideInside value record =
+    let
+        recordInside =
+            map field record
+                |> with2 fieldInside fieldInsideInside value
+    in
+    record
+        |> with field recordInside
+
+
+fieldConstructor nameField =
+    nameField
+        ++ "Field={with=\\value record->{record|"
+        ++ nameField
+        ++ "=value},\naccessor=."
+        ++ nameField
+        ++ "}"
+
+
+fieldsConstructor fields =
+    L.map fieldConstructor fields
+        |> S.join "\n"
+
+
+startScreenField =
+    { with = \value record -> { record | startScreen = value }
+    , accessor = .startScreen
+    }
+
+
+startScreenSubtitleField =
+    { with = \value record -> { record | startScreenSubtitle = value }
+    , accessor = .startScreenSubtitle
+    }
+
+
+contentField =
+    { with = \value record -> { record | content = value }
+    , accessor = .content
+    }
+
+
+typeField =
+    { with = \value record -> { record | type_ = value }
+    , accessor = .type_
+    }
+
+
+libraryField =
+    { with = \value record -> { record | library = value }, accessor = .library }
+
+
+metadataField =
+    { with = \value record -> { record | metadata = value }
+    , accessor = .metadata
+    }
+
+
+contentTypeField =
+    { with = \value record -> { record | contentType = value }
+    , accessor = .contentType
+    }
+
+
+titleField =
+    { with = \value record -> { record | title = value }
+    , accessor = .title
+    }
+
+
+paramsField =
+    { with = \value record -> { record | params = value }
+    , accessor = .params
+    }
+
+
+subContentIdField =
+    { with = \value record -> { record | subContentId = value }
+    , accessor = .subContentId
+    }
