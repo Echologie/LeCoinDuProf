@@ -587,13 +587,16 @@ encodedBranchingScenarioContentTypeMetadata branchingScenarioContentTypeMetadata
 
 encodedBranchingScenarioContentTypeParams : BranchingScenarioContentTypeParams -> E.Value
 encodedBranchingScenarioContentTypeParams branchingScenarioContentTypeParams =
-    case branchingScenarioContentTypeParams of
-        CoursePresentationH5P x ->
-            encodedCoursePresentation x
+    let
+        f x =
+            case branchingScenarioContentTypeParams of
+                CoursePresentationH5P p ->
+                    encodedCoursePresentation p
 
-        --TODO
-        _ ->
-            E.object []
+                _ ->
+                    E.object []
+    in
+    f branchingScenarioContentTypeParams
 
 
 nouveauBranchingScenario =
@@ -622,8 +625,8 @@ nouveauBranchingScenario =
         , backButtonText = "Revenir en arrière"
         , proceedButtonText = "Continuer"
         , disableProceedButtonText = "Jouer la vidéo de nouveau"
-        , replayButtonText = "Votre note:"
-        , scoreText = "Votre note:"
+        , replayButtonText = "Votre note :"
+        , scoreText = "Votre note :"
         , fullscreenAria = "Plein écran"
         }
     , content = []
@@ -1428,11 +1431,10 @@ type H5pTree
 fromH5pTree tree =
     case tree of
         H5pTree BranchingScenarioContext title subTrees ->
-            BranchingScenarioH5P
-                (nouveauBranchingScenario
-                    |> withMap startScreenField startScreenSubtitleField title
-                    |> .with contentField (L.map fromBranchingScenario subTrees)
-                )
+            nouveauBranchingScenario
+                |> withMap startScreenField startScreenSubtitleField title
+                |> .with contentField (L.map fromBranchingScenario subTrees)
+                |> BranchingScenarioH5P
 
         H5pTree CoursePresentationContext title subTrees ->
             CoursePresentationH5P nouveauCoursePresentation
@@ -1476,9 +1478,9 @@ fromBranchingScenario subTree =
                 , metadata =
                     { contentType = "Branching Question"
                     , license = "U"
-                    , title = "Untitled Branching Question"
+                    , title = title
                     }
-                , params = CoursePresentationH5P nouveauCoursePresentation
+                , params = fromH5pTree subTree
                 , subContentId = uuid 1
                 }
             }
@@ -1495,7 +1497,7 @@ fromBranchingScenario subTree =
                     , license = "U"
                     , title = "Untitled Branching Question"
                     }
-                , params = CoursePresentationH5P nouveauCoursePresentation
+                , params = fromH5pTree subTree
                 , subContentId = uuid 1
                 }
             }
