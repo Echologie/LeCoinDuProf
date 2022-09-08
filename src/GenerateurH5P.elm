@@ -40,14 +40,14 @@ titre =
 
 
 type alias Model =
-    { structureDuContenu : String
+    { contentStructure : String
     , contenuGenere : String
     }
 
 
 init : Model
 init =
-    { structureDuContenu = ""
+    { contentStructure = ""
     , contenuGenere = ""
     }
 
@@ -81,10 +81,13 @@ update msg model =
                         Err erreurs ->
                             deadEndsToStringBis erreurs
             in
-            ( { model
-                | structureDuContenu = nouvelleStructure
-                , contenuGenere = f model.structureDuContenu
-              }
+            ( let
+                modelHelp =
+                    { model
+                        | contentStructure = nouvelleStructure
+                    }
+              in
+              { modelHelp | contenuGenere = f modelHelp.contentStructure }
             , Cmd.none
             )
 
@@ -98,7 +101,7 @@ update msg model =
                         Err erreurs ->
                             deadEndsToStringBis erreurs
             in
-            ( { model | contenuGenere = f model.structureDuContenu }
+            ( { model | contenuGenere = f model.contentStructure }
             , Cmd.none
             )
 
@@ -152,12 +155,12 @@ view model =
                 }
             ]
             { onChange = StructureDuContenu
-            , label = Input.labelHidden "chose"
+            , label = Input.labelHidden "Structure du contenu"
             , placeholder =
                 Just <|
                     Input.placeholder [] <|
                         text "Structure du contenu"
-            , text = model.structureDuContenu
+            , text = model.contentStructure
             , spellcheck = True
             }
         , column [ spacing petitEspacement, height fill, width fill, scrollbars ]
