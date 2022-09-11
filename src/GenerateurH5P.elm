@@ -2,6 +2,7 @@ module GenerateurH5P exposing (..)
 
 import Array as A
 import Browser exposing (Document)
+import Debug
 import Dict
 import Element exposing (..)
 import Element.Background as Background
@@ -27,6 +28,10 @@ import UUID exposing (UUID)
 
 titre =
     "Générateur d'archives H5P"
+
+
+todo =
+    Debug.todo "Cette fonctionnalité est en cours de développement"
 
 
 
@@ -82,12 +87,15 @@ update msg model =
                 h5pGenerator =
                     case P.run parser source of
                         Ok gen ->
-                            R.map f <| REx.sequence gen
+                            REx.sequence gen
+                                |> R.map toJson
 
                         Err erreurs ->
-                            R.constant <| deadEndsToStringBis erreurs
+                            deadEndsToStringBis erreurs
+                                |> R.constant
 
-                f =
+                toJson =
+                    -- TODO Remplacer par 0 quand projet terminé
                     S.join "\n\n" << L.map (h5pEncode 2)
 
                 generator =
@@ -215,8 +223,7 @@ view model =
 
 
 type H5p
-    = EmptyH5p
-    | BranchingScenarioH5P BranchingScenario
+    = BranchingScenarioH5P BranchingScenario
     | CoursePresentationH5P CoursePresentation
     | TrueFalseH5P TrueFalse
 
@@ -224,9 +231,6 @@ type H5p
 h5pEncode indent content =
     E.encode indent <|
         case content of
-            EmptyH5p ->
-                E.object []
-
             BranchingScenarioH5P branchingScenario ->
                 encodedBranchingScenario branchingScenario
 
@@ -330,8 +334,10 @@ type alias BranchingScenarioContentTypeMetadata =
     }
 
 
-type alias BranchingScenarioContentTypeParams =
-    H5p
+type BranchingScenarioContentTypeParams
+    = UnknownBranchingScenarioContentTypeParams
+    | CoursePresentationBranchingScenarioContentTypeParams CoursePresentation
+    | BranchingQuestionBranchingScenarioContentTypeParams BranchingQuestion
 
 
 branchingScenarioDecoder : D.Decoder BranchingScenario
@@ -423,8 +429,7 @@ branchingScenarioContentTypeMetadataDecoder =
 
 branchingScenarioContentTypeParamsDecoder : D.Decoder BranchingScenarioContentTypeParams
 branchingScenarioContentTypeParamsDecoder =
-    --TODO
-    D.succeed EmptyH5p
+    D.succeed todo
 
 
 encodedBranchingScenario : BranchingScenario -> E.Value
@@ -531,69 +536,110 @@ encodedBranchingScenarioContentTypeMetadata branchingScenarioContentTypeMetadata
 encodedBranchingScenarioContentTypeParams : BranchingScenarioContentTypeParams -> E.Value
 encodedBranchingScenarioContentTypeParams branchingScenarioContentTypeParams =
     case branchingScenarioContentTypeParams of
-        CoursePresentationH5P p ->
+        CoursePresentationBranchingScenarioContentTypeParams p ->
             encodedCoursePresentation p
 
-        TrueFalseH5P q ->
-            encodedTrueFalse q
+        BranchingQuestionBranchingScenarioContentTypeParams q ->
+            encodedBranchingQuestion q
 
-        --TODO
-        _ ->
-            E.object []
+        UnknownBranchingScenarioContentTypeParams ->
+            todo
 
 
-nouveauBranchingScenario =
-    { endScreens =
-        [ { endScreenTitle = "Fin du parcours personnalisé"
-          , endScreenSubtitle = "Fin du parcours personnalisé"
-          , contentId = -1
-          , endScreenScore = 0
-          }
+
+{-
+   ██████╗ ██████╗  █████╗ ███╗   ██╗ ██████╗██╗  ██╗██╗███╗   ██╗ ██████╗
+   ██╔══██╗██╔══██╗██╔══██╗████╗  ██║██╔════╝██║  ██║██║████╗  ██║██╔════╝
+   ██████╔╝██████╔╝███████║██╔██╗ ██║██║     ███████║██║██╔██╗ ██║██║  ███╗
+   ██╔══██╗██╔══██╗██╔══██║██║╚██╗██║██║     ██╔══██║██║██║╚██╗██║██║   ██║
+   ██████╔╝██║  ██║██║  ██║██║ ╚████║╚██████╗██║  ██║██║██║ ╚████║╚██████╔╝
+   ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝
+
+    ██████╗ ██╗   ██╗███████╗███████╗████████╗██╗ ██████╗ ███╗   ██╗
+   ██╔═══██╗██║   ██║██╔════╝██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║
+   ██║   ██║██║   ██║█████╗  ███████╗   ██║   ██║██║   ██║██╔██╗ ██║
+   ██║▄▄ ██║██║   ██║██╔══╝  ╚════██║   ██║   ██║██║   ██║██║╚██╗██║
+   ╚██████╔╝╚██████╔╝███████╗███████║   ██║   ██║╚██████╔╝██║ ╚████║
+    ╚══▀▀═╝  ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+-}
+
+
+type alias BranchingQuestion =
+    { alternatives : List BranchingQuestionAlternativesObject
+    , question : String
+    }
+
+
+type alias BranchingQuestionAlternativesObject =
+    { feedback : BranchingQuestionAlternativesObjectFeedback
+    , nextContentId : Int
+    , text : String
+    }
+
+
+type alias BranchingQuestionAlternativesObjectFeedback =
+    { subtitle : String
+    , title : String
+    }
+
+
+branchingQuestionDecoder : D.Decoder BranchingQuestion
+branchingQuestionDecoder =
+    D.map identity
+        (D.field "branchingQuestion" branchingQuestionDecoderHelp)
+
+
+branchingQuestionDecoderHelp =
+    D.map2 BranchingQuestion
+        (D.field "alternatives" <| D.list branchingQuestionAlternativesObjectDecoder)
+        (D.field "question" D.string)
+
+
+branchingQuestionAlternativesObjectDecoder : D.Decoder BranchingQuestionAlternativesObject
+branchingQuestionAlternativesObjectDecoder =
+    D.map3 BranchingQuestionAlternativesObject
+        (D.field "feedback" branchingQuestionAlternativesObjectFeedbackDecoder)
+        (D.field "nextContentId" D.int)
+        (D.field "text" D.string)
+
+
+branchingQuestionAlternativesObjectFeedbackDecoder : D.Decoder BranchingQuestionAlternativesObjectFeedback
+branchingQuestionAlternativesObjectFeedbackDecoder =
+    D.map2 BranchingQuestionAlternativesObjectFeedback
+        (D.field "subtitle" D.string)
+        (D.field "title" D.string)
+
+
+encodedBranchingQuestion : BranchingQuestion -> E.Value
+encodedBranchingQuestion branchingQuestion =
+    E.object
+        [ ( "branchingQuestion", encodedBranchingQuestionHelp branchingQuestion )
         ]
-    , scoringOptionGroup =
-        { scoringOption = "no-score"
-        , includeInteractionsScores = True
-        }
-    , startScreen =
-        { startScreenTitle = "<p>Parcours personnalisé</p>\n"
-        , startScreenSubtitle = "<p>Préparez bien vos méninges !</p>\n"
-        }
-    , behaviour =
-        { enableBackwardsNavigation = True
-        , forceContentFinished = False
-        }
-    , l10n =
-        { startScreenButtonText = "Commencer le parcours"
-        , endScreenButtonText = "Recommencer le parcours"
-        , backButtonText = "Revenir en arrière"
-        , proceedButtonText = "Continuer"
-        , disableProceedButtonText = "Jouer la vidéo de nouveau"
-        , replayButtonText = "Votre note :"
-        , scoreText = "Votre note :"
-        , fullscreenAria = "Plein écran"
-        }
-    , content = []
-    }
 
 
-newBranchingScenarioContent =
-    { contentBehaviour = "useBehavioural"
-    , feedback = { subtitle = "" }
-    , forceContentFinished = "useBehavioural"
-    , showContentTitle = False
-    , type_ =
-        { library = "Unknown library"
-        , metadata =
-            { contentType = "Course Presentation"
-            , license = "U"
-            , title = "Unknown title"
-            }
-        , params = EmptyH5p
-        , subContentId = ""
-        }
+encodedBranchingQuestionHelp : BranchingQuestion -> E.Value
+encodedBranchingQuestionHelp branchingQuestion =
+    E.object
+        [ ( "alternatives", E.list encodedBranchingQuestionAlternativesObject branchingQuestion.alternatives )
+        , ( "question", E.string branchingQuestion.question )
+        ]
 
-    -- TODO nextContentId
-    }
+
+encodedBranchingQuestionAlternativesObject : BranchingQuestionAlternativesObject -> E.Value
+encodedBranchingQuestionAlternativesObject branchingQuestionAlternativesObject =
+    E.object
+        [ ( "feedback", encodedBranchingQuestionAlternativesObjectFeedback branchingQuestionAlternativesObject.feedback )
+        , ( "nextContentId", E.int branchingQuestionAlternativesObject.nextContentId )
+        , ( "text", E.string branchingQuestionAlternativesObject.text )
+        ]
+
+
+encodedBranchingQuestionAlternativesObjectFeedback : BranchingQuestionAlternativesObjectFeedback -> E.Value
+encodedBranchingQuestionAlternativesObjectFeedback branchingQuestionAlternativesObjectFeedback =
+    E.object
+        [ ( "subtitle", E.string branchingQuestionAlternativesObjectFeedback.subtitle )
+        , ( "title", E.string branchingQuestionAlternativesObjectFeedback.title )
+        ]
 
 
 
@@ -1915,14 +1961,18 @@ fromH5pTree tree =
     case tree of
         H5pTree BranchingScenarioContext title subTrees ->
             let
-                f x =
-                    nouveauBranchingScenario
+                build content =
+                    new branchingScenarioField
                         |> with2 startScreenField startScreenSubtitleField title
-                        |> with contentField x
+                        |> with contentField content
                         |> BranchingScenarioH5P
             in
-            R.map f <| REx.sequence <| L.map fromBranchingScenario subTrees
+            todo
 
+        {- Méditer la valeur à donner
+           fromBranchingScenarioSubTrees 0 subTrees
+               |> R.map build
+        -}
         H5pTree CoursePresentationContext title subTrees ->
             R.constant <| CoursePresentationH5P nouveauCoursePresentation
 
@@ -1930,52 +1980,166 @@ fromH5pTree tree =
             R.constant <| TrueFalseH5P nouveauTrueFalse
 
         _ ->
-            R.constant <| TrueFalseH5P nouveauTrueFalse
+            R.constant <| todo
 
 
-fromBranchingScenario subTree =
-    case subTree of
-        H5pTree CoursePresentationContext title subTrees ->
+
+{- fromBranchingScenarioSubTrees state trees =
+   case trees of
+       [] ->
+           R.constant []
+
+       (H5pTree BranchingQuestionContext question subTrees) :: treesTail ->
+           let
+               build =
+                   R.map f UUID.generator
+
+               --TODO avec nextContentId ...
+               alternatives =
+                   new alternativesField
+                       |> with questionField question
+                       -- À revoir, je n'ai pas besoin de toute l'info !
+                       |> with alternativesField (todo)
+
+               f uuid =
+                   new contentField
+                       |> with4 typeField paramsField branchingQuestionField questionField question
+                       |> with3 typeField metadataField contentTypeField "Branching Question"
+                       |> with2 typeField libraryField "H5P.BranchingQuestion 1.0"
+                       |> with4 typeField paramsField branchingQuestionField alternativesField alternatives
+                       |> with2 typeField subContentIdField (UUID.toString uuid)
+           in
+           todo
+
+       s :: ss ->
+           -- R.map2 (::) (fromBranchingScenarioSubTree s) (fromBranchingScenarioSubTrees ss)
+           todo
+-}
+
+
+type alias BranchingScenarioState =
+    { content : List H5p
+    , currentId : Maybe Int
+    }
+
+
+fromBranchingScenario state trees =
+    case trees of
+        [] ->
+            state.content
+
+        tree :: treesTail ->
             let
-                f x uuid =
-                    newBranchingScenarioContent
-                        -- TODO nextContentId
-                        |> with2 typeField libraryField "H5P.CoursePresentation 1.24"
-                        |> with3 typeField metadataField contentTypeField "Course Presentation"
-                        |> with3 typeField metadataField titleField title
-                        |> with2 typeField paramsField x
-                        |> with2 typeField subContentIdField (UUID.toString uuid)
+                newState =
+                    case tree of
+                        H5pTree BranchingQuestionContext question subTrees ->
+                            todo
+
+                        H5pTree context title subTrees ->
+                            todo
             in
-            R.map2 f (fromH5pTree subTree) UUID.generator
-
-        H5pTree context title subTrees ->
-            R.constant newBranchingScenarioContent
+            fromBranchingScenario newState treesTail
 
 
-with field =
-    field.with
+type alias BranchingQuestionState =
+    { nextContentIds : List Int
+    , content : List H5p
+    , currentId : Maybe Int
+    }
+
+
+fromBranchingQuestion state trees =
+    case trees of
+        -- Il va falloir reprendre le code plus haut et l'améliorer
+        (H5pTree BranchingQuestionAlternativeContext alternative subTrees) :: treesTail ->
+            todo
+
+        _ ->
+            let
+                branchingQuestion =
+                    todo
+            in
+            todo
+
+
+
+{-
+   fromBranchingScenarioSubTree subTree nextContentId =
+       let
+           build title contentType library =
+               R.map2 (buildHelp title contentType library) (fromH5pTree subTree) UUID.generator
+
+           buildHelp title contentType library params uuid =
+               new contentField
+                   |> with3 typeField metadataField titleField title
+                   |> with3 typeField metadataField contentTypeField contentType
+                   |> with2 typeField libraryField library
+                   |> with2 typeField paramsField params
+                   |> with2 typeField subContentIdField (UUID.toString uuid)
+                   |> with nextContentIdField nextContentId
+       in
+       case subTree of
+           H5pTree CoursePresentationContext title _ ->
+               build
+                   title
+                   "Course Presentation"
+                   "H5P.CoursePresentation 1.24"
+
+           H5pTree BranchingQuestionContext question subTrees ->
+               todo
+
+           H5pTree context title subTrees ->
+               todo
+-}
+{-
+   ███████ ██ ███████ ██      ██████  ███████
+   ██      ██ ██      ██      ██   ██ ██
+   █████   ██ █████   ██      ██   ██ ███████
+   ██      ██ ██      ██      ██   ██      ██
+   ██      ██ ███████ ███████ ██████  ███████
+-}
+
+
+new field =
+    field.default
 
 
 map field =
     field.accessor
 
 
-with2 field fieldInside value record =
-    record
-        |> with field
-            (map field record
-                |> with fieldInside value
-            )
+with field =
+    field.with
 
 
-with3 field fieldInside fieldInsideInside value record =
+with2 field subField value record =
     let
-        recordInside =
+        subRecord =
             map field record
-                |> with2 fieldInside fieldInsideInside value
+                |> with subField value
     in
     record
-        |> with field recordInside
+        |> with field subRecord
+
+
+with3 field subField subSubField value record =
+    let
+        subRecord =
+            map field record
+                |> with2 subField subSubField value
+    in
+    record
+        |> with field subRecord
+
+
+with4 field subField subSubField subSubSubField value record =
+    let
+        subRecord =
+            map field record
+                |> with3 subField subSubField subSubSubField value
+    in
+    record
+        |> with field subRecord
 
 
 fieldConstructor nameField =
@@ -2007,6 +2171,24 @@ startScreenSubtitleField =
 contentField =
     { with = \value record -> { record | content = value }
     , accessor = .content
+    , default =
+        { contentBehaviour = "useBehavioural"
+        , feedback = { subtitle = "" }
+        , forceContentFinished = "useBehavioural"
+        , showContentTitle = False
+        , nextContentId = ""
+        , type_ =
+            { library = ""
+            , params = UnknownBranchingScenarioContentTypeParams
+            , subContentId = ""
+            , metadata =
+                { license = "U"
+                , title = ""
+                , subTitle = ""
+                , contentType = ""
+                }
+            }
+        }
     }
 
 
@@ -2044,7 +2226,81 @@ paramsField =
     }
 
 
+branchingQuestionField =
+    { with = \value record -> { record | branchingQuestion = value }
+    , accessor = .branchingQuestion
+    }
+
+
 subContentIdField =
     { with = \value record -> { record | subContentId = value }
     , accessor = .subContentId
+    }
+
+
+nextContentIdField =
+    { with = \value record -> { record | nextContentId = value }
+    , accessor = .nextContentId
+    }
+
+
+questionField =
+    { with = \value record -> { record | question = value }
+    , accessor = .question
+    }
+
+
+alternativesField =
+    { with = \value record -> { record | alternatives = value }
+    , accessor = .alternatives
+    , default =
+        { question = ""
+        , alternatives = []
+        }
+    }
+
+
+branchingScenarioField =
+    { default =
+        { endScreens =
+            [ { endScreenTitle = "Fin du parcours personnalisé"
+              , endScreenSubtitle = "Fin du parcours personnalisé"
+              , contentId = -1
+              , endScreenScore = 0
+              }
+            ]
+        , scoringOptionGroup =
+            { scoringOption = "no-score"
+            , includeInteractionsScores = True
+            }
+        , startScreen =
+            { startScreenTitle = "<p>Parcours personnalisé</p>\n"
+            , startScreenSubtitle = "<p>Préparez bien vos méninges !</p>\n"
+            }
+        , behaviour =
+            { enableBackwardsNavigation = True
+            , forceContentFinished = False
+            }
+        , l10n =
+            { startScreenButtonText = "Commencer le parcours"
+            , endScreenButtonText = "Recommencer le parcours"
+            , backButtonText = "Revenir en arrière"
+            , proceedButtonText = "Continuer"
+            , disableProceedButtonText = "Jouer la vidéo de nouveau"
+            , replayButtonText = "Votre note :"
+            , scoreText = "Votre note :"
+            , fullscreenAria = "Plein écran"
+            }
+        , content = []
+        }
+    }
+
+
+branchingQuestionAlternativesField =
+    { default =
+        { feedback =
+            { title = ""
+            , subtitle = ""
+            }
+        }
     }
