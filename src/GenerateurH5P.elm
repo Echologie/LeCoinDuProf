@@ -311,6 +311,7 @@ type alias BranchingScenarioContent =
     , forceContentFinished : String
     , showContentTitle : Bool
     , type_ : BranchingScenarioContentType
+    , nextContentId : Maybe Int
     }
 
 
@@ -396,12 +397,20 @@ branchingScenarioStartScreenDecoder =
 
 branchingScenarioContentDecoder : D.Decoder BranchingScenarioContent
 branchingScenarioContentDecoder =
+    todo
+
+
+
+{- À reprendre en ajoutant la gestion de la présence éventuelle d'un
+   champ nextContentId
+
     D.map5 BranchingScenarioContent
         (D.field "contentBehaviour" D.string)
         (D.field "feedback" branchingScenarioContentFeedbackDecoder)
         (D.field "forceContentFinished" D.string)
         (D.field "showContentTitle" D.bool)
         (D.field "type" branchingScenarioContentTypeDecoder)
+-}
 
 
 branchingScenarioContentFeedbackDecoder : D.Decoder BranchingScenarioContentFeedback
@@ -543,7 +552,7 @@ encodedBranchingScenarioContentTypeParams branchingScenarioContentTypeParams =
             encodedBranchingQuestion q
 
         UnknownBranchingScenarioContentTypeParams ->
-            todo
+            E.object []
 
 
 
@@ -565,19 +574,19 @@ encodedBranchingScenarioContentTypeParams branchingScenarioContentTypeParams =
 
 
 type alias BranchingQuestion =
-    { alternatives : List BranchingQuestionAlternativesObject
+    { alternatives : List BranchingQuestionAlternatives
     , question : String
     }
 
 
-type alias BranchingQuestionAlternativesObject =
-    { feedback : BranchingQuestionAlternativesObjectFeedback
+type alias BranchingQuestionAlternatives =
+    { feedback : BranchingQuestionAlternativesFeedback
     , nextContentId : Int
     , text : String
     }
 
 
-type alias BranchingQuestionAlternativesObjectFeedback =
+type alias BranchingQuestionAlternativesFeedback =
     { subtitle : String
     , title : String
     }
@@ -595,17 +604,17 @@ branchingQuestionDecoderHelp =
         (D.field "question" D.string)
 
 
-branchingQuestionAlternativesObjectDecoder : D.Decoder BranchingQuestionAlternativesObject
+branchingQuestionAlternativesObjectDecoder : D.Decoder BranchingQuestionAlternatives
 branchingQuestionAlternativesObjectDecoder =
-    D.map3 BranchingQuestionAlternativesObject
+    D.map3 BranchingQuestionAlternatives
         (D.field "feedback" branchingQuestionAlternativesObjectFeedbackDecoder)
         (D.field "nextContentId" D.int)
         (D.field "text" D.string)
 
 
-branchingQuestionAlternativesObjectFeedbackDecoder : D.Decoder BranchingQuestionAlternativesObjectFeedback
+branchingQuestionAlternativesObjectFeedbackDecoder : D.Decoder BranchingQuestionAlternativesFeedback
 branchingQuestionAlternativesObjectFeedbackDecoder =
-    D.map2 BranchingQuestionAlternativesObjectFeedback
+    D.map2 BranchingQuestionAlternativesFeedback
         (D.field "subtitle" D.string)
         (D.field "title" D.string)
 
@@ -620,22 +629,22 @@ encodedBranchingQuestion branchingQuestion =
 encodedBranchingQuestionHelp : BranchingQuestion -> E.Value
 encodedBranchingQuestionHelp branchingQuestion =
     E.object
-        [ ( "alternatives", E.list encodedBranchingQuestionAlternativesObject branchingQuestion.alternatives )
+        [ ( "alternatives", E.list encodedBranchingQuestionAlternatives branchingQuestion.alternatives )
         , ( "question", E.string branchingQuestion.question )
         ]
 
 
-encodedBranchingQuestionAlternativesObject : BranchingQuestionAlternativesObject -> E.Value
-encodedBranchingQuestionAlternativesObject branchingQuestionAlternativesObject =
+encodedBranchingQuestionAlternatives : BranchingQuestionAlternatives -> E.Value
+encodedBranchingQuestionAlternatives branchingQuestionAlternativesObject =
     E.object
-        [ ( "feedback", encodedBranchingQuestionAlternativesObjectFeedback branchingQuestionAlternativesObject.feedback )
+        [ ( "feedback", encodedBranchingQuestionAlternativesFeedback branchingQuestionAlternativesObject.feedback )
         , ( "nextContentId", E.int branchingQuestionAlternativesObject.nextContentId )
         , ( "text", E.string branchingQuestionAlternativesObject.text )
         ]
 
 
-encodedBranchingQuestionAlternativesObjectFeedback : BranchingQuestionAlternativesObjectFeedback -> E.Value
-encodedBranchingQuestionAlternativesObjectFeedback branchingQuestionAlternativesObjectFeedback =
+encodedBranchingQuestionAlternativesFeedback : BranchingQuestionAlternativesFeedback -> E.Value
+encodedBranchingQuestionAlternativesFeedback branchingQuestionAlternativesObjectFeedback =
     E.object
         [ ( "subtitle", E.string branchingQuestionAlternativesObjectFeedback.subtitle )
         , ( "title", E.string branchingQuestionAlternativesObjectFeedback.title )
@@ -1094,91 +1103,6 @@ encodedCoursePresentationPresentationSlidesSlideBackgroundSelector coursePresent
         ]
 
 
-nouveauCoursePresentation =
-    { l10n =
-        { accessibilityCanvasLabel = "Le champs de présentation. Utilisez les fleches gauche et droite pour naviguer entre les diapositives."
-        , accessibilityEnteredFullscreen = "Mode plein-écran activé"
-        , accessibilityExitedFullscreen = "Mode plein-écran désactivé"
-        , accessibilitySlideNavigationExplanation = "Utilisez les fleches gauche et droite pour pour naviguer entre les diapositives"
-        , accessibilityTotalScore = "Vous avez obtenu @score sur @maxScore points au total"
-        , confirmDialogConfirmText = "Envoyer et voir les résultats"
-        , confirmDialogHeader = "Envoyer vos réponses"
-        , confirmDialogText = "Cette action va envoyer vos réponses, voulez-vous continuer?"
-        , containsCompleted = "@slideName contient des interactions complètes"
-        , containsIncorrectAnswers = "@slideName contient des réponses incorrectes"
-        , containsNotCompleted = "@slideName contient des interactions incomplètes"
-        , containsOnlyCorrect = "toutes les réponses sont bonnes sur @slideName"
-        , currentSlide = "Diapositive courante"
-        , exitFullscreen = "Quitter le plein écran"
-        , exportAnswers = "Exporter"
-        , fullscreen = "Plein écran"
-        , hideKeywords = "Cacher la liste des mots-clés"
-        , lastSlide = "Dernière diapositive"
-        , maxScore = "Score maximum"
-        , nextSlide = "Diapositive suivante"
-        , noTitle = "Sans intitulé"
-        , prevSlide = "Diapositive précédente"
-        , printAllSlides = "Imprimer toutes les diapositives"
-        , printCurrentSlide = "Imprimer la diapositive courante"
-        , printIngress = "Comment souhaitez-vous imprimer cette présentation ?"
-        , printTitle = "Imprimer"
-        , retry = "Recommencer"
-        , score = "Score"
-        , scoreMessage = "Votre score :"
-        , shareFacebook = "Partager sur Facebook"
-        , shareGoogle = "Partager sur Google+"
-        , shareResult = "Partager le résultat"
-        , shareTwitter = "Partager sur Twitter"
-        , showKeywords = "Afficher la liste des mots-clés"
-        , showSolutions = "Voir la correction"
-        , slide = "Diapositive"
-        , slideCount = "Diapositive a @index de @total"
-        , solutionModeText = "Passer en mode &quot;Correction&quot;"
-        , solutionModeTitle = "Sortir du mode &quot;Correction&quot;"
-        , solutionsButtonTitle = "Afficher les commentaires"
-        , summary = "Résumé"
-        , summaryMultipleTaskText = "Activités multiples"
-        , total = "Total"
-        , totalScore = "Score total"
-        , yourScore = "Votre score"
-        }
-    , override =
-        { activeSurface = False
-        , enablePrintButton = False
-        , hideSummarySlide = False
-        , social =
-            { facebookShare =
-                { quote = "I scored @score out of @maxScore on a task at @currentpageurl."
-                , url = "@currentpageurl"
-                }
-            , googleShareUrl = "@currentpageurl"
-            , showFacebookShare = False
-            , showGoogleShare = False
-            , showTwitterShare = False
-            , twitterShare =
-                { hashtags = "h5p, course"
-                , statement = "I scored @score out of @maxScore on a task at @currentpageurl."
-                , url = "@currentpageurl"
-                }
-            }
-        , summarySlideRetryButton = True
-        , summarySlideSolutionButton = True
-        }
-    , presentation =
-        { globalBackgroundSelector = { fillGlobalBackground = "" }
-        , keywordListAlwaysShow = False
-        , keywordListAutoHide = False
-        , keywordListEnabled = True
-        , keywordListOpacity = 90
-        , slides =
-            [ { elements = []
-              , slideBackgroundSelector = { fillSlideBackground = "" }
-              }
-            ]
-        }
-    }
-
-
 
 {-
    ████████ ██████  ██    ██ ███████     ██ ███████  █████  ██      ███████ ███████
@@ -1494,7 +1418,7 @@ type Context
 
 
 parser =
-    succeed (L.map fromH5pTree)
+    succeed (L.map toH5p)
         |. preambleParser
         |= inContext RootContext (contentsParser RootContext 1)
         |. end EndOfFile
@@ -1797,7 +1721,7 @@ mySpaces =
        oneOf
            [ succeed
                (Done
-                   ( [ [ CoursePresentationH5P nouveauCoursePresentation ]
+                   ( [ [ CoursePresentationH5P (new coursePresentationField) ]
                      , [ TrueFalseH5P nouveauTrueFalse ]
                      ]
                    , contentId
@@ -1957,7 +1881,8 @@ type H5pTree
     = H5pTree Context String (List H5pTree)
 
 
-fromH5pTree tree =
+toH5p : H5pTree -> R.Generator H5p
+toH5p tree =
     case tree of
         H5pTree BranchingScenarioContext title subTrees ->
             let
@@ -1967,20 +1892,34 @@ fromH5pTree tree =
                         |> with contentField content
                         |> BranchingScenarioH5P
             in
-            todo
+            fromBranchingScenario
+                { content = R.constant []
+                , lastIdUsed = -1
+                , headline = title
+                }
+                subTrees
+                |> .content
+                |> R.map build
 
-        {- Méditer la valeur à donner
-           fromBranchingScenarioSubTrees 0 subTrees
-               |> R.map build
-        -}
         H5pTree CoursePresentationContext title subTrees ->
-            R.constant <| CoursePresentationH5P nouveauCoursePresentation
+            R.constant <| CoursePresentationH5P (new coursePresentationField)
 
         H5pTree TrueFalseContext title subTrees ->
             R.constant <| TrueFalseH5P nouveauTrueFalse
 
         _ ->
-            R.constant <| todo
+            R.constant <| TrueFalseH5P nouveauTrueFalse
+
+
+toBranchingScenarioContentTypeParams : H5pTree -> R.Generator BranchingScenarioContentTypeParams
+toBranchingScenarioContentTypeParams tree =
+    case tree of
+        H5pTree CoursePresentationContext title subTrees ->
+            R.constant <|
+                CoursePresentationBranchingScenarioContentTypeParams (new coursePresentationField)
+
+        _ ->
+            R.constant <| CoursePresentationBranchingScenarioContentTypeParams (new coursePresentationField)
 
 
 
@@ -2018,48 +1957,184 @@ fromH5pTree tree =
 
 
 type alias BranchingScenarioState =
-    { content : List H5p
-    , currentId : Maybe Int
+    { content : R.Generator (List BranchingScenarioContent)
+    , lastIdUsed : Int
+    , headline : String
     }
 
 
+fromBranchingScenario :
+    BranchingScenarioState
+    -> List H5pTree
+    -> BranchingScenarioState
 fromBranchingScenario state trees =
     case trees of
         [] ->
-            state.content
+            { state
+                | content =
+                    -- L.reverse à revoir
+                    R.map L.reverse state.content
+            }
 
         tree :: treesTail ->
             let
+                buildContent subBuilder title contentType library subTrees =
+                    R.map2
+                        (buildContentHelp title contentType library)
+                        (R.map CoursePresentationBranchingScenarioContentTypeParams <|
+                            subBuilder subTrees
+                        )
+                        UUID.generator
+
+                buildContentHelp title contentType library params uuid =
+                    new contentField
+                        |> with3 typeField metadataField titleField title
+                        |> with3 typeField metadataField contentTypeField contentType
+                        |> with2 typeField libraryField library
+                        |> with2 typeField paramsField params
+                        |> with2 typeField subContentIdField (UUID.toString uuid)
+                        -- À vérifier
+                        |> with nextContentIdField (Just (state.lastIdUsed + 1))
+
                 newState =
                     case tree of
                         H5pTree BranchingQuestionContext question subTrees ->
-                            todo
+                            let
+                                content =
+                                    -- Ordre à revoir
+                                    R.map2 L.append state.content newContent.content
 
-                        H5pTree context title subTrees ->
-                            todo
+                                newContent =
+                                    fromBranchingQuestion
+                                        { alternatives = []
+                                        , content = R.constant []
+                                        , lastIdUsed = state.lastIdUsed
+                                        , question = question
+                                        }
+                                        subTrees
+                            in
+                            { state
+                                | content = content
+                                , lastIdUsed = state.lastIdUsed + 1
+                            }
+
+                        H5pTree CoursePresentationContext title subTrees ->
+                            let
+                                content =
+                                    R.map2 (::) newContent state.content
+
+                                newContent =
+                                    buildContent
+                                        coursePresentationBuilder
+                                        title
+                                        "Course Presentation"
+                                        "H5P.CoursePresentation 1.24"
+                                        subTrees
+                            in
+                            { state
+                                | content = content
+                                , lastIdUsed = state.lastIdUsed + 1
+                            }
+
+                        _ ->
+                            let
+                                content =
+                                    state.content
+                                        |> todo
+
+                                --|> R.map ((::) (toBranchingScenarioContentTypeParams tree))
+                                lastIdUsed =
+                                    state.lastIdUsed + 1
+                            in
+                            { state
+                                | content = content
+                                , lastIdUsed = state.lastIdUsed + 1
+                            }
             in
             fromBranchingScenario newState treesTail
 
 
 type alias BranchingQuestionState =
-    { nextContentIds : List Int
-    , content : List H5p
-    , currentId : Maybe Int
+    { alternatives : List BranchingQuestionAlternatives
+    , content : R.Generator (List BranchingScenarioContent)
+    , lastIdUsed : Int
+    , question : String
     }
 
 
+fromBranchingQuestion :
+    BranchingQuestionState
+    -> List H5pTree
+    -> BranchingScenarioState
 fromBranchingQuestion state trees =
     case trees of
         -- Il va falloir reprendre le code plus haut et l'améliorer
         (H5pTree BranchingQuestionAlternativeContext alternative subTrees) :: treesTail ->
-            todo
+            let
+                content =
+                    fromBranchingScenario
+                        { content = R.constant []
+                        , lastIdUsed = state.lastIdUsed
+                        , headline = alternative
+                        }
+                        subTrees
+
+                newState =
+                    { state
+                        | alternatives =
+                            (new alternativesField
+                                |> with nextContentIdField (state.lastIdUsed + 1)
+                                |> with textField alternative
+                            )
+                                :: state.alternatives
+                        , content = content.content
+                        , lastIdUsed = content.lastIdUsed
+                    }
+            in
+            fromBranchingQuestion newState treesTail
 
         _ ->
             let
                 branchingQuestion =
-                    todo
+                    R.map branchingQuestionHelp UUID.generator
+
+                params =
+                    BranchingQuestionBranchingScenarioContentTypeParams
+                        { alternatives = state.alternatives
+                        , question = state.question
+                        }
+
+                branchingQuestionHelp uuid =
+                    new contentField
+                        |> with3 typeField metadataField titleField ""
+                        |> with3 typeField metadataField contentTypeField "Branching Question"
+                        |> with2 typeField libraryField "H5P.BranchingQuestion 1.0"
+                        |> with2 typeField paramsField params
+                        |> with2 typeField subContentIdField (UUID.toString uuid)
+
+                content =
+                    R.map2 (::) branchingQuestion state.content
             in
-            todo
+            { content = content
+            , lastIdUsed = state.lastIdUsed
+            , headline = ""
+            }
+
+
+fromCoursePresentation : List H5pTree -> R.Generator (List CoursePresentationPresentationSlides)
+fromCoursePresentation trees =
+    trees
+        |> L.map fromCoursePresentationHelp
+        |> REx.sequence
+
+
+fromCoursePresentationHelp : H5pTree -> R.Generator CoursePresentationPresentationSlides
+fromCoursePresentationHelp tree =
+    todo
+
+
+coursePresentationBuilder trees =
+    todo
 
 
 
@@ -2162,6 +2237,12 @@ startScreenField =
     }
 
 
+textField =
+    { with = \value record -> { record | text = value }
+    , accessor = .text
+    }
+
+
 startScreenSubtitleField =
     { with = \value record -> { record | startScreenSubtitle = value }
     , accessor = .startScreenSubtitle
@@ -2176,7 +2257,7 @@ contentField =
         , feedback = { subtitle = "" }
         , forceContentFinished = "useBehavioural"
         , showContentTitle = False
-        , nextContentId = ""
+        , nextContentId = Nothing
         , type_ =
             { library = ""
             , params = UnknownBranchingScenarioContentTypeParams
@@ -2184,7 +2265,6 @@ contentField =
             , metadata =
                 { license = "U"
                 , title = ""
-                , subTitle = ""
                 , contentType = ""
                 }
             }
@@ -2229,6 +2309,10 @@ paramsField =
 branchingQuestionField =
     { with = \value record -> { record | branchingQuestion = value }
     , accessor = .branchingQuestion
+    , default =
+        { alternatives = []
+        , question = ""
+        }
     }
 
 
@@ -2254,8 +2338,12 @@ alternativesField =
     { with = \value record -> { record | alternatives = value }
     , accessor = .alternatives
     , default =
-        { question = ""
-        , alternatives = []
+        { nextContentId = -1
+        , feedback =
+            { title = ""
+            , subtitle = ""
+            }
+        , text = ""
         }
     }
 
@@ -2296,11 +2384,88 @@ branchingScenarioField =
     }
 
 
-branchingQuestionAlternativesField =
+coursePresentationField =
     { default =
-        { feedback =
-            { title = ""
-            , subtitle = ""
+        { l10n =
+            { accessibilityCanvasLabel = "Le champs de présentation. Utilisez les fleches gauche et droite pour naviguer entre les diapositives."
+            , accessibilityEnteredFullscreen = "Mode plein-écran activé"
+            , accessibilityExitedFullscreen = "Mode plein-écran désactivé"
+            , accessibilitySlideNavigationExplanation = "Utilisez les fleches gauche et droite pour pour naviguer entre les diapositives"
+            , accessibilityTotalScore = "Vous avez obtenu @score sur @maxScore points au total"
+            , confirmDialogConfirmText = "Envoyer et voir les résultats"
+            , confirmDialogHeader = "Envoyer vos réponses"
+            , confirmDialogText = "Cette action va envoyer vos réponses, voulez-vous continuer?"
+            , containsCompleted = "@slideName contient des interactions complètes"
+            , containsIncorrectAnswers = "@slideName contient des réponses incorrectes"
+            , containsNotCompleted = "@slideName contient des interactions incomplètes"
+            , containsOnlyCorrect = "toutes les réponses sont bonnes sur @slideName"
+            , currentSlide = "Diapositive courante"
+            , exitFullscreen = "Quitter le plein écran"
+            , exportAnswers = "Exporter"
+            , fullscreen = "Plein écran"
+            , hideKeywords = "Cacher la liste des mots-clés"
+            , lastSlide = "Dernière diapositive"
+            , maxScore = "Score maximum"
+            , nextSlide = "Diapositive suivante"
+            , noTitle = "Sans intitulé"
+            , prevSlide = "Diapositive précédente"
+            , printAllSlides = "Imprimer toutes les diapositives"
+            , printCurrentSlide = "Imprimer la diapositive courante"
+            , printIngress = "Comment souhaitez-vous imprimer cette présentation ?"
+            , printTitle = "Imprimer"
+            , retry = "Recommencer"
+            , score = "Score"
+            , scoreMessage = "Votre score :"
+            , shareFacebook = "Partager sur Facebook"
+            , shareGoogle = "Partager sur Google+"
+            , shareResult = "Partager le résultat"
+            , shareTwitter = "Partager sur Twitter"
+            , showKeywords = "Afficher la liste des mots-clés"
+            , showSolutions = "Voir la correction"
+            , slide = "Diapositive"
+            , slideCount = "Diapositive a @index de @total"
+            , solutionModeText = "Passer en mode &quot;Correction&quot;"
+            , solutionModeTitle = "Sortir du mode &quot;Correction&quot;"
+            , solutionsButtonTitle = "Afficher les commentaires"
+            , summary = "Résumé"
+            , summaryMultipleTaskText = "Activités multiples"
+            , total = "Total"
+            , totalScore = "Score total"
+            , yourScore = "Votre score"
+            }
+        , override =
+            { activeSurface = False
+            , enablePrintButton = False
+            , hideSummarySlide = False
+            , social =
+                { facebookShare =
+                    { quote = "I scored @score out of @maxScore on a task at @currentpageurl."
+                    , url = "@currentpageurl"
+                    }
+                , googleShareUrl = "@currentpageurl"
+                , showFacebookShare = False
+                , showGoogleShare = False
+                , showTwitterShare = False
+                , twitterShare =
+                    { hashtags = "h5p, course"
+                    , statement = "I scored @score out of @maxScore on a task at @currentpageurl."
+                    , url = "@currentpageurl"
+                    }
+                }
+            , summarySlideRetryButton = True
+            , summarySlideSolutionButton = True
+            }
+        , presentation =
+            { globalBackgroundSelector = { fillGlobalBackground = "" }
+            , keywordListAlwaysShow = False
+            , keywordListAutoHide = False
+            , keywordListEnabled = True
+            , keywordListOpacity = 90
+            , slides =
+                [ { elements = []
+                  , slideBackgroundSelector = { fillSlideBackground = "" }
+                  }
+                ]
             }
         }
     }
