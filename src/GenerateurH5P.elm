@@ -397,7 +397,8 @@ branchingScenarioStartScreenDecoder =
 
 branchingScenarioContentDecoder : D.Decoder BranchingScenarioContent
 branchingScenarioContentDecoder =
-    todo
+    --todo
+    D.succeed <| new contentField
 
 
 
@@ -438,7 +439,10 @@ branchingScenarioContentTypeMetadataDecoder =
 
 branchingScenarioContentTypeParamsDecoder : D.Decoder BranchingScenarioContentTypeParams
 branchingScenarioContentTypeParamsDecoder =
-    D.succeed todo
+    --todo
+    D.succeed <|
+        CoursePresentationBranchingScenarioContentTypeParams <|
+            new coursePresentationField
 
 
 encodedBranchingScenario : BranchingScenario -> E.Value
@@ -809,7 +813,7 @@ type alias CoursePresentationPresentationSlidesElementsActionMetadata =
 
 
 type alias CoursePresentationPresentationSlidesElementsActionParams =
-    H5p
+    TrueFalse
 
 
 type alias CoursePresentationPresentationSlidesSlideBackgroundSelector =
@@ -1234,7 +1238,7 @@ trueFalseL10nDecoder =
                 (D.field "a11yShowSolution" D.string)
                 (D.field "checkAnswer" D.string)
                 (D.field "correctAnswerMessage" D.string)
-                (D.field "falseText" D.string)
+                (D.field "FalseText" D.string)
                 (D.field "score" D.string)
                 (D.field "scoreBarLabel" D.string)
     in
@@ -2039,9 +2043,10 @@ fromBranchingScenario state trees =
                         _ ->
                             let
                                 content =
-                                    state.content
-                                        |> todo
+                                    R.constant []
 
+                                --state.content
+                                --    |> todo
                                 --|> R.map ((::) (toBranchingScenarioContentTypeParams tree))
                                 lastIdUsed =
                                     state.lastIdUsed + 1
@@ -2121,51 +2126,32 @@ fromBranchingQuestion state trees =
             }
 
 
-fromCoursePresentation : List H5pTree -> R.Generator (List CoursePresentationPresentationSlides)
-fromCoursePresentation trees =
-    trees
-        |> L.map fromCoursePresentationHelp
-        |> REx.sequence
+
+{-
+   fromCoursePresentation : List H5pTree -> R.Generator (List CoursePresentationPresentationSlides)
+   fromCoursePresentation trees =
+       trees
+           |> L.map fromCoursePresentationHelp
+           |> REx.sequence
 
 
-fromCoursePresentationHelp : H5pTree -> R.Generator CoursePresentationPresentationSlides
-fromCoursePresentationHelp tree =
-    todo
+   fromCoursePresentationHelp : H5pTree -> R.Generator CoursePresentationPresentationSlides
+   fromCoursePresentationHelp tree =
+       case tree of
+           H5pTree TrueFalseContext statement _ ->
+               R.constant <| new slideField
+
+           _ ->
+               R.constant <| new slideField
+
+-}
 
 
 coursePresentationBuilder trees =
-    todo
+    R.constant <| new coursePresentationField
 
 
 
-{-
-   fromBranchingScenarioSubTree subTree nextContentId =
-       let
-           build title contentType library =
-               R.map2 (buildHelp title contentType library) (fromH5pTree subTree) UUID.generator
-
-           buildHelp title contentType library params uuid =
-               new contentField
-                   |> with3 typeField metadataField titleField title
-                   |> with3 typeField metadataField contentTypeField contentType
-                   |> with2 typeField libraryField library
-                   |> with2 typeField paramsField params
-                   |> with2 typeField subContentIdField (UUID.toString uuid)
-                   |> with nextContentIdField nextContentId
-       in
-       case subTree of
-           H5pTree CoursePresentationContext title _ ->
-               build
-                   title
-                   "Course Presentation"
-                   "H5P.CoursePresentation 1.24"
-
-           H5pTree BranchingQuestionContext question subTrees ->
-               todo
-
-           H5pTree context title subTrees ->
-               todo
--}
 {-
    ███████ ██ ███████ ██      ██████  ███████
    ██      ██ ██      ██      ██   ██ ██
@@ -2466,6 +2452,86 @@ coursePresentationField =
                   , slideBackgroundSelector = { fillSlideBackground = "" }
                   }
                 ]
+            }
+        }
+    }
+
+
+elementField =
+    { default =
+        { x = 5
+        , y = 10
+        , width = 90
+        , height = 80
+        , action =
+            { library = "H5P.TrueFalse 1.8"
+            , params =
+                { media =
+                    { disableImageZooming = False
+                    }
+                , correct = "true"
+                , behaviour =
+                    { enableRetry = True
+                    , enableSolutionsButton = True
+                    , enableCheckButton = True
+                    , confirmCheckDialog = False
+                    , confirmRetryDialog = False
+                    , autoCheck = True
+                    , feedbackOnCorrect = "C&#039;est la base !"
+                    }
+                , l10n =
+                    { trueText = "Vrai"
+                    , falseText = "Faux"
+                    , score = "Vous avez obtenu @score points sur un total de @total"
+                    , checkAnswer = "Vérifier"
+                    , submitAnswer = "Vérifier"
+                    , showSolutionButton = "Voir la solution"
+                    , tryAgain = "Recommencer"
+                    , wrongAnswerMessage = "Réponse incorrecte"
+                    , correctAnswerMessage = "Bonne réponse"
+                    , scoreBarLabel = "Vous avez obtenu @score points sur un total de @total"
+                    , a11yCheck = "Check the answers. The responses will be marked as correct, incorrect, or unanswered."
+                    , a11yShowSolution = "Show the solution. The task will be marked with its correct solution."
+                    , a11yRetry = "Retry the task. Reset all responses and start the task over again."
+                    }
+                , confirmCheck =
+                    { header = "Terminer ?"
+                    , body = "Êtes-vous sûr de vouloir terminer ?"
+                    , cancelLabel = "Annuler"
+                    , confirmLabel = "Confirmer"
+                    }
+                , confirmRetry =
+                    { header = "Recommencer ?"
+                    , body = "Êtes-vous sûr de vouloir recommencer ?"
+                    , cancelLabel = "Annuler"
+                    , confirmLabel = "Confirmer"
+                    }
+                , question = "<p>Est-ce que \\(2+2=4\\) ?</p>\n"
+                }
+            , subContentId = "b055240b-8dcb-4a8a-b3bb-2c83a8a9a56e"
+            , metadata =
+                { contentType = "True/False Question"
+                , license = "U"
+                , title = "Untitled True/False Question"
+                }
+            }
+        , alwaysDisplayComments = False
+        , backgroundOpacity = 0
+        , displayAsButton = False
+        , buttonSize = "big"
+        , goToSlideType = "specified"
+        , invisible = False
+        , solution = "<p>Voilà</p>\n"
+        }
+    }
+
+
+slideField =
+    { default =
+        { slides =
+            []
+        , slideBackgroundSelector =
+            { fillSlideBackground = ""
             }
         }
     }
