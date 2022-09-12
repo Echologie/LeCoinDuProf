@@ -185,8 +185,7 @@ view model =
                 , padding petitEspacement
                 , spacing tresGrandEspacement
                 ]
-                [ bouton GenererCodeElm "Générer le code source Elm"
-                , bouton TelechargerCodeElm "Télécharger"
+                [ bouton TelechargerCodeElm "Télécharger"
                 ]
             , el
                 --^^ Cet élément ci
