@@ -68,17 +68,23 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         NomObjet nom ->
-            ( { model
-                | nomObjet = nom
-                , codeElmGenere = generateur model.nomObjet model.sourceJson
+            let
+                modelHelp =
+                    { model | nomObjet = nom }
+            in
+            ( { modelHelp
+                | codeElmGenere = generateur modelHelp.nomObjet modelHelp.sourceJson
               }
             , Cmd.none
             )
 
         SourceJson source ->
-            ( { model
-                | sourceJson = source
-                , codeElmGenere = generateur model.nomObjet model.sourceJson
+            let
+                modelHelp =
+                    { model | sourceJson = source }
+            in
+            ( { modelHelp
+                | codeElmGenere = generateur modelHelp.nomObjet modelHelp.sourceJson
               }
             , Cmd.none
             )
