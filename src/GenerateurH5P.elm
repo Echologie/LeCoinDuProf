@@ -1,33 +1,54 @@
 module GenerateurH5P exposing (..)
 
-import Array as A
 import Browser exposing (Document)
 import Debug
-import Dict
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
-import Element.Input as Input
+import Element.Input exposing (labelHidden, multiline, placeholder)
 import File.Download
-import Html exposing (Attribute, Html, button, div, iframe, input, p, section, textarea)
 import Json.Decode as D
 import Json.Encode as E
 import List as L
 import Parser.Advanced as P exposing (..)
 import Random as R
 import Random.Extra as REx
-import Random.List
 import Set
 import String as S
 import Style exposing (..)
-import Tuple
+import Tuple exposing (pair)
 import UUID exposing (UUID)
 
 
 titre =
     "Générateur d'archives H5P"
+
+
+
+{-
+    .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
+   / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
+   \ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/ /
+    \/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /
+    / /\/ /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /\/ /\
+   / /\ \/`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'\ \/\ \
+   \ \/\ \                                                                                    /\ \/ /
+    \/ /\ \                             ████████╗███████╗ █████╗                             / /\/ /
+    / /\/ /                             ╚══██╔══╝██╔════╝██╔══██╗                            \ \/ /\
+   / /\ \/                                 ██║   █████╗  ███████║                             \ \/\ \
+   \ \/\ \                                 ██║   ██╔══╝  ██╔══██║                             /\ \/ /
+    \/ /\ \                                ██║   ███████╗██║  ██║                            / /\/ /
+    / /\/ /                                ╚═╝   ╚══════╝╚═╝  ╚═╝                            \ \/ /\
+   / /\ \/                                                                                    \ \/\ \
+   \ \/\ \.--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--./\ \/ /
+    \/ /\/ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ /\/ /
+    / /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\
+   / /\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \
+   \ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
+    `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'
+-}
 
 
 todo =
@@ -54,7 +75,8 @@ init : Model
 init =
     { source = ""
     , generatedContent =
-        "Copiez-Collez votre contenu à gauche pour voir apparaître le contenu du fichier content.json"
+        """Copiez-Collez votre contenu à gauche pour voir
+apparaître le contenu du fichier content.json"""
     }
 
 
@@ -99,7 +121,7 @@ update msg model =
                     S.join "\n\n" << L.map (h5pEncode 2)
 
                 generator =
-                    R.map (Tuple.pair source) h5pGenerator
+                    R.map (pair source) h5pGenerator
             in
             ( model
             , R.generate NewContent generator
@@ -140,7 +162,7 @@ view model =
         , width fill
         , scrollbars
         ]
-        [ Input.multiline
+        [ multiline
             [ height fill
             , width fill
             , clip
@@ -155,10 +177,10 @@ view model =
                 }
             ]
             { onChange = Generate
-            , label = Input.labelHidden "Structure du contenu"
+            , label = labelHidden "Structure du contenu"
             , placeholder =
                 Just <|
-                    Input.placeholder [] <|
+                    placeholder [] <|
                         text "Structure du contenu"
             , text = model.source
             , spellcheck = True
@@ -511,13 +533,20 @@ encodedBranchingScenarioStartScreen branchingScenarioStartScreen =
 
 encodedBranchingScenarioContent : BranchingScenarioContent -> E.Value
 encodedBranchingScenarioContent branchingScenarioContent =
-    E.object
+    E.object <|
         [ ( "contentBehaviour", E.string branchingScenarioContent.contentBehaviour )
         , ( "feedback", encodedBranchingScenarioContentFeedback branchingScenarioContent.feedback )
         , ( "forceContentFinished", E.string branchingScenarioContent.forceContentFinished )
         , ( "showContentTitle", E.bool branchingScenarioContent.showContentTitle )
         , ( "type", encodedBranchingScenarioContentType branchingScenarioContent.type_ )
         ]
+            ++ (case branchingScenarioContent.nextContentId of
+                    Just id ->
+                        [ ( "nextContentId", E.int id ) ]
+
+                    Nothing ->
+                        []
+               )
 
 
 encodedBranchingScenarioContentFeedback : BranchingScenarioContentFeedback -> E.Value
@@ -1076,12 +1105,18 @@ encodedCoursePresentationOverrideSocialTwitterShare coursePresentationOverrideSo
 encodedCoursePresentationPresentation : CoursePresentationPresentation -> E.Value
 encodedCoursePresentationPresentation coursePresentationPresentation =
     E.object
-        [ ( "globalBackgroundSelector", encodedCoursePresentationPresentationGlobalBackgroundSelector coursePresentationPresentation.globalBackgroundSelector )
+        [ ( "globalBackgroundSelector"
+          , encodedCoursePresentationPresentationGlobalBackgroundSelector
+                coursePresentationPresentation.globalBackgroundSelector
+          )
         , ( "keywordListAlwaysShow", E.bool coursePresentationPresentation.keywordListAlwaysShow )
         , ( "keywordListAutoHide", E.bool coursePresentationPresentation.keywordListAutoHide )
         , ( "keywordListEnabled", E.bool coursePresentationPresentation.keywordListEnabled )
         , ( "keywordListOpacity", E.int coursePresentationPresentation.keywordListOpacity )
-        , ( "slides", E.list encodedCoursePresentationPresentationSlides coursePresentationPresentation.slides )
+        , ( "slides"
+          , E.list encodedCoursePresentationPresentationSlides
+                coursePresentationPresentation.slides
+          )
         ]
 
 
@@ -1096,7 +1131,10 @@ encodedCoursePresentationPresentationSlides : CoursePresentationPresentationSlid
 encodedCoursePresentationPresentationSlides coursePresentationPresentationSlides =
     E.object
         [ ( "elements", E.list (\_ -> E.null) coursePresentationPresentationSlides.elements )
-        , ( "slideBackgroundSelector", encodedCoursePresentationPresentationSlidesSlideBackgroundSelector coursePresentationPresentationSlides.slideBackgroundSelector )
+        , ( "slideBackgroundSelector"
+          , encodedCoursePresentationPresentationSlidesSlideBackgroundSelector
+                coursePresentationPresentationSlides.slideBackgroundSelector
+          )
         ]
 
 
@@ -1414,17 +1452,19 @@ nouveauTrueFalse =
 type Context
     = PreambleContext
     | RootContext
+    | UnknownContext
     | BranchingScenarioContext
     | BranchingQuestionContext
     | BranchingQuestionAlternativeContext
     | CoursePresentationContext
     | TrueFalseContext
+    | InteractiveVideoContext
 
 
 parser =
     succeed (L.map toH5p)
         |. preambleParser
-        |= inContext RootContext (contentsParser RootContext 1)
+        |= inContext RootContext (blocs RootContext 1)
         |. end EndOfFile
 
 
@@ -1446,8 +1486,101 @@ contentsParser context depth =
         }
 
 
+blocs context depth =
+    sequence
+        { start = Token "" GenericProblem
+        , separator = Token "" GenericProblem
+        , end = Token "" GenericProblem
+        , spaces = succeed ()
+        , item = bloc context depth
+        , trailing = Optional
+        }
+
+
+bloc context depth =
+    succeed pair
+        |. stars depth
+        |= star
+        |. mySpaces
+        |= oneOf
+            [ succeed BranchingScenarioContext
+                |. keyword (Token "BranchingScenario" GenericProblem)
+            , succeed CoursePresentationContext
+                |. keyword (Token "CoursePresentation" GenericProblem)
+            , succeed TrueFalseContext
+                |. keyword (Token "TrueFalse" GenericProblem)
+            , succeed InteractiveVideoContext
+                |. keyword (Token "InteractiveVideo" GenericProblem)
+            , succeed UnknownContext
+            ]
+        |. mySpaces
+        |> andThen (blocHelp context depth)
+
+
+blocHelp context depth ( maybeStar, subContext ) =
+    if maybeStar then
+        problem InconsistantStructure
+
+    else
+        case ( context, subContext ) of
+            ( RootContext, BranchingScenarioContext ) ->
+                blocHelpHelp BranchingScenarioContext depth
+
+            ( RootContext, CoursePresentationContext ) ->
+                blocHelpHelp CoursePresentationContext depth
+
+            ( RootContext, TrueFalseContext ) ->
+                blocHelpHelp TrueFalseContext depth
+
+            ( BranchingScenarioContext, CoursePresentationContext ) ->
+                blocHelpHelp CoursePresentationContext depth
+
+            ( BranchingScenarioContext, UnknownContext ) ->
+                blocHelpHelp BranchingQuestionContext depth
+
+            ( BranchingQuestionContext, UnknownContext ) ->
+                blocHelpHelp BranchingQuestionAlternativeContext depth
+
+            ( CoursePresentationContext, TrueFalseContext ) ->
+                blocHelpHelp TrueFalseContext depth
+
+            ( BranchingQuestionAlternativeContext, CoursePresentationContext ) ->
+                blocHelpHelp CoursePresentationContext depth
+
+            ( BranchingQuestionAlternativeContext, UnknownContext ) ->
+                blocHelpHelp BranchingQuestionContext depth
+
+            ( _, BranchingScenarioContext ) ->
+                problem (Problem "Un BranchingScenario doit se trouver à la racine")
+
+            ( _, CoursePresentationContext ) ->
+                problem (Problem """Un CoursePresentation doit se trouver à la racine,
+ sous un BranchingScenario ou dans une alternative de BranchingQuestion""")
+
+            ( _, TrueFalseContext ) ->
+                problem (Problem "Un TrueFalse doit se trouver à la racine ou dans un CoursePresentation")
+
+            ( _, InteractiveVideoContext ) ->
+                problem <| UnknownContentType "InteractiveVideoContext"
+
+            _ ->
+                problem <| UnknownContentType ""
+
+
+blocHelpHelp context depth =
+    let
+        f endOfLine contentList =
+            H5pTree context endOfLine contentList
+    in
+    inContext context <|
+        succeed f
+            |= tillEndOfLine
+            |. whileNoStarOnFirstColumnOrEndOfFile
+            |= blocs context (depth + 1)
+
+
 contentParser context depth =
-    succeed Tuple.pair
+    succeed pair
         |. stars depth
         |= star
         |. mySpaces
@@ -1487,7 +1620,8 @@ contentParser context depth =
                             contentParserHelp CoursePresentationContext depth ""
 
                         ( "CoursePresentation", _ ) ->
-                            problem (Problem "Un CoursePresentation doit se trouver à la racine, sous un BranchingScenario ou dans une alternative de BranchingQuestion")
+                            problem (Problem """Un CoursePresentation doit se trouver à la racine,
+ sous un BranchingScenario ou dans une alternative de BranchingQuestion""")
 
                         ( "TrueFalse", RootContext ) ->
                             contentParserHelp TrueFalseContext depth ""
@@ -1855,6 +1989,12 @@ showContextHelp depth ccc =
                 TrueFalseContext ->
                     f "TrueFalse\n"
 
+                InteractiveVideoContext ->
+                    f "InteractiveVideo\n"
+
+                _ ->
+                    ""
+
 
 
 {-
@@ -1915,18 +2055,15 @@ toH5p tree =
             R.constant <| TrueFalseH5P nouveauTrueFalse
 
 
-toBranchingScenarioContentTypeParams : H5pTree -> R.Generator BranchingScenarioContentTypeParams
-toBranchingScenarioContentTypeParams tree =
-    case tree of
-        H5pTree CoursePresentationContext title subTrees ->
-            R.constant <|
-                CoursePresentationBranchingScenarioContentTypeParams (new coursePresentationField)
 
-        _ ->
-            R.constant <| CoursePresentationBranchingScenarioContentTypeParams (new coursePresentationField)
-
-
-
+--toBranchingScenarioContentTypeParams : H5pTree -> R.Generator BranchingScenarioContentTypeParams
+--toBranchingScenarioContentTypeParams tree =
+--    case tree of
+--        H5pTree CoursePresentationContext title subTrees ->
+--            R.constant <|
+--                CoursePresentationBranchingScenarioContentTypeParams (new coursePresentationField)
+--        _ ->
+--            R.constant <| CoursePresentationBranchingScenarioContentTypeParams (new coursePresentationField)
 {- fromBranchingScenarioSubTrees state trees =
    case trees of
        [] ->
@@ -1998,15 +2135,14 @@ fromBranchingScenario state trees =
                         |> with2 typeField paramsField params
                         |> with2 typeField subContentIdField (UUID.toString uuid)
                         -- À vérifier
-                        |> with nextContentIdField (Just (state.lastIdUsed + 1))
+                        |> with nextContentIdField (Just state.lastIdUsed)
 
                 newState =
                     case tree of
                         H5pTree BranchingQuestionContext question subTrees ->
                             let
                                 content =
-                                    -- Ordre à revoir
-                                    R.map2 L.append state.content newContent.content
+                                    R.map2 L.append newContent.content state.content
 
                                 newContent =
                                     fromBranchingQuestion
@@ -2024,9 +2160,6 @@ fromBranchingScenario state trees =
 
                         H5pTree CoursePresentationContext title subTrees ->
                             let
-                                content =
-                                    R.map2 (::) newContent state.content
-
                                 newContent =
                                     buildContent
                                         coursePresentationBuilder
@@ -2036,23 +2169,16 @@ fromBranchingScenario state trees =
                                         subTrees
                             in
                             { state
-                                | content = content
+                                | content = R.map2 (::) newContent state.content
                                 , lastIdUsed = state.lastIdUsed + 1
                             }
 
                         _ ->
-                            let
-                                content =
-                                    R.constant []
-
-                                --state.content
-                                --    |> todo
-                                --|> R.map ((::) (toBranchingScenarioContentTypeParams tree))
-                                lastIdUsed =
-                                    state.lastIdUsed + 1
-                            in
                             { state
-                                | content = content
+                                | --state.content
+                                  --    |> todo
+                                  --|> R.map ((::) (toBranchingScenarioContentTypeParams tree))
+                                  content = R.constant []
                                 , lastIdUsed = state.lastIdUsed + 1
                             }
             in
@@ -2105,7 +2231,7 @@ fromBranchingQuestion state trees =
 
                 params =
                     BranchingQuestionBranchingScenarioContentTypeParams
-                        { alternatives = state.alternatives
+                        { alternatives = L.reverse state.alternatives
                         , question = state.question
                         }
 
@@ -2118,7 +2244,9 @@ fromBranchingQuestion state trees =
                         |> with2 typeField subContentIdField (UUID.toString uuid)
 
                 content =
-                    R.map2 (::) branchingQuestion state.content
+                    state.content
+                        |> R.map2 (::) branchingQuestion
+                        |> R.map L.reverse
             in
             { content = content
             , lastIdUsed = state.lastIdUsed
