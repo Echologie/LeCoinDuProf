@@ -358,9 +358,9 @@ type alias BranchingScenarioContentTypeMetadata =
 
 
 type BranchingScenarioContentTypeParams
-    = UnknownBranchingScenarioContentTypeParams
+    = BranchingQuestionBranchingScenarioContentTypeParams BranchingQuestion
     | CoursePresentationBranchingScenarioContentTypeParams CoursePresentation
-    | BranchingQuestionBranchingScenarioContentTypeParams BranchingQuestion
+    | UnknownBranchingScenarioContentTypeParams
 
 
 branchingScenarioDecoder : D.Decoder BranchingScenario
@@ -1452,7 +1452,6 @@ nouveauTrueFalse =
 type Context
     = PreambleContext
     | RootContext
-    | UnknownContext
     | BranchingScenarioContext
     | BranchingQuestionContext
     | BranchingQuestionAlternativeContext
@@ -1461,413 +1460,294 @@ type Context
     | InteractiveVideoContext
 
 
-parser =
+contentParser =
     succeed (L.map toH5p)
-        |. preambleParser
-        |= inContext RootContext (blocs RootContext 1)
+        |. inContext PreambleContext preambleParser
+        |= inContext RootContext (many h5pParser 1)
         |. end EndOfFile
 
 
 preambleParser =
-    inContext PreambleContext <|
-        -- Plus compliqué que nécessaire, en vue d'amélioration
-        succeed identity
-            |. whileNoStarOnFirstColumnOrEndOfFile
-
-
-contentsParser context depth =
-    sequence
-        { start = Token "" GenericProblem
-        , separator = Token "" GenericProblem
-        , end = Token "" GenericProblem
-        , spaces = succeed ()
-        , item = contentParser context depth
-        , trailing = Optional
-        }
-
-
-blocs context depth =
-    sequence
-        { start = Token "" GenericProblem
-        , separator = Token "" GenericProblem
-        , end = Token "" GenericProblem
-        , spaces = succeed ()
-        , item = bloc context depth
-        , trailing = Optional
-        }
-
-
-bloc context depth =
-    succeed pair
-        |. stars depth
-        |= star
-        |. mySpaces
-        |= oneOf
-            [ succeed BranchingScenarioContext
-                |. keyword (Token "BranchingScenario" GenericProblem)
-            , succeed CoursePresentationContext
-                |. keyword (Token "CoursePresentation" GenericProblem)
-            , succeed TrueFalseContext
-                |. keyword (Token "TrueFalse" GenericProblem)
-            , succeed InteractiveVideoContext
-                |. keyword (Token "InteractiveVideo" GenericProblem)
-            , succeed UnknownContext
-            ]
-        |. mySpaces
-        |> andThen (blocHelp context depth)
-
-
-blocHelp context depth ( maybeStar, subContext ) =
-    if maybeStar then
-        problem InconsistantStructure
-
-    else
-        case ( context, subContext ) of
-            ( RootContext, BranchingScenarioContext ) ->
-                blocHelpHelp BranchingScenarioContext depth
-
-            ( RootContext, CoursePresentationContext ) ->
-                blocHelpHelp CoursePresentationContext depth
-
-            ( RootContext, TrueFalseContext ) ->
-                blocHelpHelp TrueFalseContext depth
-
-            ( BranchingScenarioContext, CoursePresentationContext ) ->
-                blocHelpHelp CoursePresentationContext depth
-
-            ( BranchingScenarioContext, UnknownContext ) ->
-                blocHelpHelp BranchingQuestionContext depth
-
-            ( BranchingQuestionContext, UnknownContext ) ->
-                blocHelpHelp BranchingQuestionAlternativeContext depth
-
-            ( CoursePresentationContext, TrueFalseContext ) ->
-                blocHelpHelp TrueFalseContext depth
-
-            ( BranchingQuestionAlternativeContext, CoursePresentationContext ) ->
-                blocHelpHelp CoursePresentationContext depth
-
-            ( BranchingQuestionAlternativeContext, UnknownContext ) ->
-                blocHelpHelp BranchingQuestionContext depth
-
-            ( _, BranchingScenarioContext ) ->
-                problem (Problem "Un BranchingScenario doit se trouver à la racine")
-
-            ( _, CoursePresentationContext ) ->
-                problem (Problem """Un CoursePresentation doit se trouver à la racine,
- sous un BranchingScenario ou dans une alternative de BranchingQuestion""")
-
-            ( _, TrueFalseContext ) ->
-                problem (Problem "Un TrueFalse doit se trouver à la racine ou dans un CoursePresentation")
-
-            ( _, InteractiveVideoContext ) ->
-                problem <| UnknownContentType "InteractiveVideoContext"
-
-            _ ->
-                problem <| UnknownContentType ""
-
-
-blocHelpHelp context depth =
-    let
-        f endOfLine contentList =
-            H5pTree context endOfLine contentList
-    in
-    inContext context <|
-        succeed f
-            |= tillEndOfLine
-            |. whileNoStarOnFirstColumnOrEndOfFile
-            |= blocs context (depth + 1)
-
-
-contentParser context depth =
-    succeed pair
-        |. stars depth
-        |= star
-        |. mySpaces
-        |= getChompedString
-            (chompWhile
-                (\c ->
-                    c
-                        /= ' '
-                        && c
-                        /= '\n'
-                        && c
-                        /= '\u{000D}'
-                        && c
-                        /= '\u{000D}'
-                )
-            )
-        |> andThen
-            (\( maybeStar, maybeContentType ) ->
-                if maybeStar then
-                    problem InconsistantStructure
-
-                else
-                    case ( maybeContentType, context ) of
-                        ( "BranchingScenario", RootContext ) ->
-                            contentParserHelp BranchingScenarioContext depth ""
-
-                        ( "BranchingScenario", _ ) ->
-                            problem (Problem "Un BranchingScenario doit se trouver à la racine")
-
-                        ( "CoursePresentation", RootContext ) ->
-                            contentParserHelp CoursePresentationContext depth ""
-
-                        ( "CoursePresentation", BranchingScenarioContext ) ->
-                            contentParserHelp CoursePresentationContext depth ""
-
-                        ( "CoursePresentation", BranchingQuestionAlternativeContext ) ->
-                            contentParserHelp CoursePresentationContext depth ""
-
-                        ( "CoursePresentation", _ ) ->
-                            problem (Problem """Un CoursePresentation doit se trouver à la racine,
- sous un BranchingScenario ou dans une alternative de BranchingQuestion""")
-
-                        ( "TrueFalse", RootContext ) ->
-                            contentParserHelp TrueFalseContext depth ""
-
-                        ( "TrueFalse", CoursePresentationContext ) ->
-                            contentParserHelp TrueFalseContext depth ""
-
-                        ( "TrueFalse", _ ) ->
-                            problem (Problem "Un TrueFalse doit se trouver à la racine ou dans un CoursePresentation")
-
-                        ( "", _ ) ->
-                            problem NoContent
-
-                        -- Dans les trois cas ci-dessous, le maybeContentType ne désigne
-                        -- pas un contentType, c'est une astuce pour récupérer le texte avaler.
-                        -- (cf. bit dans la définition de contentParserHelp)
-                        ( _, BranchingScenarioContext ) ->
-                            contentParserHelp BranchingQuestionContext depth maybeContentType
-
-                        ( _, BranchingQuestionAlternativeContext ) ->
-                            contentParserHelp BranchingQuestionContext depth maybeContentType
-
-                        ( _, BranchingQuestionContext ) ->
-                            contentParserHelp BranchingQuestionAlternativeContext depth maybeContentType
-
-                        _ ->
-                            problem <| UnknownContentType maybeContentType
-            )
-
-
-contentParserHelp context depth bit =
-    let
-        f endOfLine contentList =
-            H5pTree context (bit ++ endOfLine) contentList
-    in
-    inContext context <|
-        succeed f
-            |= tillEndOfLine
-            |. whileNoStarOnFirstColumnOrEndOfFile
-            |= contentsParser context (depth + 1)
-
-
-whileNoStarOnFirstColumnOrEndOfFile =
+    -- Plus compliqué que nécessaire, en vue d'améliorations futures
     succeed identity
-        |. chompWhile ((/=) '*')
-        |= getCol
-        |> andThen
-            (\col ->
-                if col > 1 then
-                    oneOf
-                        [ end EndOfFile
-                        , succeed ()
-                            |. token (Token "*" EndOfFile)
-                            |. whileNoStarOnFirstColumnOrEndOfFile
-                        ]
+        |. blocContentParser
 
-                else
-                    succeed ()
+
+many blocParser depth =
+    sequence
+        { start = Token "" GenericProblem
+        , separator = Token "" GenericProblem
+        , end = Token "" GenericProblem
+        , spaces = succeed ()
+        , item = withStars blocParser depth
+        , trailing = Optional
+        }
+
+
+type alias BlocRecord blocType =
+    { headline : String
+    , content : String
+    , subBlocs : List blocType
+    }
+
+
+h5pData =
+    { sub =
+        [ branchingScenarioData
+        , coursePresentationData
+        , trueFalseData
+        , interactiveVideoData
+        ]
+    }
+
+
+branchingScenarioData =
+    { string = Just "BranchingScenario"
+    , parser = branchingScenarioParser
+    , context = BranchingScenarioContext
+    }
+
+
+branchingQuestionData =
+    { string = Nothing
+    , parser = branchingQuestionParser
+    , context = BranchingQuestionContext
+    }
+
+
+h5pParser depth =
+    selectParser depth
+        [ branchingScenarioData
+        , coursePresentationData
+        , trueFalseData
+        , interactiveVideoData
+        ]
+
+
+branchingScenarioParser depth =
+    selectParser depth
+        [ coursePresentationData
+        , interactiveVideoData
+        , branchingQuestionData
+        ]
+
+
+branchingQuestionParser depth =
+    selectParser depth
+        [ branchingQuestionAlternativeData
+        ]
+
+
+coursePresentationData =
+    { string = Just "CoursePresentation"
+    , parser = coursePresentationParser
+    , context = CoursePresentationContext
+    }
+
+
+trueFalseData =
+    { string = Just "TrueFalse"
+    , parser = trueFalseParser
+    , context = TrueFalseContext
+    }
+
+
+interactiveVideoData =
+    { string = Just "InteractiveVideo"
+    , parser = interactiveVideoParser
+    , context = InteractiveVideoContext
+    }
+
+
+branchingQuestionAlternativeData =
+    { string = Nothing
+    , parser = branchingScenarioParser
+    , context = BranchingQuestionAlternativeContext
+    }
+
+
+type H5pBloc
+    = BranchingScenarioH5pBloc (BlocRecord BranchingScenarioBloc)
+    | CoursePresentationH5pBloc (BlocRecord CoursePresentationBloc)
+    | TrueFalseH5pBloc (BlocRecord TrueFalseBloc)
+    | InteractiveVideoH5pBloc (BlocRecord InteractiveVideoBloc)
+
+
+selectParser depth keywordDataList =
+    let
+        recorder contentTypeData headline blocContent =
+            { contentTypeData = contentTypeData
+            , headline = headline
+            , content = content
+            }
+
+        parserer keywordData =
+            succeed keywordData
+                |. (case keywordData.string of
+                        Just string ->
+                            keyword (Token string (Missing string))
+
+                        Nothing ->
+                            succeed ()
+                   )
+    in
+    succeed recorder
+        |= oneOf (L.map parserer keywordDataList)
+        |= headlineParser
+        |= blocContentParser
+        |> andThen
+            (\record ->
+                inContext record.contentTypeData.context
+                    (succeed record.contentTypeData.builder record.headline record.content
+                        |= many record.contentTypeData.parser (depth + 1)
+                    )
             )
 
 
-stars depth =
-    symbol (Token (S.repeat depth "*") GenericProblem)
+wraper blocConstructor headline content subBlocs =
+    blocConstructor
+        { headline = headline
+        , content = content
+        , subBlocs = subBlocs
+        }
 
 
-star =
-    succeed
-        (\x ->
-            if S.length x == 0 then
-                False
 
-            else
-                True
-        )
-        |= getChompedString (chompWhile ((==) '*'))
+{-
+   , succeed <|
+                   if context == BranchingQuestionContext then
+                       BranchingQuestionAlternativeBloc
+
+                   else
+                       BranchingQuestionBloc
+-}
 
 
-tillEndOfLine =
+blocParserHelp context bloc =
+    case ( context, bloc ) of
+        ( RootContext, BranchingScenarioBloc blocRecord ) ->
+            buildBranchingScenario blocRecord.headline blocRecord.subBlocs
+
+        ( RootContext, CoursePresentationBloc blocRecord ) ->
+            buildCoursePresentation blocRecord.subBlocks
+
+        ( RootContext, TrueFalseBloc blocRecord ) ->
+            buildTrueFalse blocRecord.headline blocRecord.content
+
+        ( BranchingScenarioContext, BranchingQuestionBloc blocRecord ) ->
+            buildBranchingQuestion
+
+        ( BranchingScenarioContext, CoursePresentationBloc blocRecord ) ->
+            buildCoursePresentation subBlocks
+
+        ( BranchingQuestionContext, BranchingQuestionAlternativeBloc blocRecord ) ->
+            buildBranchingQuestionAlternative
+
+        ( CoursePresentationContext, TrueFalseBloc blocRecord ) ->
+            buildTrueFalse
+
+        ( BranchingQuestionAlternativeContext, BranchingQuestionBloc blocRecord ) ->
+            buildBranchingQuestion
+
+        ( BranchingQuestionAlternativeContext, CoursePresentationBloc blocRecord ) ->
+            buildCoursePresentation
+
+        ( _, BranchingScenarioBloc blocRecord ) ->
+            problem (Problem "Un BranchingScenario doit se trouver à la racine")
+
+        ( _, BranchingQuestionBloc blocRecord ) ->
+            problem (Problem "Un embranchement doit se trouver dans un BranchingScenario ou sous un autre embranchement")
+
+        ( _, CoursePresentationBloc blocRecord ) ->
+            problem (Problem """Un CoursePresentation doit se trouver à la racine,
+ sous un BranchingScenario ou dans une alternative de BranchingQuestion""")
+
+        ( _, TrueFalseBloc blocRecord ) ->
+            problem (Problem "Un TrueFalse doit se trouver à la racine ou dans un CoursePresentation")
+
+        ( _, InteractiveVideoBloc blocRecord ) ->
+            problem <| UnknownContentType "InteractiveVideo"
+
+        -- This last case cannot actually occur
+        _ ->
+            problem <| GenericProblem
+
+
+type BranchingScenarioBloc
+    = BranchingQuestionBranchingScenarioBloc (BlocRecord BranchingQuestionBloc)
+    | CoursePresentationBranchingScenarioBloc (BlocRecord CoursePresentationBloc)
+    | InteractiveVideoBranchingScenarioBloc (BlocRecord InteractiveVideoBloc)
+
+
+type CoursePresentationBloc
+    = TrueFalseCoursePresentationBloc (BlocRecord TrueFalseBloc)
+
+
+type TrueFalseBloc
+    = TrueFalseBloc BlocRecord ()
+
+
+type BranchingQuestionBloc
+    = BranchingQuestionAlternativeBranchingQuestionBloc (BlocRecord BranchingQuestionAlternativeBloc)
+
+
+type alias BranchingQuestionAlternativeBloc =
+    BranchingScenarioBloc
+
+
+type InteractiveVideoBloc
+    = InteractiveVideoBloc BlocRecord ()
+
+
+headlineParser =
     getChompedString <| chompWhile ((/=) '\n')
 
 
-mySpaces =
-    chompWhile <| \x -> x == ' ' || x == '\t'
+blocContentParser =
+    getChompedString
+        (succeed identity
+            |. chompWhile ((/=) '*')
+            |= getCol
+            |> andThen
+                (\col ->
+                    if col > 1 then
+                        oneOf
+                            [ end EndOfFile
+                            , succeed ()
+                                |. token (Token "*" EndOfFile)
+                                |. blocContentParser
+                            ]
+
+                    else
+                        succeed ()
+                )
+        )
+
+
+withStars parser depth =
+    succeed identity
+        |. symbol (Token (S.repeat depth "*") GenericProblem)
+        |= getChompedString (chompWhile ((==) '*'))
+        |. atLeastOneSpace
+        |> andThen
+            (\x ->
+                if S.length x == 0 then
+                    parser
+
+                else
+                    problem InconsistantStructure
+            )
+
+
+atLeastOneSpace =
+    succeed ()
+        |. token (Token " " MissingSpace)
+        |. chompWhile
+    <|
+        \x -> x == ' ' || x == '\t'
 
 
 
-{-
-   ██████  ██████   █████  ███    ██  ██████ ██   ██ ██ ███    ██  ██████
-   ██   ██ ██   ██ ██   ██ ████   ██ ██      ██   ██ ██ ████   ██ ██
-   ██████  ██████  ███████ ██ ██  ██ ██      ███████ ██ ██ ██  ██ ██   ███
-   ██   ██ ██   ██ ██   ██ ██  ██ ██ ██      ██   ██ ██ ██  ██ ██ ██    ██
-   ██████  ██   ██ ██   ██ ██   ████  ██████ ██   ██ ██ ██   ████  ██████
-
-   ███████  ██████ ███████ ███    ██  █████  ██████  ██  ██████
-   ██      ██      ██      ████   ██ ██   ██ ██   ██ ██ ██    ██
-   ███████ ██      █████   ██ ██  ██ ███████ ██████  ██ ██    ██
-        ██ ██      ██      ██  ██ ██ ██   ██ ██   ██ ██ ██    ██
-   ███████  ██████ ███████ ██   ████ ██   ██ ██   ██ ██  ██████
--}
-{-
-
-   branchingScenarioParser depth =
-       let
-           f title contentList =
-               BranchingScenarioH5P
-                   { nouveauBranchingScenario
-                       | startScreen =
-                           nouveauBranchingScenario.startScreen
-                               |> withStartScreenSubtitle title
-                       , content = [] -- TODO
-                   }
-       in
-       succeed f
-           |= titleParser
-           |. blankLines
-           |= loop [] (contentsParser (depth + 1) BranchingScenarioContext)
-
--}
---|= loop ( [], 0 ) (branchingScenarioParserHelp (depth + 1))
---|. blankLines
-{- Dans une configuration de la forme :
-
-       *BranchingScenario Titre du cours
-       ** BranchingQuestion Cxu ?
-           ...
-       ** CoursePresentation
-           ...
-
-   Récupère tout ce qui se trouve au niveau ** sous la forme d'une liste
--}
-{-
-   branchingScenarioParserHelp depth ( contentList, contentId ) =
-       oneOf
-           [ let
-               f ( contents, id ) =
-                   Loop ( contentList ++ contents, id + 1 )
-             in
-             succeed f
-               |= contentParser depth contentId
-               |. blankLines
-           , succeed (Done contentList)
-           ]
--}
-{-
-
-   contentParserBis depth contentId =
-       oneOf
-           [ backtrackable <| branchingQuestionParser depth contentId
-           , succeed (\x -> ( [ x ], contentId + 1 ))
-               |= oneOf
-                   [ backtrackable <| coursePresentationParser depth
-                   , trueFalseParser depth
-                   ]
-
-           --, problemBis "Oups"
-           ]
-
--}
-{-
-   ██████╗ ██████╗  █████╗ ███╗   ██╗ ██████╗██╗  ██╗██╗███╗   ██╗ ██████╗
-   ██╔══██╗██╔══██╗██╔══██╗████╗  ██║██╔════╝██║  ██║██║████╗  ██║██╔════╝
-   ██████╔╝██████╔╝███████║██╔██╗ ██║██║     ███████║██║██╔██╗ ██║██║  ███╗
-   ██╔══██╗██╔══██╗██╔══██║██║╚██╗██║██║     ██╔══██║██║██║╚██╗██║██║   ██║
-   ██████╔╝██║  ██║██║  ██║██║ ╚████║╚██████╗██║  ██║██║██║ ╚████║╚██████╔╝
-   ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝
-
-    ██████╗ ██╗   ██╗███████╗███████╗████████╗██╗ ██████╗ ███╗   ██╗
-   ██╔═══██╗██║   ██║██╔════╝██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║
-   ██║   ██║██║   ██║█████╗  ███████╗   ██║   ██║██║   ██║██╔██╗ ██║
-   ██║▄▄ ██║██║   ██║██╔══╝  ╚════██║   ██║   ██║██║   ██║██║╚██╗██║
-   ╚██████╔╝╚██████╔╝███████╗███████║   ██║   ██║╚██████╔╝██║ ╚████║
-    ╚══▀▀═╝  ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
--}
-{-
-   {-| Ici branchList est un enregistrement forçant la liste à avoir au moins deux éléments
-   -}
-   branchingQuestionParser depth contentId =
-       let
-           f question ( branchList, id ) =
-               ( branchList.first :: branchList.second :: branchList.others
-               , contentId + L.length branchList.others + 2
-               )
-       in
-       succeed f
-           |. stars depth
-           |. keywordBis "BranchingQuestion"
-           |. mySpaces
-           |= questionParser
-           |. blankLines
-           -- Je dirais qu'il faut un contentId + 1 ici
-           |= loop ( [], contentId ) (branchingQuestionAlternativeParser (depth + 1))
-
-
-   {-| Ici branchList est une liste
-   -}
-   branchingQuestionAlternativeParser depth ( branchList, contentId ) =
-       oneOf
-           [ let
-               f alternative ( alternativeList, id ) =
-                   case branchList of
-                       [] ->
-                           -- TODO
-                           Loop ( alternativeList, id )
-
-                       _ ->
-                           -- TODO
-                           Loop ( alternativeList, id )
-             in
-             succeed f
-               |. stars depth
-               |= alternativeAnswerParser
-               |= loop ( [], contentId ) (branchingQuestionAlternativeParserHelp (depth + 1))
-           , (succeed ()
-               |> P.map (\_ -> List.concat branchList)
-             )
-               |> andThen
-                   (\xx ->
-                       case xx of
-                           [] ->
-                               problemBis "Un embranchement doit avoir des branches !"
-
-                           x :: [] ->
-                               problemBis "Un embranchement doit avoir au moins deux branches !"
-
-                           x :: y :: zz ->
-                               succeed ()
-                                   |> P.map (\_ -> Done ( { first = x, second = y, others = zz }, contentId ))
-                   )
-           ]
-
-
-   {-| Tout le travail reste à faire !
-   -}
-   branchingQuestionAlternativeParserHelp depth ( branchList, contentId ) =
-       oneOf
-           [ succeed
-               (Done
-                   ( [ [ CoursePresentationH5P (new coursePresentationField) ]
-                     , [ TrueFalseH5P nouveauTrueFalse ]
-                     ]
-                   , contentId
-                   )
-               )
-           ]
-
--}
 {-
     ██████╗ ███████╗███████╗████████╗██╗ ██████╗ ███╗   ██╗    ██████╗ ███████╗███████╗
    ██╔════╝ ██╔════╝██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║    ██╔══██╗██╔════╝██╔════╝
@@ -1894,6 +1774,8 @@ type Problem
     | ExpectingContentType
     | UnknownContentType String
     | InconsistantStructure
+    | MissingSpace
+    | Missing String
 
 
 deadEndsToStringBis errs =
@@ -1937,6 +1819,12 @@ showProblem prob =
 
         InconsistantStructure ->
             "La structure du document n'est pas consistante !\n"
+
+        MissingSpace ->
+            "Les '*' doivent être suivies d'une espace\n"
+
+        Missing contentType ->
+            "Est-ce qu'il ne manquerait pas un " ++ contentType ++ " ?\n"
 
         _ ->
             "Problème inconnu\n"
@@ -2025,6 +1913,24 @@ type H5pTree
     = H5pTree Context String (List H5pTree)
 
 
+buildBranchingScenario title blocs =
+    let
+        build content =
+            new branchingScenarioField
+                |> with2 startScreenField startScreenSubtitleField title
+                |> with contentField content
+                |> BranchingScenarioH5P
+    in
+    fromBranchingScenario
+        { content = R.constant []
+        , lastIdUsed = -1
+        , headline = title
+        }
+        blocs
+        |> .content
+        |> R.map build
+
+
 toH5p : H5pTree -> R.Generator H5p
 toH5p tree =
     case tree of
@@ -2106,10 +2012,10 @@ type alias BranchingScenarioState =
 
 fromBranchingScenario :
     BranchingScenarioState
-    -> List H5pTree
+    -> List Bloc
     -> BranchingScenarioState
-fromBranchingScenario state trees =
-    case trees of
+fromBranchingScenario state blocs =
+    case blocs of
         [] ->
             { state
                 | content =
@@ -2117,7 +2023,7 @@ fromBranchingScenario state trees =
                     R.map L.reverse state.content
             }
 
-        tree :: treesTail ->
+        bloc :: blocsTail ->
             let
                 buildContent subBuilder title contentType library subTrees =
                     R.map2
@@ -2138,7 +2044,7 @@ fromBranchingScenario state trees =
                         |> with nextContentIdField (Just state.lastIdUsed)
 
                 newState =
-                    case tree of
+                    case bloc of
                         H5pTree BranchingQuestionContext question subTrees ->
                             let
                                 content =
@@ -2229,12 +2135,6 @@ fromBranchingQuestion state trees =
                 branchingQuestion =
                     R.map branchingQuestionHelp UUID.generator
 
-                params =
-                    BranchingQuestionBranchingScenarioContentTypeParams
-                        { alternatives = L.reverse state.alternatives
-                        , question = state.question
-                        }
-
                 branchingQuestionHelp uuid =
                     new contentField
                         |> with3 typeField metadataField titleField ""
@@ -2242,6 +2142,12 @@ fromBranchingQuestion state trees =
                         |> with2 typeField libraryField "H5P.BranchingQuestion 1.0"
                         |> with2 typeField paramsField params
                         |> with2 typeField subContentIdField (UUID.toString uuid)
+
+                params =
+                    BranchingQuestionBranchingScenarioContentTypeParams
+                        { alternatives = L.reverse state.alternatives
+                        , question = state.question
+                        }
 
                 content =
                     state.content
