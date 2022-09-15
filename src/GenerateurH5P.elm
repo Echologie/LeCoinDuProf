@@ -107,7 +107,7 @@ update msg model =
         Generate source ->
             let
                 h5pGenerator =
-                    case P.run parser source of
+                    case P.run contentParser source of
                         Ok gen ->
                             REx.sequence gen
                                 |> R.map toJson
@@ -1380,50 +1380,6 @@ encodedTrueFalseMedia trueFalseMedia =
         ]
 
 
-nouveauTrueFalse =
-    { behaviour =
-        { autoCheck = True
-        , confirmCheckDialog = False
-        , confirmRetryDialog = False
-        , enableCheckButton = True
-        , enableRetry = True
-        , enableSolutionsButton = True
-        , feedbackOnCorrect = Just "C&#039;est la base !\n"
-        , feedbackOnWrong = Nothing
-        }
-    , confirmCheck =
-        { body = "Êtes-vous sûr de vouloir terminer ?"
-        , cancelLabel = "Annuler"
-        , confirmLabel = "Confirmer"
-        , header = "Terminer ?"
-        }
-    , confirmRetry =
-        { body = "Êtes-vous sûr de vouloir recommencer ?"
-        , cancelLabel = "Annuler"
-        , confirmLabel = "Confirmer"
-        , header = "Recommencer ?"
-        }
-    , correct = "true"
-    , l10n =
-        { a11yCheck = "Check the answers. The responses will be marked as correct, incorrect, or unanswered."
-        , a11yRetry = "Retry the task. Reset all responses and start the task over again."
-        , a11yShowSolution = "Show the solution. The task will be marked with its correct solution."
-        , checkAnswer = "Vérifier"
-        , correctAnswerMessage = "Bonne réponse"
-        , falseText = "Faux"
-        , score = "Vous avez obtenu @score points sur un total de @total"
-        , scoreBarLabel = "Vous avez obtenu @score points sur un total de @total"
-        , showSolutionButton = "Voir la solution"
-        , submitAnswer = "Vérifier"
-        , trueText = "Vrai"
-        , tryAgain = "Recommencer"
-        , wrongAnswerMessage = "Réponse incorrecte"
-        }
-    , media = { disableImageZooming = False }
-    , question = ""
-    }
-
-
 
 {-
     .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
@@ -1461,7 +1417,7 @@ type Context
 
 
 contentParser =
-    succeed (L.map toH5p)
+    succeed identity
         |. inContext PreambleContext preambleParser
         |= inContext RootContext (many h5pParser 1)
         |. end EndOfFile
@@ -1471,6 +1427,268 @@ preambleParser =
     -- Plus compliqué que nécessaire, en vue d'améliorations futures
     succeed identity
         |. blocContentParser
+
+
+type H5pSubContext
+    = BranchingScenarioH5pSubContext
+    | CoursePresentationH5pSubContext
+    | TrueFalseH5pSubContext
+    | InteractiveVideoH5pSubContext
+
+
+h5pParser depth =
+    succeed recorder
+        |= subContextParser
+            [ ( BranchingScenarioH5pSubContext, Just "BranchingScenario" )
+            , ( CoursePresentationH5pSubContext, Just "CoursePresentation" )
+            , ( TrueFalseH5pSubContext, Just "TrueFalse" )
+            , ( InteractiveVideoH5pSubContext, Just "InteractiveVideo" )
+            ]
+        |= headlineParser
+        |= blocContentParser
+        |> andThen
+            (\record ->
+                case record.context of
+                    BranchingScenarioH5pSubContext ->
+                        inContext BranchingScenarioContext <|
+                            --succeed buildBranchingScenario record.headline
+                            --    |= many branchingScenarioSubParser (depth + 1)
+                            let
+                                build content =
+                                    new branchingScenarioField
+                                        |> with2 startScreenField startScreenSubtitleField record.headline
+                                        |> with contentField content
+                                        |> BranchingScenarioH5P
+                            in
+                            succeed (R.map build << .content)
+                                |= loop
+                                    { content = R.constant []
+                                    , lastIdUsed = -1
+                                    , --À revoir
+                                      headline = record.headline
+                                    }
+                                    (branchingScenarioParser <| depth + 1)
+
+                    CoursePresentationH5pSubContext ->
+                        inContext CoursePresentationContext <|
+                            --succeed coursePresentationBuilder record.headline
+                            --    |= many coursePresentationParser (depth + 1)
+                            todo
+
+                    TrueFalseH5pSubContext ->
+                        inContext TrueFalseContext <|
+                            --succeed (trueFalseBuilder record.headline record.blocContent)
+                            todo
+
+                    InteractiveVideoH5pSubContext ->
+                        inContext InteractiveVideoContext <|
+                            --succeed (interactiveVideoBuilder record.headline)
+                            --    |= many interactiveVideoParser (depth + 1)
+                            todo
+            )
+
+
+type BranchingScenarioSubContext
+    = CoursePresentationBranchingScenarioSubContext
+    | InteractiveVideoBranchingScenarioSubContext
+    | BranchingQuestionBranchingScenarioSubContext
+
+
+type alias BranchingScenarioState =
+    { content : R.Generator (List BranchingScenarioContent)
+    , lastIdUsed : Int
+    , headline : String
+    }
+
+
+branchingScenarioParser depth state =
+    oneOf
+        [ succeed recorder
+            |= subContextParser
+                [ ( CoursePresentationBranchingScenarioSubContext, Just "CoursePresentation" )
+                , ( InteractiveVideoBranchingScenarioSubContext, Just "InteractiveVideo" )
+                , -- Must be left behind !
+                  ( BranchingQuestionBranchingScenarioSubContext, Nothing )
+                ]
+            |= headlineParser
+            |= blocContentParser
+            |> andThen
+                (\record ->
+                    let
+                        buildContent subBuilder title contentType library subTrees =
+                            R.map2
+                                (buildContentHelp title contentType library)
+                                (R.map CoursePresentationBranchingScenarioContentTypeParams <|
+                                    subBuilder subTrees
+                                )
+                                UUID.generator
+
+                        buildContentHelp title contentType library params uuid =
+                            new contentField
+                                |> with3 typeField metadataField titleField title
+                                |> with3 typeField metadataField contentTypeField contentType
+                                |> with2 typeField libraryField library
+                                |> with2 typeField paramsField params
+                                |> with2 typeField subContentIdField (UUID.toString uuid)
+                                -- À vérifier
+                                |> with nextContentIdField (Just state.lastIdUsed)
+                    in
+                    case record.context of
+                        BranchingQuestionBranchingScenarioSubContext ->
+                            inContext BranchingQuestionContext <|
+                                succeed
+                                    (\newContent ->
+                                        Loop
+                                            { state
+                                                | content =
+                                                    R.map2 L.append
+                                                        newContent.content
+                                                        state.content
+                                                , lastIdUsed = state.lastIdUsed + 1
+                                            }
+                                    )
+                                    |= loop
+                                        { alternatives = []
+                                        , content = R.constant []
+                                        , lastIdUsed = state.lastIdUsed
+                                        , question = record.headline
+                                        }
+                                        (branchingQuestionParser (depth + 1))
+
+                        CoursePresentationBranchingScenarioSubContext ->
+                            inContext CoursePresentationContext <|
+                                let
+                                    newContent =
+                                        buildContent
+                                            coursePresentationBuilder
+                                            record.headline
+                                            "Course Presentation"
+                                            "H5P.CoursePresentation 1.24"
+                                in
+                                succeed
+                                    (\subContent ->
+                                        Loop
+                                            { state
+                                                | content =
+                                                    R.map2 (::)
+                                                        (newContent subContent)
+                                                        state.content
+                                                , lastIdUsed = state.lastIdUsed + 1
+                                            }
+                                    )
+                                    |= many coursePresentationParser (depth + 1)
+
+                        InteractiveVideoBranchingScenarioSubContext ->
+                            inContext InteractiveVideoContext <|
+                                todo
+                )
+        , succeed <|
+            Done
+                { state
+                    | content = R.map L.reverse state.content
+                }
+        ]
+
+
+type alias BranchingQuestionState =
+    { alternatives : List BranchingQuestionAlternatives
+    , content : R.Generator (List BranchingScenarioContent)
+    , lastIdUsed : Int
+    , question : String
+    }
+
+
+branchingQuestionParser :
+    Int
+    -> BranchingQuestionState
+    -> Parser Context Problem (Step BranchingQuestionState BranchingScenarioState)
+branchingQuestionParser depth state =
+    oneOf
+        [ inContext BranchingQuestionAlternativeContext <|
+            (succeed identity
+                |= headlineParser
+                |. blocContentParser
+                |> andThen
+                    (\alternative ->
+                        loop
+                            { content = R.constant []
+                            , lastIdUsed = state.lastIdUsed
+                            , headline = alternative
+                            }
+                            (branchingScenarioParser <| depth + 1)
+                            |> andThen
+                                (\content ->
+                                    succeed Loop
+                                        |= loop
+                                            { state
+                                                | alternatives =
+                                                    (new alternativesField
+                                                        |> with nextContentIdField (state.lastIdUsed + 1)
+                                                        |> with textField alternative
+                                                    )
+                                                        :: state.alternatives
+                                                , content = content.content
+                                                , lastIdUsed = content.lastIdUsed
+                                            }
+                                            (branchingQuestionParser depth)
+                                )
+                    )
+            )
+        , let
+            branchingQuestion =
+                R.map branchingQuestionHelp UUID.generator
+
+            branchingQuestionHelp uuid =
+                new contentField
+                    |> with3 typeField metadataField titleField ""
+                    |> with3 typeField metadataField contentTypeField "Branching Question"
+                    |> with2 typeField libraryField "H5P.BranchingQuestion 1.0"
+                    |> with2 typeField paramsField params
+                    |> with2 typeField subContentIdField (UUID.toString uuid)
+
+            params =
+                BranchingQuestionBranchingScenarioContentTypeParams
+                    { alternatives = L.reverse state.alternatives
+                    , question = state.question
+                    }
+
+            content =
+                state.content
+                    |> R.map2 (::) branchingQuestion
+                    |> R.map L.reverse
+          in
+          succeed <|
+            Done
+                { content = content
+                , lastIdUsed = state.lastIdUsed
+                , headline = ""
+                }
+        ]
+
+
+type CoursePresentationSubContext
+    = TrueFalseCoursePresentationSubContext
+
+
+coursePresentationParser depth =
+    succeed recorder
+        |= subContextParser
+            [ ( TrueFalseCoursePresentationSubContext, Just "TrueFalse" )
+            ]
+        |= headlineParser
+        |= blocContentParser
+        |> andThen
+            (\record ->
+                case record.context of
+                    TrueFalseCoursePresentationSubContext ->
+                        inContext TrueFalseContext <|
+                            --succeed (trueFalseBuilder record.headline record.blocContent)
+                            todo
+            )
+
+
+interactiveVideoParser depth =
+    todo
 
 
 many blocParser depth =
@@ -1484,106 +1702,18 @@ many blocParser depth =
         }
 
 
-type alias BlocRecord blocType =
-    { headline : String
-    , content : String
-    , subBlocs : List blocType
+recorder context headline blocContent =
+    { context = context
+    , headline = headline
+    , blocContent = blocContent
     }
 
 
-h5pData =
-    { sub =
-        [ branchingScenarioData
-        , coursePresentationData
-        , trueFalseData
-        , interactiveVideoData
-        ]
-    }
-
-
-branchingScenarioData =
-    { string = Just "BranchingScenario"
-    , parser = branchingScenarioParser
-    , context = BranchingScenarioContext
-    }
-
-
-branchingQuestionData =
-    { string = Nothing
-    , parser = branchingQuestionParser
-    , context = BranchingQuestionContext
-    }
-
-
-h5pParser depth =
-    selectParser depth
-        [ branchingScenarioData
-        , coursePresentationData
-        , trueFalseData
-        , interactiveVideoData
-        ]
-
-
-branchingScenarioParser depth =
-    selectParser depth
-        [ coursePresentationData
-        , interactiveVideoData
-        , branchingQuestionData
-        ]
-
-
-branchingQuestionParser depth =
-    selectParser depth
-        [ branchingQuestionAlternativeData
-        ]
-
-
-coursePresentationData =
-    { string = Just "CoursePresentation"
-    , parser = coursePresentationParser
-    , context = CoursePresentationContext
-    }
-
-
-trueFalseData =
-    { string = Just "TrueFalse"
-    , parser = trueFalseParser
-    , context = TrueFalseContext
-    }
-
-
-interactiveVideoData =
-    { string = Just "InteractiveVideo"
-    , parser = interactiveVideoParser
-    , context = InteractiveVideoContext
-    }
-
-
-branchingQuestionAlternativeData =
-    { string = Nothing
-    , parser = branchingScenarioParser
-    , context = BranchingQuestionAlternativeContext
-    }
-
-
-type H5pBloc
-    = BranchingScenarioH5pBloc (BlocRecord BranchingScenarioBloc)
-    | CoursePresentationH5pBloc (BlocRecord CoursePresentationBloc)
-    | TrueFalseH5pBloc (BlocRecord TrueFalseBloc)
-    | InteractiveVideoH5pBloc (BlocRecord InteractiveVideoBloc)
-
-
-selectParser depth keywordDataList =
+subContextParser subContexts =
     let
-        recorder contentTypeData headline blocContent =
-            { contentTypeData = contentTypeData
-            , headline = headline
-            , content = content
-            }
-
-        parserer keywordData =
-            succeed keywordData
-                |. (case keywordData.string of
+        subContextParserHelp ( subContextConstructor, subContextString ) =
+            succeed subContextConstructor
+                |. (case subContextString of
                         Just string ->
                             keyword (Token string (Missing string))
 
@@ -1591,112 +1721,7 @@ selectParser depth keywordDataList =
                             succeed ()
                    )
     in
-    succeed recorder
-        |= oneOf (L.map parserer keywordDataList)
-        |= headlineParser
-        |= blocContentParser
-        |> andThen
-            (\record ->
-                inContext record.contentTypeData.context
-                    (succeed record.contentTypeData.builder record.headline record.content
-                        |= many record.contentTypeData.parser (depth + 1)
-                    )
-            )
-
-
-wraper blocConstructor headline content subBlocs =
-    blocConstructor
-        { headline = headline
-        , content = content
-        , subBlocs = subBlocs
-        }
-
-
-
-{-
-   , succeed <|
-                   if context == BranchingQuestionContext then
-                       BranchingQuestionAlternativeBloc
-
-                   else
-                       BranchingQuestionBloc
--}
-
-
-blocParserHelp context bloc =
-    case ( context, bloc ) of
-        ( RootContext, BranchingScenarioBloc blocRecord ) ->
-            buildBranchingScenario blocRecord.headline blocRecord.subBlocs
-
-        ( RootContext, CoursePresentationBloc blocRecord ) ->
-            buildCoursePresentation blocRecord.subBlocks
-
-        ( RootContext, TrueFalseBloc blocRecord ) ->
-            buildTrueFalse blocRecord.headline blocRecord.content
-
-        ( BranchingScenarioContext, BranchingQuestionBloc blocRecord ) ->
-            buildBranchingQuestion
-
-        ( BranchingScenarioContext, CoursePresentationBloc blocRecord ) ->
-            buildCoursePresentation subBlocks
-
-        ( BranchingQuestionContext, BranchingQuestionAlternativeBloc blocRecord ) ->
-            buildBranchingQuestionAlternative
-
-        ( CoursePresentationContext, TrueFalseBloc blocRecord ) ->
-            buildTrueFalse
-
-        ( BranchingQuestionAlternativeContext, BranchingQuestionBloc blocRecord ) ->
-            buildBranchingQuestion
-
-        ( BranchingQuestionAlternativeContext, CoursePresentationBloc blocRecord ) ->
-            buildCoursePresentation
-
-        ( _, BranchingScenarioBloc blocRecord ) ->
-            problem (Problem "Un BranchingScenario doit se trouver à la racine")
-
-        ( _, BranchingQuestionBloc blocRecord ) ->
-            problem (Problem "Un embranchement doit se trouver dans un BranchingScenario ou sous un autre embranchement")
-
-        ( _, CoursePresentationBloc blocRecord ) ->
-            problem (Problem """Un CoursePresentation doit se trouver à la racine,
- sous un BranchingScenario ou dans une alternative de BranchingQuestion""")
-
-        ( _, TrueFalseBloc blocRecord ) ->
-            problem (Problem "Un TrueFalse doit se trouver à la racine ou dans un CoursePresentation")
-
-        ( _, InteractiveVideoBloc blocRecord ) ->
-            problem <| UnknownContentType "InteractiveVideo"
-
-        -- This last case cannot actually occur
-        _ ->
-            problem <| GenericProblem
-
-
-type BranchingScenarioBloc
-    = BranchingQuestionBranchingScenarioBloc (BlocRecord BranchingQuestionBloc)
-    | CoursePresentationBranchingScenarioBloc (BlocRecord CoursePresentationBloc)
-    | InteractiveVideoBranchingScenarioBloc (BlocRecord InteractiveVideoBloc)
-
-
-type CoursePresentationBloc
-    = TrueFalseCoursePresentationBloc (BlocRecord TrueFalseBloc)
-
-
-type TrueFalseBloc
-    = TrueFalseBloc BlocRecord ()
-
-
-type BranchingQuestionBloc
-    = BranchingQuestionAlternativeBranchingQuestionBloc (BlocRecord BranchingQuestionAlternativeBloc)
-
-
-type alias BranchingQuestionAlternativeBloc =
-    BranchingScenarioBloc
-
-
-type InteractiveVideoBloc
-    = InteractiveVideoBloc BlocRecord ()
+    oneOf (L.map subContextParserHelp subContexts)
 
 
 headlineParser =
@@ -1732,7 +1757,7 @@ withStars parser depth =
         |> andThen
             (\x ->
                 if S.length x == 0 then
-                    parser
+                    parser depth
 
                 else
                     problem InconsistantStructure
@@ -1742,146 +1767,7 @@ withStars parser depth =
 atLeastOneSpace =
     succeed ()
         |. token (Token " " MissingSpace)
-        |. chompWhile
-    <|
-        \x -> x == ' ' || x == '\t'
-
-
-
-{-
-    ██████╗ ███████╗███████╗████████╗██╗ ██████╗ ███╗   ██╗    ██████╗ ███████╗███████╗
-   ██╔════╝ ██╔════╝██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║    ██╔══██╗██╔════╝██╔════╝
-   ██║  ███╗█████╗  ███████╗   ██║   ██║██║   ██║██╔██╗ ██║    ██║  ██║█████╗  ███████╗
-   ██║   ██║██╔══╝  ╚════██║   ██║   ██║██║   ██║██║╚██╗██║    ██║  ██║██╔══╝  ╚════██║
-   ╚██████╔╝███████╗███████║   ██║   ██║╚██████╔╝██║ ╚████║    ██████╔╝███████╗███████║
-    ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝    ╚═════╝ ╚══════╝╚══════╝
-   ███████╗██████╗ ██████╗ ███████╗██╗   ██╗██████╗ ███████╗
-   ██╔════╝██╔══██╗██╔══██╗██╔════╝██║   ██║██╔══██╗██╔════╝
-   █████╗  ██████╔╝██████╔╝█████╗  ██║   ██║██████╔╝███████╗
-   ██╔══╝  ██╔══██╗██╔══██╗██╔══╝  ██║   ██║██╔══██╗╚════██║
-   ███████╗██║  ██║██║  ██║███████╗╚██████╔╝██║  ██║███████║
-   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
--}
-
-
-type Problem
-    = --TODO
-      NoContent
-    | BadKeyword String
-    | Problem String
-    | GenericProblem
-    | EndOfFile
-    | ExpectingContentType
-    | UnknownContentType String
-    | InconsistantStructure
-    | MissingSpace
-    | Missing String
-
-
-deadEndsToStringBis errs =
-    errs
-        |> L.map voirErreur
-        |> S.join "\n\n"
-        |> (++) "J'ai rencontré les problèmes suivants :\n\n"
-
-
-voirErreur err =
-    "Ligne "
-        ++ String.fromInt err.row
-        ++ ", Colonne "
-        ++ String.fromInt err.col
-        ++ " : "
-        ++ showProblem err.problem
-        ++ showContext (L.map .context err.contextStack)
-        ++ "\n\n---------------------------------------------------------\n"
-
-
-showProblem prob =
-    case prob of
-        Problem p ->
-            p ++ "\n"
-
-        NoContent ->
-            "Je ne peux pas produire de contenu à partir de rien !\n"
-
-        EndOfFile ->
-            "Fin de fichier\n"
-
-        ExpectingContentType ->
-            """Je m'attends à trouver l'un des mots clefs suivants :
-    BranchingScenario
-    CoursePresentation
-    TrueFalse
-"""
-
-        UnknownContentType x ->
-            "Contenu H5P inconnu : " ++ x ++ "\n"
-
-        InconsistantStructure ->
-            "La structure du document n'est pas consistante !\n"
-
-        MissingSpace ->
-            "Les '*' doivent être suivies d'une espace\n"
-
-        Missing contentType ->
-            "Est-ce qu'il ne manquerait pas un " ++ contentType ++ " ?\n"
-
-        _ ->
-            "Problème inconnu\n"
-
-
-showContext contextStack =
-    case contextStack of
-        [] ->
-            ""
-
-        _ ->
-            "\nDans le contexte suivant :\n" ++ showContextHelp 0 (L.reverse contextStack)
-
-
-showContextHelp depth ccc =
-    case ccc of
-        [] ->
-            ""
-
-        c :: cc ->
-            let
-                f x =
-                    S.repeat depth "*"
-                        ++ x
-                        ++ showContextHelp (depth + 1) cc
-            in
-            case c of
-                PreambleContext ->
-                    "Préambule"
-
-                RootContext ->
-                    if cc == [] then
-                        "Root"
-
-                    else
-                        showContextHelp 1 cc
-
-                BranchingScenarioContext ->
-                    f "BranchingScenario\n"
-
-                BranchingQuestionContext ->
-                    f "BranchingQuestion\n"
-
-                BranchingQuestionAlternativeContext ->
-                    f "Alternative\n"
-
-                CoursePresentationContext ->
-                    f "CoursePresentation\n"
-
-                TrueFalseContext ->
-                    f "TrueFalse\n"
-
-                InteractiveVideoContext ->
-                    f "InteractiveVideo\n"
-
-                _ ->
-                    ""
+        |. chompWhile (\x -> x == ' ' || x == '\t')
 
 
 
@@ -1909,279 +1795,15 @@ showContextHelp depth ccc =
 -}
 
 
-type H5pTree
-    = H5pTree Context String (List H5pTree)
-
-
-buildBranchingScenario title blocs =
-    let
-        build content =
-            new branchingScenarioField
-                |> with2 startScreenField startScreenSubtitleField title
-                |> with contentField content
-                |> BranchingScenarioH5P
-    in
-    fromBranchingScenario
-        { content = R.constant []
-        , lastIdUsed = -1
-        , headline = title
-        }
-        blocs
-        |> .content
-        |> R.map build
-
-
-toH5p : H5pTree -> R.Generator H5p
-toH5p tree =
-    case tree of
-        H5pTree BranchingScenarioContext title subTrees ->
-            let
-                build content =
-                    new branchingScenarioField
-                        |> with2 startScreenField startScreenSubtitleField title
-                        |> with contentField content
-                        |> BranchingScenarioH5P
-            in
-            fromBranchingScenario
-                { content = R.constant []
-                , lastIdUsed = -1
-                , headline = title
-                }
-                subTrees
-                |> .content
-                |> R.map build
-
-        H5pTree CoursePresentationContext title subTrees ->
-            R.constant <| CoursePresentationH5P (new coursePresentationField)
-
-        H5pTree TrueFalseContext title subTrees ->
-            R.constant <| TrueFalseH5P nouveauTrueFalse
-
-        _ ->
-            R.constant <| TrueFalseH5P nouveauTrueFalse
-
-
-
---toBranchingScenarioContentTypeParams : H5pTree -> R.Generator BranchingScenarioContentTypeParams
---toBranchingScenarioContentTypeParams tree =
---    case tree of
---        H5pTree CoursePresentationContext title subTrees ->
---            R.constant <|
---                CoursePresentationBranchingScenarioContentTypeParams (new coursePresentationField)
---        _ ->
---            R.constant <| CoursePresentationBranchingScenarioContentTypeParams (new coursePresentationField)
-{- fromBranchingScenarioSubTrees state trees =
-   case trees of
-       [] ->
-           R.constant []
-
-       (H5pTree BranchingQuestionContext question subTrees) :: treesTail ->
-           let
-               build =
-                   R.map f UUID.generator
-
-               --TODO avec nextContentId ...
-               alternatives =
-                   new alternativesField
-                       |> with questionField question
-                       -- À revoir, je n'ai pas besoin de toute l'info !
-                       |> with alternativesField (todo)
-
-               f uuid =
-                   new contentField
-                       |> with4 typeField paramsField branchingQuestionField questionField question
-                       |> with3 typeField metadataField contentTypeField "Branching Question"
-                       |> with2 typeField libraryField "H5P.BranchingQuestion 1.0"
-                       |> with4 typeField paramsField branchingQuestionField alternativesField alternatives
-                       |> with2 typeField subContentIdField (UUID.toString uuid)
-           in
-           todo
-
-       s :: ss ->
-           -- R.map2 (::) (fromBranchingScenarioSubTree s) (fromBranchingScenarioSubTrees ss)
-           todo
--}
-
-
-type alias BranchingScenarioState =
-    { content : R.Generator (List BranchingScenarioContent)
-    , lastIdUsed : Int
-    , headline : String
-    }
-
-
-fromBranchingScenario :
-    BranchingScenarioState
-    -> List Bloc
-    -> BranchingScenarioState
-fromBranchingScenario state blocs =
-    case blocs of
-        [] ->
-            { state
-                | content =
-                    -- L.reverse à revoir
-                    R.map L.reverse state.content
-            }
-
-        bloc :: blocsTail ->
-            let
-                buildContent subBuilder title contentType library subTrees =
-                    R.map2
-                        (buildContentHelp title contentType library)
-                        (R.map CoursePresentationBranchingScenarioContentTypeParams <|
-                            subBuilder subTrees
-                        )
-                        UUID.generator
-
-                buildContentHelp title contentType library params uuid =
-                    new contentField
-                        |> with3 typeField metadataField titleField title
-                        |> with3 typeField metadataField contentTypeField contentType
-                        |> with2 typeField libraryField library
-                        |> with2 typeField paramsField params
-                        |> with2 typeField subContentIdField (UUID.toString uuid)
-                        -- À vérifier
-                        |> with nextContentIdField (Just state.lastIdUsed)
-
-                newState =
-                    case bloc of
-                        H5pTree BranchingQuestionContext question subTrees ->
-                            let
-                                content =
-                                    R.map2 L.append newContent.content state.content
-
-                                newContent =
-                                    fromBranchingQuestion
-                                        { alternatives = []
-                                        , content = R.constant []
-                                        , lastIdUsed = state.lastIdUsed
-                                        , question = question
-                                        }
-                                        subTrees
-                            in
-                            { state
-                                | content = content
-                                , lastIdUsed = state.lastIdUsed + 1
-                            }
-
-                        H5pTree CoursePresentationContext title subTrees ->
-                            let
-                                newContent =
-                                    buildContent
-                                        coursePresentationBuilder
-                                        title
-                                        "Course Presentation"
-                                        "H5P.CoursePresentation 1.24"
-                                        subTrees
-                            in
-                            { state
-                                | content = R.map2 (::) newContent state.content
-                                , lastIdUsed = state.lastIdUsed + 1
-                            }
-
-                        _ ->
-                            { state
-                                | --state.content
-                                  --    |> todo
-                                  --|> R.map ((::) (toBranchingScenarioContentTypeParams tree))
-                                  content = R.constant []
-                                , lastIdUsed = state.lastIdUsed + 1
-                            }
-            in
-            fromBranchingScenario newState treesTail
-
-
-type alias BranchingQuestionState =
-    { alternatives : List BranchingQuestionAlternatives
-    , content : R.Generator (List BranchingScenarioContent)
-    , lastIdUsed : Int
-    , question : String
-    }
-
-
-fromBranchingQuestion :
-    BranchingQuestionState
-    -> List H5pTree
-    -> BranchingScenarioState
-fromBranchingQuestion state trees =
-    case trees of
-        -- Il va falloir reprendre le code plus haut et l'améliorer
-        (H5pTree BranchingQuestionAlternativeContext alternative subTrees) :: treesTail ->
-            let
-                content =
-                    fromBranchingScenario
-                        { content = R.constant []
-                        , lastIdUsed = state.lastIdUsed
-                        , headline = alternative
-                        }
-                        subTrees
-
-                newState =
-                    { state
-                        | alternatives =
-                            (new alternativesField
-                                |> with nextContentIdField (state.lastIdUsed + 1)
-                                |> with textField alternative
-                            )
-                                :: state.alternatives
-                        , content = content.content
-                        , lastIdUsed = content.lastIdUsed
-                    }
-            in
-            fromBranchingQuestion newState treesTail
-
-        _ ->
-            let
-                branchingQuestion =
-                    R.map branchingQuestionHelp UUID.generator
-
-                branchingQuestionHelp uuid =
-                    new contentField
-                        |> with3 typeField metadataField titleField ""
-                        |> with3 typeField metadataField contentTypeField "Branching Question"
-                        |> with2 typeField libraryField "H5P.BranchingQuestion 1.0"
-                        |> with2 typeField paramsField params
-                        |> with2 typeField subContentIdField (UUID.toString uuid)
-
-                params =
-                    BranchingQuestionBranchingScenarioContentTypeParams
-                        { alternatives = L.reverse state.alternatives
-                        , question = state.question
-                        }
-
-                content =
-                    state.content
-                        |> R.map2 (::) branchingQuestion
-                        |> R.map L.reverse
-            in
-            { content = content
-            , lastIdUsed = state.lastIdUsed
-            , headline = ""
-            }
-
-
-
-{-
-   fromCoursePresentation : List H5pTree -> R.Generator (List CoursePresentationPresentationSlides)
-   fromCoursePresentation trees =
-       trees
-           |> L.map fromCoursePresentationHelp
-           |> REx.sequence
-
-
-   fromCoursePresentationHelp : H5pTree -> R.Generator CoursePresentationPresentationSlides
-   fromCoursePresentationHelp tree =
-       case tree of
-           H5pTree TrueFalseContext statement _ ->
-               R.constant <| new slideField
-
-           _ ->
-               R.constant <| new slideField
-
--}
-
-
 coursePresentationBuilder trees =
+    R.constant <| new coursePresentationField
+
+
+trueFalseBuilder question correction =
+    R.constant <| new trueFalseField
+
+
+interactiveVideoBuilder link =
     R.constant <| new coursePresentationField
 
 
@@ -2491,6 +2113,52 @@ coursePresentationField =
     }
 
 
+trueFalseField =
+    { default =
+        { behaviour =
+            { autoCheck = True
+            , confirmCheckDialog = False
+            , confirmRetryDialog = False
+            , enableCheckButton = True
+            , enableRetry = True
+            , enableSolutionsButton = True
+            , feedbackOnCorrect = Just "C&#039;est la base !\n"
+            , feedbackOnWrong = Nothing
+            }
+        , confirmCheck =
+            { body = "Êtes-vous sûr de vouloir terminer ?"
+            , cancelLabel = "Annuler"
+            , confirmLabel = "Confirmer"
+            , header = "Terminer ?"
+            }
+        , confirmRetry =
+            { body = "Êtes-vous sûr de vouloir recommencer ?"
+            , cancelLabel = "Annuler"
+            , confirmLabel = "Confirmer"
+            , header = "Recommencer ?"
+            }
+        , correct = "true"
+        , l10n =
+            { a11yCheck = "Check the answers. The responses will be marked as correct, incorrect, or unanswered."
+            , a11yRetry = "Retry the task. Reset all responses and start the task over again."
+            , a11yShowSolution = "Show the solution. The task will be marked with its correct solution."
+            , checkAnswer = "Vérifier"
+            , correctAnswerMessage = "Bonne réponse"
+            , falseText = "Faux"
+            , score = "Vous avez obtenu @score points sur un total de @total"
+            , scoreBarLabel = "Vous avez obtenu @score points sur un total de @total"
+            , showSolutionButton = "Voir la solution"
+            , submitAnswer = "Vérifier"
+            , trueText = "Vrai"
+            , tryAgain = "Recommencer"
+            , wrongAnswerMessage = "Réponse incorrecte"
+            }
+        , media = { disableImageZooming = False }
+        , question = ""
+        }
+    }
+
+
 elementField =
     { default =
         { x = 5
@@ -2569,3 +2237,156 @@ slideField =
             }
         }
     }
+
+
+
+{-
+    .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
+   / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
+   \ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/ /
+    \/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /
+    / /\/ /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /`' /\/ /\
+   / /\ \/`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'\ \/\ \
+   \ \/\ \                                                                                    /\ \/ /
+    \/ /\ \                                                                                  / /\/ /
+    / /\/ /                ███████ ██████  ██████   ██████  ██████  ███████                  \ \/ /\
+   / /\ \/                 ██      ██   ██ ██   ██ ██    ██ ██   ██ ██                        \ \/\ \
+   \ \/\ \                 █████   ██████  ██████  ██    ██ ██████  ███████                   /\ \/ /
+    \/ /\ \                ██      ██   ██ ██   ██ ██    ██ ██   ██      ██                  / /\/ /
+    / /\/ /                ███████ ██   ██ ██   ██  ██████  ██   ██ ███████                  \ \/ /\
+   / /\ \/                                                                                    \ \/\ \
+   \ \/\ \                                                                                    /\ \/ /
+    \/ /\ \         ██   ██  █████  ███    ██ ██████  ██      ██ ███    ██  ██████           / /\/ /
+    / /\/ /         ██   ██ ██   ██ ████   ██ ██   ██ ██      ██ ████   ██ ██                \ \/ /\
+   / /\ \/          ███████ ███████ ██ ██  ██ ██   ██ ██      ██ ██ ██  ██ ██   ███           \ \/\ \
+   \ \/\ \          ██   ██ ██   ██ ██  ██ ██ ██   ██ ██      ██ ██  ██ ██ ██    ██           /\ \/ /
+    \/ /\ \         ██   ██ ██   ██ ██   ████ ██████  ███████ ██ ██   ████  ██████           / /\/ /
+    / /\/ /                                                                                  \ \/ /\
+   / /\ \/                                                                                    \ \/\ \
+   \ \/\ \.--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--./\ \/ /
+    \/ /\/ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ ../ /\/ /
+    / /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\/ /\
+   / /\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \
+   \ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
+    `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'
+-}
+
+
+type Problem
+    = --TODO
+      NoContent
+    | BadKeyword String
+    | Problem String
+    | GenericProblem
+    | EndOfFile
+    | ExpectingContentType
+    | UnknownContentType String
+    | InconsistantStructure
+    | MissingSpace
+    | Missing String
+
+
+deadEndsToStringBis errs =
+    errs
+        |> L.map voirErreur
+        |> S.join "\n\n"
+        |> (++) "J'ai rencontré les problèmes suivants :\n\n"
+
+
+voirErreur err =
+    "Ligne "
+        ++ String.fromInt err.row
+        ++ ", Colonne "
+        ++ String.fromInt err.col
+        ++ " : "
+        ++ showProblem err.problem
+        ++ showContext (L.map .context err.contextStack)
+        ++ "\n\n---------------------------------------------------------\n"
+
+
+showProblem prob =
+    case prob of
+        Problem p ->
+            p ++ "\n"
+
+        NoContent ->
+            "Je ne peux pas produire de contenu à partir de rien !\n"
+
+        EndOfFile ->
+            "Fin de fichier\n"
+
+        ExpectingContentType ->
+            """Je m'attends à trouver l'un des mots clefs suivants :
+    BranchingScenario
+    CoursePresentation
+    TrueFalse
+"""
+
+        UnknownContentType x ->
+            "Contenu H5P inconnu : " ++ x ++ "\n"
+
+        InconsistantStructure ->
+            "La structure du document n'est pas consistante !\n"
+
+        MissingSpace ->
+            "Les '*' doivent être suivies d'une espace\n"
+
+        Missing contentType ->
+            "Est-ce qu'il ne manquerait pas un " ++ contentType ++ " ?\n"
+
+        _ ->
+            "Problème inconnu\n"
+
+
+showContext contextStack =
+    case contextStack of
+        [] ->
+            ""
+
+        _ ->
+            "\nDans le contexte suivant :\n" ++ showContextHelp 0 (L.reverse contextStack)
+
+
+showContextHelp depth ccc =
+    case ccc of
+        [] ->
+            ""
+
+        c :: cc ->
+            let
+                f x =
+                    S.repeat depth "*"
+                        ++ x
+                        ++ showContextHelp (depth + 1) cc
+            in
+            case c of
+                PreambleContext ->
+                    "Préambule"
+
+                RootContext ->
+                    if cc == [] then
+                        "Root"
+
+                    else
+                        showContextHelp 1 cc
+
+                BranchingScenarioContext ->
+                    f "BranchingScenario\n"
+
+                BranchingQuestionContext ->
+                    f "BranchingQuestion\n"
+
+                BranchingQuestionAlternativeContext ->
+                    f "Alternative\n"
+
+                CoursePresentationContext ->
+                    f "CoursePresentation\n"
+
+                TrueFalseContext ->
+                    f "TrueFalse\n"
+
+                InteractiveVideoContext ->
+                    f "InteractiveVideo\n"
+
+                _ ->
+                    ""
