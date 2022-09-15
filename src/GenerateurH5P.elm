@@ -13,7 +13,7 @@ import Json.Decode as D
 import Json.Encode as E
 import List as L
 import Parser.Advanced as P exposing (..)
-import Random as R
+import Random as R exposing (Generator)
 import Random.Extra as REx
 import Set
 import String as S
@@ -109,8 +109,7 @@ update msg model =
                 h5pGenerator =
                     case P.run contentParser source of
                         Ok gen ->
-                            REx.sequence gen
-                                |> R.map toJson
+                            R.map toJson gen
 
                         Err erreurs ->
                             deadEndsToStringBis erreurs
@@ -248,6 +247,7 @@ type H5p
     = BranchingScenarioH5P BranchingScenario
     | CoursePresentationH5P CoursePresentation
     | TrueFalseH5P TrueFalse
+    | InteractiveVideoH5p
 
 
 h5pEncode indent content =
@@ -261,6 +261,9 @@ h5pEncode indent content =
 
             TrueFalseH5P trueFalse ->
                 encodedTrueFalse trueFalse
+
+            InteractiveVideoH5p ->
+                E.object []
 
 
 
@@ -1416,8 +1419,9 @@ type Context
     | InteractiveVideoContext
 
 
+contentParser : Parser Context Problem (Generator (List H5p))
 contentParser =
-    succeed identity
+    succeed REx.sequence
         |. inContext PreambleContext preambleParser
         |= inContext RootContext (many h5pParser 1)
         |. end EndOfFile
@@ -1436,6 +1440,26 @@ type H5pSubContext
     | InteractiveVideoH5pSubContext
 
 
+test =
+    succeed recorder
+        |= subContextParser
+            [ ( BranchingScenarioH5pSubContext, Just "BranchingScenario" )
+            , ( CoursePresentationH5pSubContext, Just "CoursePresentation" )
+            , ( TrueFalseH5pSubContext, Just "TrueFalse" )
+            , ( InteractiveVideoH5pSubContext, Just "InteractiveVideo" )
+            ]
+        |= headlineParser
+        |= blocContentParser
+        |> andThen
+            (\record ->
+                case record.context of
+                    _ ->
+                        inContext TrueFalseContext <|
+                            problem InconsistantStructure
+            )
+
+
+h5pParser : Int -> Parser Context Problem (Generator H5p)
 h5pParser depth =
     succeed recorder
         |= subContextParser
@@ -1451,40 +1475,37 @@ h5pParser depth =
                 case record.context of
                     BranchingScenarioH5pSubContext ->
                         inContext BranchingScenarioContext <|
-                            --succeed buildBranchingScenario record.headline
-                            --    |= many branchingScenarioSubParser (depth + 1)
                             let
                                 build content =
                                     new branchingScenarioField
                                         |> with2 startScreenField startScreenSubtitleField record.headline
-                                        |> with contentField content
+                                        |> with contentField (L.reverse content)
                                         |> BranchingScenarioH5P
                             in
                             succeed (R.map build << .content)
-                                |= loop
+                                |= branchingScenarioParser (depth + 1)
                                     { content = R.constant []
                                     , lastIdUsed = -1
                                     , --À revoir
                                       headline = record.headline
                                     }
-                                    (branchingScenarioParser <| depth + 1)
 
                     CoursePresentationH5pSubContext ->
                         inContext CoursePresentationContext <|
-                            --succeed coursePresentationBuilder record.headline
-                            --    |= many coursePresentationParser (depth + 1)
-                            todo
+                            succeed
+                                (R.map CoursePresentationH5P
+                                    << coursePresentationBuilder
+                                )
+                                |= many coursePresentationParser (depth + 1)
 
                     TrueFalseH5pSubContext ->
                         inContext TrueFalseContext <|
-                            --succeed (trueFalseBuilder record.headline record.blocContent)
-                            todo
+                            succeed (R.map TrueFalseH5P <| trueFalseBuilder record.headline record.blocContent)
 
                     InteractiveVideoH5pSubContext ->
                         inContext InteractiveVideoContext <|
-                            --succeed (interactiveVideoBuilder record.headline)
-                            --    |= many interactiveVideoParser (depth + 1)
-                            todo
+                            succeed (R.constant InteractiveVideoH5p)
+                                |. many interactiveVideoParser (depth + 1)
             )
 
 
@@ -1495,50 +1516,54 @@ type BranchingScenarioSubContext
 
 
 type alias BranchingScenarioState =
-    { content : R.Generator (List BranchingScenarioContent)
+    { content : Generator (List BranchingScenarioContent)
     , lastIdUsed : Int
     , headline : String
     }
 
 
+branchingScenarioParser :
+    Int
+    -> BranchingScenarioState
+    -> Parser Context Problem BranchingScenarioState
 branchingScenarioParser depth state =
     oneOf
-        [ succeed recorder
-            |= subContextParser
-                [ ( CoursePresentationBranchingScenarioSubContext, Just "CoursePresentation" )
-                , ( InteractiveVideoBranchingScenarioSubContext, Just "InteractiveVideo" )
-                , -- Must be left behind !
-                  ( BranchingQuestionBranchingScenarioSubContext, Nothing )
-                ]
-            |= headlineParser
-            |= blocContentParser
-            |> andThen
-                (\record ->
-                    let
-                        buildContent subBuilder title contentType library subTrees =
-                            R.map2
-                                (buildContentHelp title contentType library)
-                                (R.map CoursePresentationBranchingScenarioContentTypeParams <|
-                                    subBuilder subTrees
-                                )
-                                UUID.generator
+        [ withStars depth
+            (succeed recorder
+                |= subContextParser
+                    [ ( CoursePresentationBranchingScenarioSubContext, Just "CoursePresentation" )
+                    , ( InteractiveVideoBranchingScenarioSubContext, Just "InteractiveVideo" )
+                    , -- Must be left behind !
+                      ( BranchingQuestionBranchingScenarioSubContext, Nothing )
+                    ]
+                |= headlineParser
+                |= blocContentParser
+                |> andThen
+                    (\record ->
+                        let
+                            buildContent subBuilder title contentType library subTrees =
+                                R.map2
+                                    (buildContentHelp title contentType library)
+                                    (R.map CoursePresentationBranchingScenarioContentTypeParams <|
+                                        subBuilder subTrees
+                                    )
+                                    UUID.generator
 
-                        buildContentHelp title contentType library params uuid =
-                            new contentField
-                                |> with3 typeField metadataField titleField title
-                                |> with3 typeField metadataField contentTypeField contentType
-                                |> with2 typeField libraryField library
-                                |> with2 typeField paramsField params
-                                |> with2 typeField subContentIdField (UUID.toString uuid)
-                                -- À vérifier
-                                |> with nextContentIdField (Just state.lastIdUsed)
-                    in
-                    case record.context of
-                        BranchingQuestionBranchingScenarioSubContext ->
-                            inContext BranchingQuestionContext <|
-                                succeed
-                                    (\newContent ->
-                                        Loop
+                            buildContentHelp title contentType library params uuid =
+                                new contentField
+                                    |> with3 typeField metadataField titleField title
+                                    |> with3 typeField metadataField contentTypeField contentType
+                                    |> with2 typeField libraryField library
+                                    |> with2 typeField paramsField params
+                                    |> with2 typeField subContentIdField (UUID.toString uuid)
+                                    -- À vérifier
+                                    |> with nextContentIdField (Just state.lastIdUsed)
+                        in
+                        case record.context of
+                            BranchingQuestionBranchingScenarioSubContext ->
+                                inContext BranchingQuestionContext <|
+                                    succeed
+                                        (\newContent ->
                                             { state
                                                 | content =
                                                     R.map2 L.append
@@ -1546,28 +1571,26 @@ branchingScenarioParser depth state =
                                                         state.content
                                                 , lastIdUsed = state.lastIdUsed + 1
                                             }
-                                    )
-                                    |= loop
-                                        { alternatives = []
-                                        , content = R.constant []
-                                        , lastIdUsed = state.lastIdUsed
-                                        , question = record.headline
-                                        }
-                                        (branchingQuestionParser (depth + 1))
+                                        )
+                                        |= branchingQuestionParser (depth + 1)
+                                            { alternatives = []
+                                            , content = R.constant []
+                                            , lastIdUsed = state.lastIdUsed
+                                            , question = record.headline
+                                            }
 
-                        CoursePresentationBranchingScenarioSubContext ->
-                            inContext CoursePresentationContext <|
-                                let
-                                    newContent =
-                                        buildContent
-                                            coursePresentationBuilder
-                                            record.headline
-                                            "Course Presentation"
-                                            "H5P.CoursePresentation 1.24"
-                                in
-                                succeed
-                                    (\subContent ->
-                                        Loop
+                            CoursePresentationBranchingScenarioSubContext ->
+                                inContext CoursePresentationContext <|
+                                    let
+                                        newContent =
+                                            buildContent
+                                                coursePresentationBuilder
+                                                record.headline
+                                                "Course Presentation"
+                                                "H5P.CoursePresentation 1.24"
+                                    in
+                                    succeed
+                                        (\subContent ->
                                             { state
                                                 | content =
                                                     R.map2 (::)
@@ -1575,24 +1598,25 @@ branchingScenarioParser depth state =
                                                         state.content
                                                 , lastIdUsed = state.lastIdUsed + 1
                                             }
-                                    )
-                                    |= many coursePresentationParser (depth + 1)
+                                        )
+                                        |= coursePresentationParser (depth + 1)
+                                        |> andThen (branchingScenarioParser depth)
 
-                        InteractiveVideoBranchingScenarioSubContext ->
-                            inContext InteractiveVideoContext <|
-                                todo
-                )
-        , succeed <|
-            Done
-                { state
-                    | content = R.map L.reverse state.content
-                }
+                            InteractiveVideoBranchingScenarioSubContext ->
+                                inContext InteractiveVideoContext <|
+                                    succeed state
+                    )
+            )
+        , succeed
+            { state
+                | content = R.map L.reverse state.content
+            }
         ]
 
 
 type alias BranchingQuestionState =
     { alternatives : List BranchingQuestionAlternatives
-    , content : R.Generator (List BranchingScenarioContent)
+    , content : Generator (List BranchingScenarioContent)
     , lastIdUsed : Int
     , question : String
     }
@@ -1601,25 +1625,24 @@ type alias BranchingQuestionState =
 branchingQuestionParser :
     Int
     -> BranchingQuestionState
-    -> Parser Context Problem (Step BranchingQuestionState BranchingScenarioState)
+    -> Parser Context Problem BranchingScenarioState
 branchingQuestionParser depth state =
     oneOf
-        [ inContext BranchingQuestionAlternativeContext <|
-            (succeed identity
-                |= headlineParser
-                |. blocContentParser
-                |> andThen
-                    (\alternative ->
-                        loop
-                            { content = R.constant []
-                            , lastIdUsed = state.lastIdUsed
-                            , headline = alternative
-                            }
-                            (branchingScenarioParser <| depth + 1)
-                            |> andThen
-                                (\content ->
-                                    succeed Loop
-                                        |= loop
+        [ withStars depth <|
+            inContext BranchingQuestionAlternativeContext <|
+                (succeed identity
+                    |= headlineParser
+                    |. blocContentParser
+                    |> andThen
+                        (\alternative ->
+                            branchingScenarioParser (depth + 1)
+                                { content = R.constant []
+                                , lastIdUsed = state.lastIdUsed
+                                , headline = alternative
+                                }
+                                |> andThen
+                                    (\content ->
+                                        branchingQuestionParser depth
                                             { state
                                                 | alternatives =
                                                     (new alternativesField
@@ -1630,10 +1653,9 @@ branchingQuestionParser depth state =
                                                 , content = content.content
                                                 , lastIdUsed = content.lastIdUsed
                                             }
-                                            (branchingQuestionParser depth)
-                                )
-                    )
-            )
+                                    )
+                        )
+                )
         , let
             branchingQuestion =
                 R.map branchingQuestionHelp UUID.generator
@@ -1657,12 +1679,11 @@ branchingQuestionParser depth state =
                     |> R.map2 (::) branchingQuestion
                     |> R.map L.reverse
           in
-          succeed <|
-            Done
-                { content = content
-                , lastIdUsed = state.lastIdUsed
-                , headline = ""
-                }
+          succeed
+            { content = content
+            , lastIdUsed = state.lastIdUsed
+            , headline = ""
+            }
         ]
 
 
@@ -1670,25 +1691,30 @@ type CoursePresentationSubContext
     = TrueFalseCoursePresentationSubContext
 
 
+coursePresentationParser : Int -> Parser Context Problem (Generator TrueFalse)
 coursePresentationParser depth =
-    succeed recorder
-        |= subContextParser
-            [ ( TrueFalseCoursePresentationSubContext, Just "TrueFalse" )
-            ]
-        |= headlineParser
-        |= blocContentParser
-        |> andThen
-            (\record ->
-                case record.context of
-                    TrueFalseCoursePresentationSubContext ->
-                        inContext TrueFalseContext <|
-                            --succeed (trueFalseBuilder record.headline record.blocContent)
-                            todo
-            )
+    withStars depth
+        (succeed recorder
+            |= subContextParser
+                [ ( TrueFalseCoursePresentationSubContext, Just "TrueFalse" )
+                ]
+            |= headlineParser
+            |= blocContentParser
+            |> andThen
+                (\record ->
+                    case record.context of
+                        TrueFalseCoursePresentationSubContext ->
+                            inContext TrueFalseContext <|
+                                succeed <|
+                                    R.constant <|
+                                        new trueFalseField
+                )
+        )
 
 
 interactiveVideoParser depth =
-    todo
+    --todo
+    succeed (trueFalseBuilder "record.headline" "record.blocContent")
 
 
 many blocParser depth =
@@ -1697,9 +1723,30 @@ many blocParser depth =
         , separator = Token "" GenericProblem
         , end = Token "" GenericProblem
         , spaces = succeed ()
-        , item = withStars blocParser depth
+        , item = withStars depth (blocParser depth)
         , trailing = Optional
         }
+
+
+withStars depth parser =
+    succeed identity
+        |. symbol (Token (S.repeat depth "*") (MissingStars depth))
+        |= getChompedString (chompWhile ((==) '*'))
+        |. atLeastOneSpace
+        |> andThen
+            (\x ->
+                if S.length x == 0 then
+                    parser
+
+                else
+                    problem InconsistantStructure
+            )
+
+
+atLeastOneSpace =
+    succeed ()
+        |. token (Token " " MissingSpace)
+        |. chompWhile (\x -> x == ' ' || x == '\t')
 
 
 recorder context headline blocContent =
@@ -1749,27 +1796,6 @@ blocContentParser =
         )
 
 
-withStars parser depth =
-    succeed identity
-        |. symbol (Token (S.repeat depth "*") GenericProblem)
-        |= getChompedString (chompWhile ((==) '*'))
-        |. atLeastOneSpace
-        |> andThen
-            (\x ->
-                if S.length x == 0 then
-                    parser depth
-
-                else
-                    problem InconsistantStructure
-            )
-
-
-atLeastOneSpace =
-    succeed ()
-        |. token (Token " " MissingSpace)
-        |. chompWhile (\x -> x == ' ' || x == '\t')
-
-
 
 {-
     .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
@@ -1803,8 +1829,8 @@ trueFalseBuilder question correction =
     R.constant <| new trueFalseField
 
 
-interactiveVideoBuilder link =
-    R.constant <| new coursePresentationField
+interactiveVideoBuilder link x =
+    R.constant <| ()
 
 
 
@@ -2275,15 +2301,14 @@ slideField =
 type Problem
     = --TODO
       NoContent
-    | BadKeyword String
     | Problem String
     | GenericProblem
     | EndOfFile
-    | ExpectingContentType
     | UnknownContentType String
     | InconsistantStructure
     | MissingSpace
     | Missing String
+    | MissingStars Int
 
 
 deadEndsToStringBis errs =
@@ -2315,13 +2340,6 @@ showProblem prob =
         EndOfFile ->
             "Fin de fichier\n"
 
-        ExpectingContentType ->
-            """Je m'attends à trouver l'un des mots clefs suivants :
-    BranchingScenario
-    CoursePresentation
-    TrueFalse
-"""
-
         UnknownContentType x ->
             "Contenu H5P inconnu : " ++ x ++ "\n"
 
@@ -2334,7 +2352,10 @@ showProblem prob =
         Missing contentType ->
             "Est-ce qu'il ne manquerait pas un " ++ contentType ++ " ?\n"
 
-        _ ->
+        MissingStars n ->
+            "Je m'attends à trouver " ++ S.fromInt n ++ " '*'\n"
+
+        GenericProblem ->
             "Problème inconnu\n"
 
 
@@ -2356,6 +2377,7 @@ showContextHelp depth ccc =
             let
                 f x =
                     S.repeat depth "*"
+                        ++ " "
                         ++ x
                         ++ showContextHelp (depth + 1) cc
             in
@@ -2365,7 +2387,7 @@ showContextHelp depth ccc =
 
                 RootContext ->
                     if cc == [] then
-                        "Root"
+                        "Racine du document"
 
                     else
                         showContextHelp 1 cc
@@ -2387,6 +2409,3 @@ showContextHelp depth ccc =
 
                 InteractiveVideoContext ->
                     f "InteractiveVideo\n"
-
-                _ ->
-                    ""
