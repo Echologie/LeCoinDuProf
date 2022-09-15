@@ -1440,25 +1440,6 @@ type H5pSubContext
     | InteractiveVideoH5pSubContext
 
 
-test =
-    succeed recorder
-        |= subContextParser
-            [ ( BranchingScenarioH5pSubContext, Just "BranchingScenario" )
-            , ( CoursePresentationH5pSubContext, Just "CoursePresentation" )
-            , ( TrueFalseH5pSubContext, Just "TrueFalse" )
-            , ( InteractiveVideoH5pSubContext, Just "InteractiveVideo" )
-            ]
-        |= headlineParser
-        |= blocContentParser
-        |> andThen
-            (\record ->
-                case record.context of
-                    _ ->
-                        inContext TrueFalseContext <|
-                            problem InconsistantStructure
-            )
-
-
 h5pParser : Int -> Parser Context Problem (Generator H5p)
 h5pParser depth =
     succeed recorder
@@ -1479,15 +1460,13 @@ h5pParser depth =
                                 build content =
                                     new branchingScenarioField
                                         |> with2 startScreenField startScreenSubtitleField record.headline
-                                        |> with contentField (L.reverse content)
+                                        |> with contentField content
                                         |> BranchingScenarioH5P
                             in
                             succeed (R.map build << .content)
                                 |= branchingScenarioParser (depth + 1)
                                     { content = R.constant []
                                     , lastIdUsed = -1
-                                    , --À revoir
-                                      headline = record.headline
                                     }
 
                     CoursePresentationH5pSubContext ->
@@ -1518,7 +1497,6 @@ type BranchingScenarioSubContext
 type alias BranchingScenarioState =
     { content : Generator (List BranchingScenarioContent)
     , lastIdUsed : Int
-    , headline : String
     }
 
 
@@ -1562,12 +1540,12 @@ branchingScenarioParser depth state =
                         case record.context of
                             BranchingQuestionBranchingScenarioSubContext ->
                                 inContext BranchingQuestionContext <|
-                                    succeed
-                                        (\newContent ->
+                                    (succeed
+                                        (\newState ->
                                             { state
                                                 | content =
                                                     R.map2 L.append
-                                                        newContent.content
+                                                        newState.content
                                                         state.content
                                                 , lastIdUsed = state.lastIdUsed + 1
                                             }
@@ -1575,32 +1553,36 @@ branchingScenarioParser depth state =
                                         |= branchingQuestionParser (depth + 1)
                                             { alternatives = []
                                             , content = R.constant []
-                                            , lastIdUsed = state.lastIdUsed
+                                            , lastIdUsed = state.lastIdUsed + 1
                                             , question = record.headline
                                             }
+                                        |> andThen (branchingScenarioParser depth)
+                                    )
 
                             CoursePresentationBranchingScenarioSubContext ->
                                 inContext CoursePresentationContext <|
-                                    let
-                                        newContent =
-                                            buildContent
-                                                coursePresentationBuilder
-                                                record.headline
-                                                "Course Presentation"
-                                                "H5P.CoursePresentation 1.24"
-                                    in
-                                    succeed
-                                        (\subContent ->
+                                    (succeed
+                                        (\slides ->
+                                            let
+                                                newContent =
+                                                    buildContent
+                                                        coursePresentationBuilder
+                                                        record.headline
+                                                        "Course Presentation"
+                                                        "H5P.CoursePresentation 1.24"
+                                                        slides
+                                            in
                                             { state
                                                 | content =
                                                     R.map2 (::)
-                                                        (newContent subContent)
+                                                        newContent
                                                         state.content
                                                 , lastIdUsed = state.lastIdUsed + 1
                                             }
                                         )
-                                        |= coursePresentationParser (depth + 1)
+                                        |= many coursePresentationParser (depth + 1)
                                         |> andThen (branchingScenarioParser depth)
+                                    )
 
                             InteractiveVideoBranchingScenarioSubContext ->
                                 inContext InteractiveVideoContext <|
@@ -1637,8 +1619,7 @@ branchingQuestionParser depth state =
                         (\alternative ->
                             branchingScenarioParser (depth + 1)
                                 { content = R.constant []
-                                , lastIdUsed = state.lastIdUsed
-                                , headline = alternative
+                                , lastIdUsed = state.lastIdUsed + 1
                                 }
                                 |> andThen
                                     (\content ->
@@ -1681,8 +1662,7 @@ branchingQuestionParser depth state =
           in
           succeed
             { content = content
-            , lastIdUsed = state.lastIdUsed
-            , headline = ""
+            , lastIdUsed = state.lastIdUsed + 1
             }
         ]
 
@@ -1693,23 +1673,21 @@ type CoursePresentationSubContext
 
 coursePresentationParser : Int -> Parser Context Problem (Generator TrueFalse)
 coursePresentationParser depth =
-    withStars depth
-        (succeed recorder
-            |= subContextParser
-                [ ( TrueFalseCoursePresentationSubContext, Just "TrueFalse" )
-                ]
-            |= headlineParser
-            |= blocContentParser
-            |> andThen
-                (\record ->
-                    case record.context of
-                        TrueFalseCoursePresentationSubContext ->
-                            inContext TrueFalseContext <|
-                                succeed <|
-                                    R.constant <|
-                                        new trueFalseField
-                )
-        )
+    succeed recorder
+        |= subContextParser
+            [ ( TrueFalseCoursePresentationSubContext, Just "TrueFalse" )
+            ]
+        |= headlineParser
+        |= blocContentParser
+        |> andThen
+            (\record ->
+                case record.context of
+                    TrueFalseCoursePresentationSubContext ->
+                        inContext TrueFalseContext <|
+                            succeed <|
+                                R.constant <|
+                                    new trueFalseField
+            )
 
 
 interactiveVideoParser depth =
@@ -1746,7 +1724,11 @@ withStars depth parser =
 atLeastOneSpace =
     succeed ()
         |. token (Token " " MissingSpace)
-        |. chompWhile (\x -> x == ' ' || x == '\t')
+        |. mySpace
+
+
+mySpace =
+    chompWhile (\x -> x == ' ' || x == '\t')
 
 
 recorder context headline blocContent =
@@ -1767,6 +1749,7 @@ subContextParser subContexts =
                         Nothing ->
                             succeed ()
                    )
+                |. mySpace
     in
     oneOf (L.map subContextParserHelp subContexts)
 
