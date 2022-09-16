@@ -1459,7 +1459,9 @@ h5pParser depth =
                             let
                                 build content =
                                     new branchingScenarioField
-                                        |> with2 startScreenField startScreenSubtitleField record.headline
+                                        |> with2 startScreenField
+                                            startScreenSubtitleField
+                                            record.headline
                                         |> with contentField content
                                         |> BranchingScenarioH5P
                             in
@@ -1479,7 +1481,12 @@ h5pParser depth =
 
                     TrueFalseH5pSubContext ->
                         inContext TrueFalseContext <|
-                            succeed (R.map TrueFalseH5P <| trueFalseBuilder record.headline record.blocContent)
+                            succeed
+                                (R.map TrueFalseH5P <|
+                                    trueFalseBuilder
+                                        record.headline
+                                        record.blocContent
+                                )
 
                     InteractiveVideoH5pSubContext ->
                         inContext InteractiveVideoContext <|
@@ -1589,9 +1596,23 @@ branchingScenarioParser depth state =
                                     succeed state
                     )
             )
-        , succeed
+        , let
+            changeLastId contentList =
+                case contentList of
+                    c :: cc ->
+                        c
+                            |> with nextContentIdField (Just -1)
+                            |> (\x -> x :: cc)
+
+                    [] ->
+                        contentList
+          in
+          succeed
             { state
-                | content = R.map L.reverse state.content
+                | content =
+                    state.content
+                        |> R.map changeLastId
+                        |> R.map L.reverse
             }
         ]
 
@@ -1618,8 +1639,8 @@ branchingQuestionParser depth state =
                     |> andThen
                         (\alternative ->
                             branchingScenarioParser (depth + 1)
-                                { content = R.constant []
-                                , lastIdUsed = state.lastIdUsed + 1
+                                { content = state.content
+                                , lastIdUsed = state.lastIdUsed
                                 }
                                 |> andThen
                                     (\content ->
@@ -1658,11 +1679,10 @@ branchingQuestionParser depth state =
             content =
                 state.content
                     |> R.map2 (::) branchingQuestion
-                    |> R.map L.reverse
           in
           succeed
             { content = content
-            , lastIdUsed = state.lastIdUsed + 1
+            , lastIdUsed = state.lastIdUsed
             }
         ]
 
