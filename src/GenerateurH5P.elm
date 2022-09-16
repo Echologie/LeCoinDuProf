@@ -1465,7 +1465,7 @@ h5pParser depth =
                                         |> with contentField content
                                         |> BranchingScenarioH5P
                             in
-                            succeed (R.map build << .content)
+                            succeed (R.map build << R.map L.reverse << .content)
                                 |= branchingScenarioParser (depth + 1)
                                     { content = R.constant []
                                     , lastIdUsed = -1
@@ -1548,13 +1548,13 @@ branchingScenarioParser depth state =
                             BranchingQuestionBranchingScenarioSubContext ->
                                 inContext BranchingQuestionContext <|
                                     (succeed
-                                        (\newState ->
+                                        (\subState ->
                                             { state
                                                 | content =
-                                                    R.map2 L.append
-                                                        newState.content
+                                                    R.map2 (++)
+                                                        subState.content
                                                         state.content
-                                                , lastIdUsed = state.lastIdUsed + 1
+                                                , lastIdUsed = subState.lastIdUsed
                                             }
                                         )
                                         |= branchingQuestionParser (depth + 1)
@@ -1593,7 +1593,10 @@ branchingScenarioParser depth state =
 
                             InteractiveVideoBranchingScenarioSubContext ->
                                 inContext InteractiveVideoContext <|
-                                    succeed state
+                                    succeed
+                                        { state
+                                            | lastIdUsed = state.lastIdUsed + 1
+                                        }
                     )
             )
         , let
@@ -1612,7 +1615,6 @@ branchingScenarioParser depth state =
                 | content =
                     state.content
                         |> R.map changeLastId
-                        |> R.map L.reverse
             }
         ]
 
@@ -1663,12 +1665,14 @@ branchingQuestionParser depth state =
                 R.map branchingQuestionHelp UUID.generator
 
             branchingQuestionHelp uuid =
-                new contentField
-                    |> with3 typeField metadataField titleField ""
-                    |> with3 typeField metadataField contentTypeField "Branching Question"
-                    |> with2 typeField libraryField "H5P.BranchingQuestion 1.0"
-                    |> with2 typeField paramsField params
-                    |> with2 typeField subContentIdField (UUID.toString uuid)
+                L.singleton
+                    (new contentField
+                        |> with3 typeField metadataField titleField ""
+                        |> with3 typeField metadataField contentTypeField "Branching Question"
+                        |> with2 typeField libraryField "H5P.BranchingQuestion 1.0"
+                        |> with2 typeField paramsField params
+                        |> with2 typeField subContentIdField (UUID.toString uuid)
+                    )
 
             params =
                 BranchingQuestionBranchingScenarioContentTypeParams
@@ -1677,12 +1681,11 @@ branchingQuestionParser depth state =
                     }
 
             content =
-                state.content
-                    |> R.map2 (::) branchingQuestion
+                R.map2 (++) state.content branchingQuestion
           in
           succeed
             { content = content
-            , lastIdUsed = state.lastIdUsed
+            , lastIdUsed = state.lastIdUsed + 1
             }
         ]
 
