@@ -26,6 +26,39 @@ titre =
     "Générateur d'archives H5P"
 
 
+todo =
+    Debug.todo "Cette fonctionnalité est en cours de développement"
+
+
+h5pTest h5p =
+    case h5p of
+        BranchingScenarioH5P branchingScenario ->
+            branchingScenario.content
+                |> L.map branchingScenarioTest
+                |> S.join "\n"
+
+        _ ->
+            ""
+
+
+branchingScenarioTest branchingScenarioContent =
+    case branchingScenarioContent.type_.params of
+        CoursePresentationBranchingScenarioContentTypeParams cp ->
+            branchingScenarioContent.type_.metadata.title
+                ++ " -> "
+                ++ S.fromInt (Maybe.withDefault -2 branchingScenarioContent.nextContentId)
+
+        BranchingQuestionBranchingScenarioContentTypeParams bq ->
+            bq
+                |> .alternatives
+                |> L.map (\x -> .text x ++ " -> " ++ S.fromInt (.nextContentId x))
+                |> S.join " | "
+                |> (++) (bq.question ++ " : ")
+
+        _ ->
+            ""
+
+
 
 {-
     .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
@@ -49,13 +82,6 @@ titre =
    \ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
     `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'
 -}
-
-
-todo =
-    Debug.todo "Cette fonctionnalité est en cours de développement"
-
-
-
 {-
    ███    ███  ██████  ██████  ███████ ██
    ████  ████ ██    ██ ██   ██ ██      ██
@@ -117,7 +143,8 @@ update msg model =
 
                 toJson =
                     -- TODO Remplacer par 0 quand projet terminé
-                    S.join "\n\n" << L.map (h5pEncode 2)
+                    -- (h5pEncode 2)
+                    S.join "\n\n" << L.map h5pTest
 
                 generator =
                     R.map (pair source) h5pGenerator
