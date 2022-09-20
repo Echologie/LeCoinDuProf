@@ -1,14 +1,18 @@
 module GenerateurH5P exposing (..)
 
+--import Debug
+
 import Browser exposing (Document)
-import Debug
+import Bytes.Encode
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input exposing (labelHidden, multiline, placeholder)
+import File exposing (File)
 import File.Download
+import File.Select as Select
 import Json.Decode as D
 import Json.Encode as E
 import List as L
@@ -18,48 +22,44 @@ import Random.Extra as REx
 import Set
 import String as S
 import Style exposing (..)
+import Task
+import Time exposing (Posix, Zone, here, now)
 import Tuple exposing (pair)
 import UUID exposing (UUID)
+import Update.Extra
+import Zip exposing (Zip)
+import Zip.Entry exposing (compress, store)
 
 
 titre =
     "Générateur d'archives H5P"
 
 
-todo =
-    Debug.todo "Cette fonctionnalité est en cours de développement"
 
-
-h5pTest h5p =
-    case h5p of
-        BranchingScenarioH5P branchingScenario ->
-            branchingScenario.content
-                |> L.map branchingScenarioTest
-                |> S.join "\n"
-
-        _ ->
-            ""
-
-
-branchingScenarioTest branchingScenarioContent =
-    case branchingScenarioContent.type_.params of
-        CoursePresentationBranchingScenarioContentTypeParams cp ->
-            branchingScenarioContent.type_.metadata.title
-                ++ " -> "
-                ++ S.fromInt (Maybe.withDefault -2 branchingScenarioContent.nextContentId)
-
-        BranchingQuestionBranchingScenarioContentTypeParams bq ->
-            bq
-                |> .alternatives
-                |> L.map (\x -> .text x ++ " -> " ++ S.fromInt (.nextContentId x))
-                |> S.join " | "
-                |> (++) (bq.question ++ " : ")
-
-        _ ->
-            ""
-
-
-
+--todo =
+--    Debug.todo "Cette fonctionnalité est en cours de développement"
+--h5pTest h5p =
+--    case h5p of
+--        BranchingScenarioH5P branchingScenario ->
+--            branchingScenario.content
+--                |> L.map branchingScenarioTest
+--                |> S.join "\n"
+--        _ ->
+--            ""
+--branchingScenarioTest branchingScenarioContent =
+--    case branchingScenarioContent.type_.params of
+--        CoursePresentationBranchingScenarioContentTypeParams cp ->
+--            branchingScenarioContent.type_.metadata.title
+--                ++ " -> "
+--                ++ S.fromInt (Maybe.withDefault -2 branchingScenarioContent.nextContentId)
+--        BranchingQuestionBranchingScenarioContentTypeParams bq ->
+--            bq
+--                |> .alternatives
+--                |> L.map (\x -> .text x ++ " -> " ++ S.fromInt (.nextContentId x))
+--                |> S.join " | "
+--                |> (++) (bq.question ++ " : ")
+--        _ ->
+--            ""
 {-
     .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
    / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
@@ -93,16 +93,29 @@ branchingScenarioTest branchingScenarioContent =
 
 type alias Model =
     { source : String
-    , generatedContent : String
+    , generatedContent : List String
+    , originalH5pArchive : H5pArchive
+    , generatedH5pArchives : List H5pArchive
+    , zone : Time.Zone
+    , time : Time.Posix
     }
+
+
+type alias H5pArchive =
+    Zip
 
 
 init : Model
 init =
     { source = ""
     , generatedContent =
-        """Copiez-Collez votre contenu à gauche pour voir
+        L.singleton
+            """Copiez-Collez votre contenu à gauche pour voir
 apparaître le contenu du fichier content.json"""
+    , originalH5pArchive = Zip.empty
+    , generatedH5pArchives = []
+    , zone = Time.utc
+    , time = Time.millisToPosix 0
     }
 
 
@@ -117,18 +130,39 @@ apparaître le contenu du fichier content.json"""
 
 
 type Msg
-    = NewContent ( String, String )
+    = UpdateTime
+    | NewTime ( Zone, Posix )
+    | NewContent (List String)
     | Generate String
+    | GenerateArchive
     | Download
+    | TakeOriginalH5pArchive
+    | H5pArchiveLoaded File
+    | ZipArchiveLoaded (Maybe H5pArchive)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NewContent ( source, generatedContent ) ->
-            ( { model | source = source, generatedContent = generatedContent }
+        UpdateTime ->
+            ( model, Task.perform NewTime (Task.map2 pair here now) )
+
+        NewTime ( zone, time ) ->
+            ( { model
+                | time = time
+                , zone = zone
+              }
             , Cmd.none
             )
+
+        NewContent generatedContent ->
+            ( { model
+                | generatedContent = generatedContent
+              }
+            , Cmd.none
+            )
+                |> Update.Extra.andThen update UpdateTime
+                |> Update.Extra.andThen update GenerateArchive
 
         Generate source ->
             let
@@ -139,24 +173,98 @@ update msg model =
 
                         Err erreurs ->
                             deadEndsToStringBis erreurs
+                                |> L.singleton
                                 |> R.constant
 
                 toJson =
+                    -- Remplacer (h5pEncode 2) par h5pTest pour tester
                     -- TODO Remplacer par 0 quand projet terminé
-                    -- (h5pEncode 2)
-                    S.join "\n\n" << L.map h5pTest
-
-                generator =
-                    R.map (pair source) h5pGenerator
+                    L.map (h5pEncode 2)
             in
-            ( model
-            , R.generate NewContent generator
+            ( { model | source = source }
+            , R.generate NewContent h5pGenerator
+            )
+
+        GenerateArchive ->
+            let
+                makeContentEntry content =
+                    Bytes.Encode.string content
+                        |> Bytes.Encode.encode
+                        |> store
+                            { path = "content/content.json"
+                            , lastModified = ( model.zone, model.time )
+                            , comment = Nothing
+                            }
+
+                makeH5pArchive entry =
+                    Zip.insert entry model.originalH5pArchive
+
+                generatedH5pArchives =
+                    model.generatedContent
+                        |> L.map (makeH5pArchive << makeContentEntry)
+            in
+            ( { model
+                | generatedH5pArchives = generatedH5pArchives
+
+                --, generatedContent =
+                --    generatedH5pArchives
+                --        |> L.map Zip.entries
+                --        |> L.map (L.map Zip.Entry.path)
+                --        |> L.map (S.join "\n")
+              }
+            , Cmd.none
             )
 
         Download ->
             ( model
-            , File.Download.string "content.json" "text/json" model.generatedContent
+            , case model.generatedH5pArchives of
+                h5p :: h5ps ->
+                    h5p
+                        |> Zip.toBytes
+                        |> File.Download.bytes
+                            "Parcours.h5p"
+                            "application/h5p"
+
+                _ ->
+                    Cmd.none
             )
+
+        TakeOriginalH5pArchive ->
+            let
+                readArchive file =
+                    file
+                        |> File.toBytes
+                        |> Task.map Zip.fromBytes
+                        |> Task.perform ZipArchiveLoaded
+            in
+            ( model
+            , Select.file [ "application/h5p" ] H5pArchiveLoaded
+            )
+
+        H5pArchiveLoaded file ->
+            ( model
+            , file
+                |> File.toBytes
+                |> Task.map Zip.fromBytes
+                |> Task.perform ZipArchiveLoaded
+            )
+
+        ZipArchiveLoaded zipFile ->
+            ( case zipFile of
+                Just zip ->
+                    { model
+                        | originalH5pArchive = zip
+                        , generatedContent =
+                            zip
+                                |> Zip.entries
+                                |> L.map Zip.Entry.path
+                    }
+
+                Nothing ->
+                    { model | generatedContent = [ "Erreur de chargement" ] }
+            , Cmd.none
+            )
+                |> Update.Extra.andThen update GenerateArchive
 
 
 
@@ -219,7 +327,8 @@ view model =
                 , padding petitEspacement
                 , spacing tresGrandEspacement
                 ]
-                [ bouton Download "Télécharger"
+                [ bouton TakeOriginalH5pArchive "Téléverser"
+                , bouton Download "Télécharger"
                 ]
             , el
                 --^^ Cet élément ci
@@ -240,7 +349,8 @@ view model =
                     }
                 ]
               <|
-                text model.generatedContent
+                text <|
+                    S.join "\n\n" model.generatedContent
             ]
         ]
 
@@ -274,7 +384,7 @@ type H5p
     = BranchingScenarioH5P BranchingScenario
     | CoursePresentationH5P CoursePresentation
     | TrueFalseH5P TrueFalse
-    | InteractiveVideoH5p
+    | InteractiveVideoH5p InteractiveVideo
 
 
 h5pEncode indent content =
@@ -289,8 +399,8 @@ h5pEncode indent content =
             TrueFalseH5P trueFalse ->
                 encodedTrueFalse trueFalse
 
-            InteractiveVideoH5p ->
-                E.object []
+            InteractiveVideoH5p interactiveVideo ->
+                encodedInteractiveVideo interactiveVideo
 
 
 
@@ -1412,6 +1522,596 @@ encodedTrueFalseMedia trueFalseMedia =
 
 
 {-
+   ██ ███    ██ ████████ ███████ ██████   █████   ██████ ████████ ██ ██    ██ ███████
+   ██ ████   ██    ██    ██      ██   ██ ██   ██ ██         ██    ██ ██    ██ ██
+   ██ ██ ██  ██    ██    █████   ██████  ███████ ██         ██    ██ ██    ██ █████
+   ██ ██  ██ ██    ██    ██      ██   ██ ██   ██ ██         ██    ██  ██  ██  ██
+   ██ ██   ████    ██    ███████ ██   ██ ██   ██  ██████    ██    ██   ████   ███████
+
+
+   ██    ██ ██ ██████  ███████  ██████
+   ██    ██ ██ ██   ██ ██      ██    ██
+   ██    ██ ██ ██   ██ █████   ██    ██
+    ██  ██  ██ ██   ██ ██      ██    ██
+     ████   ██ ██████  ███████  ██████
+-}
+
+
+type alias InteractiveVideo =
+    { interactiveVideo : InteractiveVideoInteractiveVideo
+    , l10n : InteractiveVideoL10n
+    , override : InteractiveVideoOverride
+    }
+
+
+type alias InteractiveVideoInteractiveVideo =
+    { assets : InteractiveVideoInteractiveVideoAssets
+    , summary : InteractiveVideoInteractiveVideoSummary
+    , video : InteractiveVideoInteractiveVideoVideo
+    }
+
+
+type alias InteractiveVideoInteractiveVideoAssets =
+    {}
+
+
+type alias InteractiveVideoInteractiveVideoSummary =
+    { displayAt : Int
+    , task : InteractiveVideoInteractiveVideoSummaryTask
+    }
+
+
+type alias InteractiveVideoInteractiveVideoSummaryTask =
+    { library : String
+    , metadata : InteractiveVideoInteractiveVideoSummaryTaskMetadata
+    , params : InteractiveVideoInteractiveVideoSummaryTaskParams
+    , subContentId : String
+    }
+
+
+type alias InteractiveVideoInteractiveVideoSummaryTaskMetadata =
+    { contentType : String
+    , defaultLanguage : String
+    , license : String
+    , title : String
+    }
+
+
+type alias InteractiveVideoInteractiveVideoSummaryTaskParams =
+    { alternativeIncorrectLabel : String
+    , intro : String
+    , labelCorrect : String
+    , labelCorrectAnswers : String
+    , labelIncorrect : String
+    , overallFeedback : List InteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject
+    , progressText : String
+    , resultLabel : String
+    , scoreBarLabel : String
+    , scoreLabel : String
+    , solvedLabel : String
+    , summaries : List InteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject
+    , tipButtonLabel : String
+    }
+
+
+type alias InteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject =
+    { from : Int
+    , to : Int
+    }
+
+
+type alias InteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject =
+    { subContentId : String
+    , tip : String
+    }
+
+
+type alias InteractiveVideoInteractiveVideoVideo =
+    { files : List InteractiveVideoInteractiveVideoVideoFilesObject
+    , startScreenOptions : InteractiveVideoInteractiveVideoVideoStartScreenOptions
+    , textTracks : InteractiveVideoInteractiveVideoVideoTextTracks
+    }
+
+
+type alias InteractiveVideoInteractiveVideoVideoFilesObject =
+    { copyright : InteractiveVideoInteractiveVideoVideoFilesObjectCopyright
+    , mime : String
+    , path : String
+    }
+
+
+type alias InteractiveVideoInteractiveVideoVideoFilesObjectCopyright =
+    { license : String
+    }
+
+
+type alias InteractiveVideoInteractiveVideoVideoStartScreenOptions =
+    { hideStartTitle : Bool
+    , title : String
+    }
+
+
+type alias InteractiveVideoInteractiveVideoVideoTextTracks =
+    { videoTrack : List InteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject
+    }
+
+
+type alias InteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject =
+    { kind : String
+    , label : String
+    , srcLang : String
+    }
+
+
+type alias InteractiveVideoL10n =
+    { answered : String
+    , back : String
+    , bookmarks : String
+    , captions : String
+    , close : String
+    , content : String
+    , continueWithVideo : String
+    , currentTime : String
+    , defaultAdaptivitySeekLabel : String
+    , endCardTableRowSummaryWithScore : String
+    , endCardTableRowSummaryWithoutScore : String
+    , endcardAnsweredScore : String
+    , endcardInformation : String
+    , endcardInformationMustHaveAnswer : String
+    , endcardInformationNoAnswers : String
+    , endcardInformationOnSubmitButtonDisabled : String
+    , endcardSubmitButton : String
+    , endcardSubmitMessage : String
+    , endcardTableRowAnswered : String
+    , endcardTableRowScore : String
+    , endcardTitle : String
+    , endscreen : String
+    , exitFullscreen : String
+    , fullscreen : String
+    , hours : String
+    , interaction : String
+    , minutes : String
+    , more : String
+    , multipleInteractionsAnnouncement : String
+    , mute : String
+    , navDisabled : String
+    , pause : String
+    , play : String
+    , playbackRate : String
+    , quality : String
+    , requiresCompletionWarning : String
+    , rewind10 : String
+    , seconds : String
+    , singleInteractionAnnouncement : String
+    , sndDisabled : String
+    , summary : String
+    , totalTime : String
+    , unmute : String
+    , videoPausedAnnouncement : String
+    }
+
+
+type alias InteractiveVideoOverride =
+    { autoplay : Bool
+    , deactivateSound : Bool
+    , loop : Bool
+    , preventSkipping : Bool
+    , showBookmarksmenuOnLoad : Bool
+    , showRewind10 : Bool
+    }
+
+
+interactiveVideoDecoder : D.Decoder InteractiveVideo
+interactiveVideoDecoder =
+    D.map3 InteractiveVideo
+        (D.field "interactiveVideo" interactiveVideoInteractiveVideoDecoder)
+        (D.field "l10n" interactiveVideoL10nDecoder)
+        (D.field "override" interactiveVideoOverrideDecoder)
+
+
+interactiveVideoInteractiveVideoDecoder : D.Decoder InteractiveVideoInteractiveVideo
+interactiveVideoInteractiveVideoDecoder =
+    D.map3 InteractiveVideoInteractiveVideo
+        (D.field "assets" interactiveVideoInteractiveVideoAssetsDecoder)
+        (D.field "summary" interactiveVideoInteractiveVideoSummaryDecoder)
+        (D.field "video" interactiveVideoInteractiveVideoVideoDecoder)
+
+
+interactiveVideoInteractiveVideoAssetsDecoder : D.Decoder InteractiveVideoInteractiveVideoAssets
+interactiveVideoInteractiveVideoAssetsDecoder =
+    D.succeed InteractiveVideoInteractiveVideoAssets
+
+
+interactiveVideoInteractiveVideoSummaryDecoder : D.Decoder InteractiveVideoInteractiveVideoSummary
+interactiveVideoInteractiveVideoSummaryDecoder =
+    D.map2 InteractiveVideoInteractiveVideoSummary
+        (D.field "displayAt" D.int)
+        (D.field "task" interactiveVideoInteractiveVideoSummaryTaskDecoder)
+
+
+interactiveVideoInteractiveVideoSummaryTaskDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTask
+interactiveVideoInteractiveVideoSummaryTaskDecoder =
+    D.map4 InteractiveVideoInteractiveVideoSummaryTask
+        (D.field "library" D.string)
+        (D.field "metadata" interactiveVideoInteractiveVideoSummaryTaskMetadataDecoder)
+        (D.field "params" interactiveVideoInteractiveVideoSummaryTaskParamsDecoder)
+        (D.field "subContentId" D.string)
+
+
+interactiveVideoInteractiveVideoSummaryTaskMetadataDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskMetadata
+interactiveVideoInteractiveVideoSummaryTaskMetadataDecoder =
+    D.map4 InteractiveVideoInteractiveVideoSummaryTaskMetadata
+        (D.field "contentType" D.string)
+        (D.field "defaultLanguage" D.string)
+        (D.field "license" D.string)
+        (D.field "title" D.string)
+
+
+interactiveVideoInteractiveVideoSummaryTaskParamsDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskParams
+interactiveVideoInteractiveVideoSummaryTaskParamsDecoder =
+    let
+        fieldSet0 =
+            D.map8 InteractiveVideoInteractiveVideoSummaryTaskParams
+                (D.field "alternativeIncorrectLabel" D.string)
+                (D.field "intro" D.string)
+                (D.field "labelCorrect" D.string)
+                (D.field "labelCorrectAnswers" D.string)
+                (D.field "labelIncorrect" D.string)
+                (D.field "overallFeedback" <| D.list interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObjectDecoder)
+                (D.field "progressText" D.string)
+                (D.field "resultLabel" D.string)
+    in
+    D.map6 (<|)
+        fieldSet0
+        (D.field "scoreBarLabel" D.string)
+        (D.field "scoreLabel" D.string)
+        (D.field "solvedLabel" D.string)
+        (D.field "summaries" <| D.list interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObjectDecoder)
+        (D.field "tipButtonLabel" D.string)
+
+
+interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject
+interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObjectDecoder =
+    D.map2 InteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject
+        (D.field "from" D.int)
+        (D.field "to" D.int)
+
+
+interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject
+interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObjectDecoder =
+    D.map2 InteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject
+        (D.field "subContentId" D.string)
+        (D.field "tip" D.string)
+
+
+interactiveVideoInteractiveVideoVideoDecoder : D.Decoder InteractiveVideoInteractiveVideoVideo
+interactiveVideoInteractiveVideoVideoDecoder =
+    D.map3 InteractiveVideoInteractiveVideoVideo
+        (D.field "files" <| D.list interactiveVideoInteractiveVideoVideoFilesObjectDecoder)
+        (D.field "startScreenOptions" interactiveVideoInteractiveVideoVideoStartScreenOptionsDecoder)
+        (D.field "textTracks" interactiveVideoInteractiveVideoVideoTextTracksDecoder)
+
+
+interactiveVideoInteractiveVideoVideoFilesObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoFilesObject
+interactiveVideoInteractiveVideoVideoFilesObjectDecoder =
+    D.map3 InteractiveVideoInteractiveVideoVideoFilesObject
+        (D.field "copyright" interactiveVideoInteractiveVideoVideoFilesObjectCopyrightDecoder)
+        (D.field "mime" D.string)
+        (D.field "path" D.string)
+
+
+interactiveVideoInteractiveVideoVideoFilesObjectCopyrightDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoFilesObjectCopyright
+interactiveVideoInteractiveVideoVideoFilesObjectCopyrightDecoder =
+    D.map InteractiveVideoInteractiveVideoVideoFilesObjectCopyright
+        (D.field "license" D.string)
+
+
+interactiveVideoInteractiveVideoVideoStartScreenOptionsDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoStartScreenOptions
+interactiveVideoInteractiveVideoVideoStartScreenOptionsDecoder =
+    D.map2 InteractiveVideoInteractiveVideoVideoStartScreenOptions
+        (D.field "hideStartTitle" D.bool)
+        (D.field "title" D.string)
+
+
+interactiveVideoInteractiveVideoVideoTextTracksDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoTextTracks
+interactiveVideoInteractiveVideoVideoTextTracksDecoder =
+    D.map InteractiveVideoInteractiveVideoVideoTextTracks
+        (D.field "videoTrack" <| D.list interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObjectDecoder)
+
+
+interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject
+interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObjectDecoder =
+    D.map3 InteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject
+        (D.field "kind" D.string)
+        (D.field "label" D.string)
+        (D.field "srcLang" D.string)
+
+
+interactiveVideoL10nDecoder : D.Decoder InteractiveVideoL10n
+interactiveVideoL10nDecoder =
+    let
+        fieldSet0 =
+            D.map8 InteractiveVideoL10n
+                (D.field "answered" D.string)
+                (D.field "back" D.string)
+                (D.field "bookmarks" D.string)
+                (D.field "captions" D.string)
+                (D.field "close" D.string)
+                (D.field "content" D.string)
+                (D.field "continueWithVideo" D.string)
+                (D.field "currentTime" D.string)
+
+        fieldSet1 =
+            D.map8 (<|)
+                fieldSet0
+                (D.field "defaultAdaptivitySeekLabel" D.string)
+                (D.field "endCardTableRowSummaryWithScore" D.string)
+                (D.field "endCardTableRowSummaryWithoutScore" D.string)
+                (D.field "endcardAnsweredScore" D.string)
+                (D.field "endcardInformation" D.string)
+                (D.field "endcardInformationMustHaveAnswer" D.string)
+                (D.field "endcardInformationNoAnswers" D.string)
+
+        fieldSet2 =
+            D.map8 (<|)
+                fieldSet1
+                (D.field "endcardInformationOnSubmitButtonDisabled" D.string)
+                (D.field "endcardSubmitButton" D.string)
+                (D.field "endcardSubmitMessage" D.string)
+                (D.field "endcardTableRowAnswered" D.string)
+                (D.field "endcardTableRowScore" D.string)
+                (D.field "endcardTitle" D.string)
+                (D.field "endscreen" D.string)
+
+        fieldSet3 =
+            D.map8 (<|)
+                fieldSet2
+                (D.field "exitFullscreen" D.string)
+                (D.field "fullscreen" D.string)
+                (D.field "hours" D.string)
+                (D.field "interaction" D.string)
+                (D.field "minutes" D.string)
+                (D.field "more" D.string)
+                (D.field "multipleInteractionsAnnouncement" D.string)
+
+        fieldSet4 =
+            D.map8 (<|)
+                fieldSet3
+                (D.field "mute" D.string)
+                (D.field "navDisabled" D.string)
+                (D.field "pause" D.string)
+                (D.field "play" D.string)
+                (D.field "playbackRate" D.string)
+                (D.field "quality" D.string)
+                (D.field "requiresCompletionWarning" D.string)
+
+        fieldSet5 =
+            D.map8 (<|)
+                fieldSet4
+                (D.field "rewind10" D.string)
+                (D.field "seconds" D.string)
+                (D.field "singleInteractionAnnouncement" D.string)
+                (D.field "sndDisabled" D.string)
+                (D.field "summary" D.string)
+                (D.field "totalTime" D.string)
+                (D.field "unmute" D.string)
+    in
+    D.map2 (<|)
+        fieldSet5
+        (D.field "videoPausedAnnouncement" D.string)
+
+
+interactiveVideoOverrideDecoder : D.Decoder InteractiveVideoOverride
+interactiveVideoOverrideDecoder =
+    D.map6 InteractiveVideoOverride
+        (D.field "autoplay" D.bool)
+        (D.field "deactivateSound" D.bool)
+        (D.field "loop" D.bool)
+        (D.field "preventSkipping" D.bool)
+        (D.field "showBookmarksmenuOnLoad" D.bool)
+        (D.field "showRewind10" D.bool)
+
+
+encodedInteractiveVideo : InteractiveVideo -> E.Value
+encodedInteractiveVideo interactiveVideo =
+    E.object
+        [ ( "interactiveVideo", encodedInteractiveVideoInteractiveVideo interactiveVideo.interactiveVideo )
+        , ( "l10n", encodedInteractiveVideoL10n interactiveVideo.l10n )
+        , ( "override", encodedInteractiveVideoOverride interactiveVideo.override )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideo : InteractiveVideoInteractiveVideo -> E.Value
+encodedInteractiveVideoInteractiveVideo interactiveVideoInteractiveVideo =
+    E.object
+        [ ( "assets", encodedInteractiveVideoInteractiveVideoAssets interactiveVideoInteractiveVideo.assets )
+        , ( "summary", encodedInteractiveVideoInteractiveVideoSummary interactiveVideoInteractiveVideo.summary )
+        , ( "video", encodedInteractiveVideoInteractiveVideoVideo interactiveVideoInteractiveVideo.video )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoAssets : InteractiveVideoInteractiveVideoAssets -> E.Value
+encodedInteractiveVideoInteractiveVideoAssets interactiveVideoInteractiveVideoAssets =
+    E.object
+        []
+
+
+encodedInteractiveVideoInteractiveVideoSummary : InteractiveVideoInteractiveVideoSummary -> E.Value
+encodedInteractiveVideoInteractiveVideoSummary interactiveVideoInteractiveVideoSummary =
+    E.object
+        [ ( "displayAt", E.int interactiveVideoInteractiveVideoSummary.displayAt )
+        , ( "task", encodedInteractiveVideoInteractiveVideoSummaryTask interactiveVideoInteractiveVideoSummary.task )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoSummaryTask : InteractiveVideoInteractiveVideoSummaryTask -> E.Value
+encodedInteractiveVideoInteractiveVideoSummaryTask interactiveVideoInteractiveVideoSummaryTask =
+    E.object
+        [ ( "library", E.string interactiveVideoInteractiveVideoSummaryTask.library )
+        , ( "metadata", encodedInteractiveVideoInteractiveVideoSummaryTaskMetadata interactiveVideoInteractiveVideoSummaryTask.metadata )
+        , ( "params", encodedInteractiveVideoInteractiveVideoSummaryTaskParams interactiveVideoInteractiveVideoSummaryTask.params )
+        , ( "subContentId", E.string interactiveVideoInteractiveVideoSummaryTask.subContentId )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoSummaryTaskMetadata : InteractiveVideoInteractiveVideoSummaryTaskMetadata -> E.Value
+encodedInteractiveVideoInteractiveVideoSummaryTaskMetadata interactiveVideoInteractiveVideoSummaryTaskMetadata =
+    E.object
+        [ ( "contentType", E.string interactiveVideoInteractiveVideoSummaryTaskMetadata.contentType )
+        , ( "defaultLanguage", E.string interactiveVideoInteractiveVideoSummaryTaskMetadata.defaultLanguage )
+        , ( "license", E.string interactiveVideoInteractiveVideoSummaryTaskMetadata.license )
+        , ( "title", E.string interactiveVideoInteractiveVideoSummaryTaskMetadata.title )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoSummaryTaskParams : InteractiveVideoInteractiveVideoSummaryTaskParams -> E.Value
+encodedInteractiveVideoInteractiveVideoSummaryTaskParams interactiveVideoInteractiveVideoSummaryTaskParams =
+    E.object
+        [ ( "alternativeIncorrectLabel", E.string interactiveVideoInteractiveVideoSummaryTaskParams.alternativeIncorrectLabel )
+        , ( "intro", E.string interactiveVideoInteractiveVideoSummaryTaskParams.intro )
+        , ( "labelCorrect", E.string interactiveVideoInteractiveVideoSummaryTaskParams.labelCorrect )
+        , ( "labelCorrectAnswers", E.string interactiveVideoInteractiveVideoSummaryTaskParams.labelCorrectAnswers )
+        , ( "labelIncorrect", E.string interactiveVideoInteractiveVideoSummaryTaskParams.labelIncorrect )
+        , ( "overallFeedback", E.list encodedInteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject interactiveVideoInteractiveVideoSummaryTaskParams.overallFeedback )
+        , ( "progressText", E.string interactiveVideoInteractiveVideoSummaryTaskParams.progressText )
+        , ( "resultLabel", E.string interactiveVideoInteractiveVideoSummaryTaskParams.resultLabel )
+        , ( "scoreBarLabel", E.string interactiveVideoInteractiveVideoSummaryTaskParams.scoreBarLabel )
+        , ( "scoreLabel", E.string interactiveVideoInteractiveVideoSummaryTaskParams.scoreLabel )
+        , ( "solvedLabel", E.string interactiveVideoInteractiveVideoSummaryTaskParams.solvedLabel )
+        , ( "summaries", E.list encodedInteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject interactiveVideoInteractiveVideoSummaryTaskParams.summaries )
+        , ( "tipButtonLabel", E.string interactiveVideoInteractiveVideoSummaryTaskParams.tipButtonLabel )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject : InteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject -> E.Value
+encodedInteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject =
+    E.object
+        [ ( "from", E.int interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject.from )
+        , ( "to", E.int interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject.to )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject : InteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject -> E.Value
+encodedInteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObject =
+    E.object
+        [ ( "subContentId", E.string interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObject.subContentId )
+        , ( "tip", E.string interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObject.tip )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoVideo : InteractiveVideoInteractiveVideoVideo -> E.Value
+encodedInteractiveVideoInteractiveVideoVideo interactiveVideoInteractiveVideoVideo =
+    E.object
+        [ ( "files", E.list encodedInteractiveVideoInteractiveVideoVideoFilesObject interactiveVideoInteractiveVideoVideo.files )
+        , ( "startScreenOptions", encodedInteractiveVideoInteractiveVideoVideoStartScreenOptions interactiveVideoInteractiveVideoVideo.startScreenOptions )
+        , ( "textTracks", encodedInteractiveVideoInteractiveVideoVideoTextTracks interactiveVideoInteractiveVideoVideo.textTracks )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoVideoFilesObject : InteractiveVideoInteractiveVideoVideoFilesObject -> E.Value
+encodedInteractiveVideoInteractiveVideoVideoFilesObject interactiveVideoInteractiveVideoVideoFilesObject =
+    E.object
+        [ ( "copyright", encodedInteractiveVideoInteractiveVideoVideoFilesObjectCopyright interactiveVideoInteractiveVideoVideoFilesObject.copyright )
+        , ( "mime", E.string interactiveVideoInteractiveVideoVideoFilesObject.mime )
+        , ( "path", E.string interactiveVideoInteractiveVideoVideoFilesObject.path )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoVideoFilesObjectCopyright : InteractiveVideoInteractiveVideoVideoFilesObjectCopyright -> E.Value
+encodedInteractiveVideoInteractiveVideoVideoFilesObjectCopyright interactiveVideoInteractiveVideoVideoFilesObjectCopyright =
+    E.object
+        [ ( "license", E.string interactiveVideoInteractiveVideoVideoFilesObjectCopyright.license )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoVideoStartScreenOptions : InteractiveVideoInteractiveVideoVideoStartScreenOptions -> E.Value
+encodedInteractiveVideoInteractiveVideoVideoStartScreenOptions interactiveVideoInteractiveVideoVideoStartScreenOptions =
+    E.object
+        [ ( "hideStartTitle", E.bool interactiveVideoInteractiveVideoVideoStartScreenOptions.hideStartTitle )
+        , ( "title", E.string interactiveVideoInteractiveVideoVideoStartScreenOptions.title )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoVideoTextTracks : InteractiveVideoInteractiveVideoVideoTextTracks -> E.Value
+encodedInteractiveVideoInteractiveVideoVideoTextTracks interactiveVideoInteractiveVideoVideoTextTracks =
+    E.object
+        [ ( "videoTrack", E.list encodedInteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject interactiveVideoInteractiveVideoVideoTextTracks.videoTrack )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject : InteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject -> E.Value
+encodedInteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObject =
+    E.object
+        [ ( "kind", E.string interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObject.kind )
+        , ( "label", E.string interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObject.label )
+        , ( "srcLang", E.string interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObject.srcLang )
+        ]
+
+
+encodedInteractiveVideoL10n : InteractiveVideoL10n -> E.Value
+encodedInteractiveVideoL10n interactiveVideoL10n =
+    E.object
+        [ ( "answered", E.string interactiveVideoL10n.answered )
+        , ( "back", E.string interactiveVideoL10n.back )
+        , ( "bookmarks", E.string interactiveVideoL10n.bookmarks )
+        , ( "captions", E.string interactiveVideoL10n.captions )
+        , ( "close", E.string interactiveVideoL10n.close )
+        , ( "content", E.string interactiveVideoL10n.content )
+        , ( "continueWithVideo", E.string interactiveVideoL10n.continueWithVideo )
+        , ( "currentTime", E.string interactiveVideoL10n.currentTime )
+        , ( "defaultAdaptivitySeekLabel", E.string interactiveVideoL10n.defaultAdaptivitySeekLabel )
+        , ( "endCardTableRowSummaryWithScore", E.string interactiveVideoL10n.endCardTableRowSummaryWithScore )
+        , ( "endCardTableRowSummaryWithoutScore", E.string interactiveVideoL10n.endCardTableRowSummaryWithoutScore )
+        , ( "endcardAnsweredScore", E.string interactiveVideoL10n.endcardAnsweredScore )
+        , ( "endcardInformation", E.string interactiveVideoL10n.endcardInformation )
+        , ( "endcardInformationMustHaveAnswer", E.string interactiveVideoL10n.endcardInformationMustHaveAnswer )
+        , ( "endcardInformationNoAnswers", E.string interactiveVideoL10n.endcardInformationNoAnswers )
+        , ( "endcardInformationOnSubmitButtonDisabled", E.string interactiveVideoL10n.endcardInformationOnSubmitButtonDisabled )
+        , ( "endcardSubmitButton", E.string interactiveVideoL10n.endcardSubmitButton )
+        , ( "endcardSubmitMessage", E.string interactiveVideoL10n.endcardSubmitMessage )
+        , ( "endcardTableRowAnswered", E.string interactiveVideoL10n.endcardTableRowAnswered )
+        , ( "endcardTableRowScore", E.string interactiveVideoL10n.endcardTableRowScore )
+        , ( "endcardTitle", E.string interactiveVideoL10n.endcardTitle )
+        , ( "endscreen", E.string interactiveVideoL10n.endscreen )
+        , ( "exitFullscreen", E.string interactiveVideoL10n.exitFullscreen )
+        , ( "fullscreen", E.string interactiveVideoL10n.fullscreen )
+        , ( "hours", E.string interactiveVideoL10n.hours )
+        , ( "interaction", E.string interactiveVideoL10n.interaction )
+        , ( "minutes", E.string interactiveVideoL10n.minutes )
+        , ( "more", E.string interactiveVideoL10n.more )
+        , ( "multipleInteractionsAnnouncement", E.string interactiveVideoL10n.multipleInteractionsAnnouncement )
+        , ( "mute", E.string interactiveVideoL10n.mute )
+        , ( "navDisabled", E.string interactiveVideoL10n.navDisabled )
+        , ( "pause", E.string interactiveVideoL10n.pause )
+        , ( "play", E.string interactiveVideoL10n.play )
+        , ( "playbackRate", E.string interactiveVideoL10n.playbackRate )
+        , ( "quality", E.string interactiveVideoL10n.quality )
+        , ( "requiresCompletionWarning", E.string interactiveVideoL10n.requiresCompletionWarning )
+        , ( "rewind10", E.string interactiveVideoL10n.rewind10 )
+        , ( "seconds", E.string interactiveVideoL10n.seconds )
+        , ( "singleInteractionAnnouncement", E.string interactiveVideoL10n.singleInteractionAnnouncement )
+        , ( "sndDisabled", E.string interactiveVideoL10n.sndDisabled )
+        , ( "summary", E.string interactiveVideoL10n.summary )
+        , ( "totalTime", E.string interactiveVideoL10n.totalTime )
+        , ( "unmute", E.string interactiveVideoL10n.unmute )
+        , ( "videoPausedAnnouncement", E.string interactiveVideoL10n.videoPausedAnnouncement )
+        ]
+
+
+encodedInteractiveVideoOverride : InteractiveVideoOverride -> E.Value
+encodedInteractiveVideoOverride interactiveVideoOverride =
+    E.object
+        [ ( "autoplay", E.bool interactiveVideoOverride.autoplay )
+        , ( "deactivateSound", E.bool interactiveVideoOverride.deactivateSound )
+        , ( "loop", E.bool interactiveVideoOverride.loop )
+        , ( "preventSkipping", E.bool interactiveVideoOverride.preventSkipping )
+        , ( "showBookmarksmenuOnLoad", E.bool interactiveVideoOverride.showBookmarksmenuOnLoad )
+        , ( "showRewind10", E.bool interactiveVideoOverride.showRewind10 )
+        ]
+
+
+
+{-
     .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
    / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
    \ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/\ \/ /
@@ -1517,8 +2217,12 @@ h5pParser depth =
 
                     InteractiveVideoH5pSubContext ->
                         inContext InteractiveVideoContext <|
-                            succeed (R.constant InteractiveVideoH5p)
-                                |. many interactiveVideoParser (depth + 1)
+                            succeed
+                                (new interactiveVideoField
+                                    |> InteractiveVideoH5p
+                                    |> R.constant
+                                )
+             --|. many interactiveVideoParser (depth + 1)
             )
 
 
@@ -1568,8 +2272,7 @@ branchingScenarioParser depth state =
                                     |> with2 typeField libraryField library
                                     |> with2 typeField paramsField params
                                     |> with2 typeField subContentIdField (UUID.toString uuid)
-                                    -- À vérifier
-                                    |> with nextContentIdField (Just state.lastIdUsed)
+                                    |> with nextContentIdField (Just (state.lastIdUsed + 2))
                         in
                         case record.context of
                             BranchingQuestionBranchingScenarioSubContext ->
@@ -1712,7 +2415,7 @@ branchingQuestionParser depth state =
           in
           succeed
             { content = content
-            , lastIdUsed = state.lastIdUsed + 1
+            , lastIdUsed = state.lastIdUsed
             }
         ]
 
@@ -2293,6 +2996,128 @@ slideField =
             []
         , slideBackgroundSelector =
             { fillSlideBackground = ""
+            }
+        }
+    }
+
+
+interactiveVideoField =
+    { default =
+        { interactiveVideo =
+            { assets = {}
+            , summary =
+                { displayAt = 3
+                , task =
+                    { library =
+                        "H5P.Summary 1.10"
+                    , metadata =
+                        { contentType = "Summary"
+                        , defaultLanguage = "fr"
+                        , license = "U"
+                        , title = "Untitled Summary"
+                        }
+                    , params =
+                        { alternativeIncorrectLabel = "Incorrect"
+                        , intro = "Choose the correct statement."
+                        , labelCorrect = "Correct."
+                        , labelCorrectAnswers = "Réponses correctes."
+                        , labelIncorrect = "Incorrect! Please try again."
+                        , overallFeedback =
+                            [ { from = 0
+                              , to = 100
+                              }
+                            ]
+                        , progressText = "Progression de :num sur :total"
+                        , resultLabel = "Votre résultat :"
+                        , scoreBarLabel = "Vous avez :num points sur un total de :total"
+                        , scoreLabel = "Erreurs :"
+                        , solvedLabel = "Progression :"
+                        , summaries =
+                            [ { subContentId = "8b665f86-5dcd-40a1-86e2-ca7fe18413a9"
+                              , tip = ""
+                              }
+                            ]
+                        , tipButtonLabel = "Montrer l&#039;indice"
+                        }
+                    , subContentId = "92b40988-9d67-4b9e-8187-6fb772f245ff"
+                    }
+                }
+            , video =
+                { files =
+                    [ { copyright =
+                            { license = "U"
+                            }
+                      , mime = "video/YouTube"
+                      , path = "https://www.youtube.com/watch?v=UFimQQTuQNc&amp;t=24s"
+                      }
+                    ]
+                , startScreenOptions =
+                    { hideStartTitle = False
+                    , title = "Interactive Video"
+                    }
+                , textTracks =
+                    { videoTrack =
+                        [ { kind = "subtitles"
+                          , label = "Subtitles"
+                          , srcLang = "fr"
+                          }
+                        ]
+                    }
+                }
+            }
+        , l10n =
+            { answered = "@answered réponses données"
+            , back = "Retour"
+            , bookmarks = "Signets"
+            , captions = "Sous-titres"
+            , close = "Fermer"
+            , content = "Contenu"
+            , continueWithVideo = "Reprendre la lecture"
+            , currentTime = "Durée actuelle :"
+            , defaultAdaptivitySeekLabel = "Continue"
+            , endCardTableRowSummaryWithScore = "Vous avez obtenu de @score sur un total de @points pour la question @question qui apparaissait à @minutes minutes et @secondes secondes."
+            , endCardTableRowSummaryWithoutScore = "Vous avez répondu aux @question qui sont apparues après @minutes minutes et @seconds secondes."
+            , endcardAnsweredScore = "Réponses"
+            , endcardInformation = "Vous avez répondu à @answered questions."
+            , endcardInformationMustHaveAnswer = "Vous devez répondre à au moins une question avant de pouvoir soumettre vos réponses."
+            , endcardInformationNoAnswers = "Vous n&#039;avez répondu à aucune question."
+            , endcardInformationOnSubmitButtonDisabled = "Vous avez répondu à @answered questions. Cliquez ci-dessous pour les remettre."
+            , endcardSubmitButton = "Remettre vos réponses"
+            , endcardSubmitMessage = "Vos réponses ont été remises !"
+            , endcardTableRowAnswered = "Questions auxquelles vous avez répondu"
+            , endcardTableRowScore = "Score"
+            , endcardTitle = "@answered question(s) auxquelles vous avez répondu"
+            , endscreen = "Continuer"
+            , exitFullscreen = "Sortir du plein écran"
+            , fullscreen = "Plein écran"
+            , hours = "Heures"
+            , interaction = "Activité"
+            , minutes = "Minutes"
+            , more = "More player options"
+            , multipleInteractionsAnnouncement = "De multiples interactions sont apparues."
+            , mute = "Sourdine, présentement le son est activé."
+            , navDisabled = "La navigation est désactivée"
+            , pause = "Pause"
+            , play = "Jouer"
+            , playbackRate = "Vitesse de lecture"
+            , quality = "Qualité de la vidéo"
+            , requiresCompletionWarning = "Vous devez répondre correctement à toutes les questions avant de continuer."
+            , rewind10 = "Revenir en arrière de 10 secondes"
+            , seconds = "Secondes"
+            , singleInteractionAnnouncement = "Une interaction est apparue."
+            , sndDisabled = "Le son est désactivé"
+            , summary = "Résumé"
+            , totalTime = "Temps total :"
+            , unmute = "Activer le son, présentement en sourdine."
+            , videoPausedAnnouncement = "La vidéo est en pause."
+            }
+        , override =
+            { autoplay = False
+            , deactivateSound = False
+            , loop = False
+            , preventSkipping = False
+            , showBookmarksmenuOnLoad = False
+            , showRewind10 = False
             }
         }
     }
