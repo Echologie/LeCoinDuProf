@@ -500,111 +500,113 @@ type alias BranchingScenarioContentTypeMetadata =
 type BranchingScenarioContentTypeParams
     = BranchingQuestionBranchingScenarioContentTypeParams BranchingQuestion
     | CoursePresentationBranchingScenarioContentTypeParams CoursePresentation
-    | UnknownBranchingScenarioContentTypeParams
-
-
-branchingScenarioDecoder : D.Decoder BranchingScenario
-branchingScenarioDecoder =
-    D.map6 BranchingScenario
-        (D.field "behaviour" branchingScenarioBehaviourDecoder)
-        (D.field "endScreens" <| D.list branchingScenarioEndScreensObjectDecoder)
-        (D.field "l10n" branchingScenarioL10nDecoder)
-        (D.field "scoringOptionGroup" branchingScenarioScoringOptionGroupDecoder)
-        (D.field "startScreen" branchingScenarioStartScreenDecoder)
-        (D.field "content" <| D.list branchingScenarioContentDecoder)
-
-
-branchingScenarioBehaviourDecoder : D.Decoder BranchingScenarioBehaviour
-branchingScenarioBehaviourDecoder =
-    D.map2 BranchingScenarioBehaviour
-        (D.field "enableBackwardsNavigation" D.bool)
-        (D.field "forceContentFinished" D.bool)
-
-
-branchingScenarioEndScreensObjectDecoder : D.Decoder BranchingScenarioEndScreensObject
-branchingScenarioEndScreensObjectDecoder =
-    D.map4 BranchingScenarioEndScreensObject
-        (D.field "contentId" D.int)
-        (D.field "endScreenScore" D.int)
-        (D.field "endScreenSubtitle" D.string)
-        (D.field "endScreenTitle" D.string)
-
-
-branchingScenarioL10nDecoder : D.Decoder BranchingScenarioL10n
-branchingScenarioL10nDecoder =
-    D.map8 BranchingScenarioL10n
-        (D.field "backButtonText" D.string)
-        (D.field "disableProceedButtonText" D.string)
-        (D.field "endScreenButtonText" D.string)
-        (D.field "fullscreenAria" D.string)
-        (D.field "proceedButtonText" D.string)
-        (D.field "replayButtonText" D.string)
-        (D.field "scoreText" D.string)
-        (D.field "startScreenButtonText" D.string)
-
-
-branchingScenarioScoringOptionGroupDecoder : D.Decoder BranchingScenarioScoringOptionGroup
-branchingScenarioScoringOptionGroupDecoder =
-    D.map2 BranchingScenarioScoringOptionGroup
-        (D.field "includeInteractionsScores" D.bool)
-        (D.field "scoringOption" D.string)
-
-
-branchingScenarioStartScreenDecoder : D.Decoder BranchingScenarioStartScreen
-branchingScenarioStartScreenDecoder =
-    D.map2 BranchingScenarioStartScreen
-        (D.field "startScreenSubtitle" D.string)
-        (D.field "startScreenTitle" D.string)
-
-
-branchingScenarioContentDecoder : D.Decoder BranchingScenarioContent
-branchingScenarioContentDecoder =
-    --todo
-    D.succeed <| new contentField
+    | InteractiveVideoBranchingScenarioContentTypeParams InteractiveVideo
 
 
 
-{- À reprendre en ajoutant la gestion de la présence éventuelle d'un
-   champ nextContentId
+{-
+   branchingScenarioDecoder : D.Decoder BranchingScenario
+   branchingScenarioDecoder =
+       D.map6 BranchingScenario
+           (D.field "behaviour" branchingScenarioBehaviourDecoder)
+           (D.field "endScreens" <| D.list branchingScenarioEndScreensObjectDecoder)
+           (D.field "l10n" branchingScenarioL10nDecoder)
+           (D.field "scoringOptionGroup" branchingScenarioScoringOptionGroupDecoder)
+           (D.field "startScreen" branchingScenarioStartScreenDecoder)
+           (D.field "content" <| D.list branchingScenarioContentDecoder)
 
-    D.map5 BranchingScenarioContent
-        (D.field "contentBehaviour" D.string)
-        (D.field "feedback" branchingScenarioContentFeedbackDecoder)
-        (D.field "forceContentFinished" D.string)
-        (D.field "showContentTitle" D.bool)
-        (D.field "type" branchingScenarioContentTypeDecoder)
+
+   branchingScenarioBehaviourDecoder : D.Decoder BranchingScenarioBehaviour
+   branchingScenarioBehaviourDecoder =
+       D.map2 BranchingScenarioBehaviour
+           (D.field "enableBackwardsNavigation" D.bool)
+           (D.field "forceContentFinished" D.bool)
+
+
+   branchingScenarioEndScreensObjectDecoder : D.Decoder BranchingScenarioEndScreensObject
+   branchingScenarioEndScreensObjectDecoder =
+       D.map4 BranchingScenarioEndScreensObject
+           (D.field "contentId" D.int)
+           (D.field "endScreenScore" D.int)
+           (D.field "endScreenSubtitle" D.string)
+           (D.field "endScreenTitle" D.string)
+
+
+   branchingScenarioL10nDecoder : D.Decoder BranchingScenarioL10n
+   branchingScenarioL10nDecoder =
+       D.map8 BranchingScenarioL10n
+           (D.field "backButtonText" D.string)
+           (D.field "disableProceedButtonText" D.string)
+           (D.field "endScreenButtonText" D.string)
+           (D.field "fullscreenAria" D.string)
+           (D.field "proceedButtonText" D.string)
+           (D.field "replayButtonText" D.string)
+           (D.field "scoreText" D.string)
+           (D.field "startScreenButtonText" D.string)
+
+
+   branchingScenarioScoringOptionGroupDecoder : D.Decoder BranchingScenarioScoringOptionGroup
+   branchingScenarioScoringOptionGroupDecoder =
+       D.map2 BranchingScenarioScoringOptionGroup
+           (D.field "includeInteractionsScores" D.bool)
+           (D.field "scoringOption" D.string)
+
+
+   branchingScenarioStartScreenDecoder : D.Decoder BranchingScenarioStartScreen
+   branchingScenarioStartScreenDecoder =
+       D.map2 BranchingScenarioStartScreen
+           (D.field "startScreenSubtitle" D.string)
+           (D.field "startScreenTitle" D.string)
+
+
+   branchingScenarioContentDecoder : D.Decoder BranchingScenarioContent
+   branchingScenarioContentDecoder =
+       --todo
+       D.succeed <| new contentField
+
+
+
+   {- À reprendre en ajoutant la gestion de la présence éventuelle d'un
+      champ nextContentId
+
+       D.map5 BranchingScenarioContent
+           (D.field "contentBehaviour" D.string)
+           (D.field "feedback" branchingScenarioContentFeedbackDecoder)
+           (D.field "forceContentFinished" D.string)
+           (D.field "showContentTitle" D.bool)
+           (D.field "type" branchingScenarioContentTypeDecoder)
+   -}
+
+
+   branchingScenarioContentFeedbackDecoder : D.Decoder BranchingScenarioContentFeedback
+   branchingScenarioContentFeedbackDecoder =
+       D.map BranchingScenarioContentFeedback
+           (D.field "subtitle" D.string)
+
+
+   branchingScenarioContentTypeDecoder : D.Decoder BranchingScenarioContentType
+   branchingScenarioContentTypeDecoder =
+       D.map4 BranchingScenarioContentType
+           (D.field "library" D.string)
+           (D.field "metadata" branchingScenarioContentTypeMetadataDecoder)
+           (D.field "params" branchingScenarioContentTypeParamsDecoder)
+           (D.field "subContentId" D.string)
+
+
+   branchingScenarioContentTypeMetadataDecoder : D.Decoder BranchingScenarioContentTypeMetadata
+   branchingScenarioContentTypeMetadataDecoder =
+       D.map3 BranchingScenarioContentTypeMetadata
+           (D.field "contentType" D.string)
+           (D.field "license" D.string)
+           (D.field "title" D.string)
+
+
+   branchingScenarioContentTypeParamsDecoder : D.Decoder BranchingScenarioContentTypeParams
+   branchingScenarioContentTypeParamsDecoder =
+       D.map CoursePresentationBranchingScenarioContentTypeParams <|
+           coursePresentationDecoder
+
 -}
-
-
-branchingScenarioContentFeedbackDecoder : D.Decoder BranchingScenarioContentFeedback
-branchingScenarioContentFeedbackDecoder =
-    D.map BranchingScenarioContentFeedback
-        (D.field "subtitle" D.string)
-
-
-branchingScenarioContentTypeDecoder : D.Decoder BranchingScenarioContentType
-branchingScenarioContentTypeDecoder =
-    D.map4 BranchingScenarioContentType
-        (D.field "library" D.string)
-        (D.field "metadata" branchingScenarioContentTypeMetadataDecoder)
-        (D.field "params" branchingScenarioContentTypeParamsDecoder)
-        (D.field "subContentId" D.string)
-
-
-branchingScenarioContentTypeMetadataDecoder : D.Decoder BranchingScenarioContentTypeMetadata
-branchingScenarioContentTypeMetadataDecoder =
-    D.map3 BranchingScenarioContentTypeMetadata
-        (D.field "contentType" D.string)
-        (D.field "license" D.string)
-        (D.field "title" D.string)
-
-
-branchingScenarioContentTypeParamsDecoder : D.Decoder BranchingScenarioContentTypeParams
-branchingScenarioContentTypeParamsDecoder =
-    --todo
-    D.succeed <|
-        CoursePresentationBranchingScenarioContentTypeParams <|
-            new coursePresentationField
 
 
 encodedBranchingScenario : BranchingScenario -> E.Value
@@ -724,8 +726,8 @@ encodedBranchingScenarioContentTypeParams branchingScenarioContentTypeParams =
         BranchingQuestionBranchingScenarioContentTypeParams q ->
             encodedBranchingQuestion q
 
-        UnknownBranchingScenarioContentTypeParams ->
-            E.object []
+        InteractiveVideoBranchingScenarioContentTypeParams v ->
+            encodedInteractiveVideo v
 
 
 
@@ -953,16 +955,16 @@ type alias CoursePresentationPresentationSlides =
 type alias CoursePresentationPresentationSlidesElements =
     { action : CoursePresentationPresentationSlidesElementsAction
     , alwaysDisplayComments : Bool
-    , backgroundOpacity : Int
+    , backgroundOpacity : Float
     , buttonSize : String
     , displayAsButton : Bool
     , goToSlideType : String
-    , height : Int
+    , height : Float
     , invisible : Bool
     , solution : String
-    , width : Int
-    , x : Int
-    , y : Int
+    , width : Float
+    , x : Float
+    , y : Float
     }
 
 
@@ -978,11 +980,12 @@ type alias CoursePresentationPresentationSlidesElementsActionMetadata =
     { contentType : String
     , license : String
     , title : String
+    , defaultLanguage : String --Maybe String
     }
 
 
-type alias CoursePresentationPresentationSlidesElementsActionParams =
-    TrueFalse
+type CoursePresentationPresentationSlidesElementsActionParams
+    = TrueFalseCoursePresentationPresentationSlidesElementsActionParams TrueFalse
 
 
 type alias CoursePresentationPresentationSlidesSlideBackgroundSelector =
@@ -1270,12 +1273,60 @@ encodedCoursePresentationPresentationGlobalBackgroundSelector coursePresentation
 encodedCoursePresentationPresentationSlides : CoursePresentationPresentationSlides -> E.Value
 encodedCoursePresentationPresentationSlides coursePresentationPresentationSlides =
     E.object
-        [ ( "elements", E.list (\_ -> E.null) coursePresentationPresentationSlides.elements )
-        , ( "slideBackgroundSelector"
-          , encodedCoursePresentationPresentationSlidesSlideBackgroundSelector
-                coursePresentationPresentationSlides.slideBackgroundSelector
-          )
+        [ ( "elements", E.list encodedCoursePresentationPresentationSlidesElements coursePresentationPresentationSlides.elements )
+        , ( "slideBackgroundSelector", encodedCoursePresentationPresentationSlidesSlideBackgroundSelector coursePresentationPresentationSlides.slideBackgroundSelector )
         ]
+
+
+encodedCoursePresentationPresentationSlidesElements : CoursePresentationPresentationSlidesElements -> E.Value
+encodedCoursePresentationPresentationSlidesElements coursePresentationPresentationSlidesElements =
+    E.object
+        [ ( "action", encodedCoursePresentationPresentationSlidesElementsAction coursePresentationPresentationSlidesElements.action )
+        , ( "alwaysDisplayComments", E.bool coursePresentationPresentationSlidesElements.alwaysDisplayComments )
+        , ( "backgroundOpacity", E.float coursePresentationPresentationSlidesElements.backgroundOpacity )
+        , ( "buttonSize", E.string coursePresentationPresentationSlidesElements.buttonSize )
+        , ( "displayAsButton", E.bool coursePresentationPresentationSlidesElements.displayAsButton )
+        , ( "goToSlideType", E.string coursePresentationPresentationSlidesElements.goToSlideType )
+        , ( "height", E.float coursePresentationPresentationSlidesElements.height )
+        , ( "invisible", E.bool coursePresentationPresentationSlidesElements.invisible )
+        , ( "solution", E.string coursePresentationPresentationSlidesElements.solution )
+        , ( "width", E.float coursePresentationPresentationSlidesElements.width )
+        , ( "x", E.float coursePresentationPresentationSlidesElements.x )
+        , ( "y", E.float coursePresentationPresentationSlidesElements.y )
+        ]
+
+
+encodedCoursePresentationPresentationSlidesElementsAction : CoursePresentationPresentationSlidesElementsAction -> E.Value
+encodedCoursePresentationPresentationSlidesElementsAction coursePresentationPresentationSlidesElementsAction =
+    E.object
+        [ ( "library", E.string coursePresentationPresentationSlidesElementsAction.library )
+        , ( "metadata", encodedCoursePresentationPresentationSlidesElementsActionMetadata coursePresentationPresentationSlidesElementsAction.metadata )
+        , ( "params", encodedCoursePresentationPresentationSlidesElementsActionParams coursePresentationPresentationSlidesElementsAction.params )
+        , ( "subContentId", E.string coursePresentationPresentationSlidesElementsAction.subContentId )
+        ]
+
+
+encodedCoursePresentationPresentationSlidesElementsActionMetadata : CoursePresentationPresentationSlidesElementsActionMetadata -> E.Value
+encodedCoursePresentationPresentationSlidesElementsActionMetadata coursePresentationPresentationSlidesElementsActionMetadata =
+    E.object
+        ([ ( "contentType", E.string coursePresentationPresentationSlidesElementsActionMetadata.contentType )
+         , ( "license", E.string coursePresentationPresentationSlidesElementsActionMetadata.license )
+         , ( "title", E.string coursePresentationPresentationSlidesElementsActionMetadata.title )
+         ]
+            ++ (case coursePresentationPresentationSlidesElementsActionMetadata.defaultLanguage of
+                    defaultLanguage ->
+                        [ ( "defaultLanguage", E.string defaultLanguage ) ]
+                --Nothing ->
+                --    []
+               )
+        )
+
+
+encodedCoursePresentationPresentationSlidesElementsActionParams : CoursePresentationPresentationSlidesElementsActionParams -> E.Value
+encodedCoursePresentationPresentationSlidesElementsActionParams coursePresentationPresentationSlidesElementsActionParams =
+    case coursePresentationPresentationSlidesElementsActionParams of
+        TrueFalseCoursePresentationPresentationSlidesElementsActionParams trueFalse ->
+            encodedTrueFalse trueFalse
 
 
 encodedCoursePresentationPresentationSlidesSlideBackgroundSelector : CoursePresentationPresentationSlidesSlideBackgroundSelector -> E.Value
@@ -1545,14 +1596,18 @@ type alias InteractiveVideo =
 
 
 type alias InteractiveVideoInteractiveVideo =
-    { assets : InteractiveVideoInteractiveVideoAssets
+    { assets : Maybe InteractiveVideoInteractiveVideoAssets
     , summary : InteractiveVideoInteractiveVideoSummary
     , video : InteractiveVideoInteractiveVideoVideo
     }
 
 
 type alias InteractiveVideoInteractiveVideoAssets =
-    {}
+    { interaction : List InteractiveVideoInteractiveVideoAssetsInteraction }
+
+
+type InteractiveVideoInteractiveVideoAssetsInteraction
+    = InteractiveVideoInteractiveVideoAssetsInteraction
 
 
 type alias InteractiveVideoInteractiveVideoSummary =
@@ -1688,6 +1743,7 @@ type alias InteractiveVideoL10n =
     , totalTime : String
     , unmute : String
     , videoPausedAnnouncement : String
+    , videoProgressBar : String
     }
 
 
@@ -1701,215 +1757,179 @@ type alias InteractiveVideoOverride =
     }
 
 
-interactiveVideoDecoder : D.Decoder InteractiveVideo
-interactiveVideoDecoder =
-    D.map3 InteractiveVideo
-        (D.field "interactiveVideo" interactiveVideoInteractiveVideoDecoder)
-        (D.field "l10n" interactiveVideoL10nDecoder)
-        (D.field "override" interactiveVideoOverrideDecoder)
 
-
-interactiveVideoInteractiveVideoDecoder : D.Decoder InteractiveVideoInteractiveVideo
-interactiveVideoInteractiveVideoDecoder =
-    D.map3 InteractiveVideoInteractiveVideo
-        (D.field "assets" interactiveVideoInteractiveVideoAssetsDecoder)
-        (D.field "summary" interactiveVideoInteractiveVideoSummaryDecoder)
-        (D.field "video" interactiveVideoInteractiveVideoVideoDecoder)
-
-
-interactiveVideoInteractiveVideoAssetsDecoder : D.Decoder InteractiveVideoInteractiveVideoAssets
-interactiveVideoInteractiveVideoAssetsDecoder =
-    D.succeed InteractiveVideoInteractiveVideoAssets
-
-
-interactiveVideoInteractiveVideoSummaryDecoder : D.Decoder InteractiveVideoInteractiveVideoSummary
-interactiveVideoInteractiveVideoSummaryDecoder =
-    D.map2 InteractiveVideoInteractiveVideoSummary
-        (D.field "displayAt" D.int)
-        (D.field "task" interactiveVideoInteractiveVideoSummaryTaskDecoder)
-
-
-interactiveVideoInteractiveVideoSummaryTaskDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTask
-interactiveVideoInteractiveVideoSummaryTaskDecoder =
-    D.map4 InteractiveVideoInteractiveVideoSummaryTask
-        (D.field "library" D.string)
-        (D.field "metadata" interactiveVideoInteractiveVideoSummaryTaskMetadataDecoder)
-        (D.field "params" interactiveVideoInteractiveVideoSummaryTaskParamsDecoder)
-        (D.field "subContentId" D.string)
-
-
-interactiveVideoInteractiveVideoSummaryTaskMetadataDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskMetadata
-interactiveVideoInteractiveVideoSummaryTaskMetadataDecoder =
-    D.map4 InteractiveVideoInteractiveVideoSummaryTaskMetadata
-        (D.field "contentType" D.string)
-        (D.field "defaultLanguage" D.string)
-        (D.field "license" D.string)
-        (D.field "title" D.string)
-
-
-interactiveVideoInteractiveVideoSummaryTaskParamsDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskParams
-interactiveVideoInteractiveVideoSummaryTaskParamsDecoder =
-    let
-        fieldSet0 =
-            D.map8 InteractiveVideoInteractiveVideoSummaryTaskParams
-                (D.field "alternativeIncorrectLabel" D.string)
-                (D.field "intro" D.string)
-                (D.field "labelCorrect" D.string)
-                (D.field "labelCorrectAnswers" D.string)
-                (D.field "labelIncorrect" D.string)
-                (D.field "overallFeedback" <| D.list interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObjectDecoder)
-                (D.field "progressText" D.string)
-                (D.field "resultLabel" D.string)
-    in
-    D.map6 (<|)
-        fieldSet0
-        (D.field "scoreBarLabel" D.string)
-        (D.field "scoreLabel" D.string)
-        (D.field "solvedLabel" D.string)
-        (D.field "summaries" <| D.list interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObjectDecoder)
-        (D.field "tipButtonLabel" D.string)
-
-
-interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject
-interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObjectDecoder =
-    D.map2 InteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject
-        (D.field "from" D.int)
-        (D.field "to" D.int)
-
-
-interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject
-interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObjectDecoder =
-    D.map2 InteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject
-        (D.field "subContentId" D.string)
-        (D.field "tip" D.string)
-
-
-interactiveVideoInteractiveVideoVideoDecoder : D.Decoder InteractiveVideoInteractiveVideoVideo
-interactiveVideoInteractiveVideoVideoDecoder =
-    D.map3 InteractiveVideoInteractiveVideoVideo
-        (D.field "files" <| D.list interactiveVideoInteractiveVideoVideoFilesObjectDecoder)
-        (D.field "startScreenOptions" interactiveVideoInteractiveVideoVideoStartScreenOptionsDecoder)
-        (D.field "textTracks" interactiveVideoInteractiveVideoVideoTextTracksDecoder)
-
-
-interactiveVideoInteractiveVideoVideoFilesObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoFilesObject
-interactiveVideoInteractiveVideoVideoFilesObjectDecoder =
-    D.map3 InteractiveVideoInteractiveVideoVideoFilesObject
-        (D.field "copyright" interactiveVideoInteractiveVideoVideoFilesObjectCopyrightDecoder)
-        (D.field "mime" D.string)
-        (D.field "path" D.string)
-
-
-interactiveVideoInteractiveVideoVideoFilesObjectCopyrightDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoFilesObjectCopyright
-interactiveVideoInteractiveVideoVideoFilesObjectCopyrightDecoder =
-    D.map InteractiveVideoInteractiveVideoVideoFilesObjectCopyright
-        (D.field "license" D.string)
-
-
-interactiveVideoInteractiveVideoVideoStartScreenOptionsDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoStartScreenOptions
-interactiveVideoInteractiveVideoVideoStartScreenOptionsDecoder =
-    D.map2 InteractiveVideoInteractiveVideoVideoStartScreenOptions
-        (D.field "hideStartTitle" D.bool)
-        (D.field "title" D.string)
-
-
-interactiveVideoInteractiveVideoVideoTextTracksDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoTextTracks
-interactiveVideoInteractiveVideoVideoTextTracksDecoder =
-    D.map InteractiveVideoInteractiveVideoVideoTextTracks
-        (D.field "videoTrack" <| D.list interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObjectDecoder)
-
-
-interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject
-interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObjectDecoder =
-    D.map3 InteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject
-        (D.field "kind" D.string)
-        (D.field "label" D.string)
-        (D.field "srcLang" D.string)
-
-
-interactiveVideoL10nDecoder : D.Decoder InteractiveVideoL10n
-interactiveVideoL10nDecoder =
-    let
-        fieldSet0 =
-            D.map8 InteractiveVideoL10n
-                (D.field "answered" D.string)
-                (D.field "back" D.string)
-                (D.field "bookmarks" D.string)
-                (D.field "captions" D.string)
-                (D.field "close" D.string)
-                (D.field "content" D.string)
-                (D.field "continueWithVideo" D.string)
-                (D.field "currentTime" D.string)
-
-        fieldSet1 =
-            D.map8 (<|)
-                fieldSet0
-                (D.field "defaultAdaptivitySeekLabel" D.string)
-                (D.field "endCardTableRowSummaryWithScore" D.string)
-                (D.field "endCardTableRowSummaryWithoutScore" D.string)
-                (D.field "endcardAnsweredScore" D.string)
-                (D.field "endcardInformation" D.string)
-                (D.field "endcardInformationMustHaveAnswer" D.string)
-                (D.field "endcardInformationNoAnswers" D.string)
-
-        fieldSet2 =
-            D.map8 (<|)
-                fieldSet1
-                (D.field "endcardInformationOnSubmitButtonDisabled" D.string)
-                (D.field "endcardSubmitButton" D.string)
-                (D.field "endcardSubmitMessage" D.string)
-                (D.field "endcardTableRowAnswered" D.string)
-                (D.field "endcardTableRowScore" D.string)
-                (D.field "endcardTitle" D.string)
-                (D.field "endscreen" D.string)
-
-        fieldSet3 =
-            D.map8 (<|)
-                fieldSet2
-                (D.field "exitFullscreen" D.string)
-                (D.field "fullscreen" D.string)
-                (D.field "hours" D.string)
-                (D.field "interaction" D.string)
-                (D.field "minutes" D.string)
-                (D.field "more" D.string)
-                (D.field "multipleInteractionsAnnouncement" D.string)
-
-        fieldSet4 =
-            D.map8 (<|)
-                fieldSet3
-                (D.field "mute" D.string)
-                (D.field "navDisabled" D.string)
-                (D.field "pause" D.string)
-                (D.field "play" D.string)
-                (D.field "playbackRate" D.string)
-                (D.field "quality" D.string)
-                (D.field "requiresCompletionWarning" D.string)
-
-        fieldSet5 =
-            D.map8 (<|)
-                fieldSet4
-                (D.field "rewind10" D.string)
-                (D.field "seconds" D.string)
-                (D.field "singleInteractionAnnouncement" D.string)
-                (D.field "sndDisabled" D.string)
-                (D.field "summary" D.string)
-                (D.field "totalTime" D.string)
-                (D.field "unmute" D.string)
-    in
-    D.map2 (<|)
-        fieldSet5
-        (D.field "videoPausedAnnouncement" D.string)
-
-
-interactiveVideoOverrideDecoder : D.Decoder InteractiveVideoOverride
-interactiveVideoOverrideDecoder =
-    D.map6 InteractiveVideoOverride
-        (D.field "autoplay" D.bool)
-        (D.field "deactivateSound" D.bool)
-        (D.field "loop" D.bool)
-        (D.field "preventSkipping" D.bool)
-        (D.field "showBookmarksmenuOnLoad" D.bool)
-        (D.field "showRewind10" D.bool)
+--interactiveVideoDecoder : D.Decoder InteractiveVideo
+--interactiveVideoDecoder =
+--    D.map3 InteractiveVideo
+--        (D.field "interactiveVideo" interactiveVideoInteractiveVideoDecoder)
+--        (D.field "l10n" interactiveVideoL10nDecoder)
+--        (D.field "override" interactiveVideoOverrideDecoder)
+--interactiveVideoInteractiveVideoDecoder : D.Decoder InteractiveVideoInteractiveVideo
+--interactiveVideoInteractiveVideoDecoder =
+--    D.map3 InteractiveVideoInteractiveVideo
+--        (D.field "assets" interactiveVideoInteractiveVideoAssetsDecoder)
+--        (D.field "summary" interactiveVideoInteractiveVideoSummaryDecoder)
+--        (D.field "video" interactiveVideoInteractiveVideoVideoDecoder)
+--interactiveVideoInteractiveVideoAssetsDecoder : D.Decoder InteractiveVideoInteractiveVideoAssets
+--interactiveVideoInteractiveVideoAssetsDecoder =
+--    D.succeed InteractiveVideoInteractiveVideoAssets
+--interactiveVideoInteractiveVideoSummaryDecoder : D.Decoder InteractiveVideoInteractiveVideoSummary
+--interactiveVideoInteractiveVideoSummaryDecoder =
+--    D.map2 InteractiveVideoInteractiveVideoSummary
+--        (D.field "displayAt" D.int)
+--        (D.field "task" interactiveVideoInteractiveVideoSummaryTaskDecoder)
+--interactiveVideoInteractiveVideoSummaryTaskDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTask
+--interactiveVideoInteractiveVideoSummaryTaskDecoder =
+--    D.map4 InteractiveVideoInteractiveVideoSummaryTask
+--        (D.field "library" D.string)
+--        (D.field "metadata" interactiveVideoInteractiveVideoSummaryTaskMetadataDecoder)
+--        (D.field "params" interactiveVideoInteractiveVideoSummaryTaskParamsDecoder)
+--        (D.field "subContentId" D.string)
+--interactiveVideoInteractiveVideoSummaryTaskMetadataDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskMetadata
+--interactiveVideoInteractiveVideoSummaryTaskMetadataDecoder =
+--    D.map4 InteractiveVideoInteractiveVideoSummaryTaskMetadata
+--        (D.field "contentType" D.string)
+--        (D.field "defaultLanguage" D.string)
+--        (D.field "license" D.string)
+--        (D.field "title" D.string)
+--interactiveVideoInteractiveVideoSummaryTaskParamsDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskParams
+--interactiveVideoInteractiveVideoSummaryTaskParamsDecoder =
+--    let
+--        fieldSet0 =
+--            D.map8 InteractiveVideoInteractiveVideoSummaryTaskParams
+--                (D.field "alternativeIncorrectLabel" D.string)
+--                (D.field "intro" D.string)
+--                (D.field "labelCorrect" D.string)
+--                (D.field "labelCorrectAnswers" D.string)
+--                (D.field "labelIncorrect" D.string)
+--                (D.field "overallFeedback" <| D.list interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObjectDecoder)
+--                (D.field "progressText" D.string)
+--                (D.field "resultLabel" D.string)
+--    in
+--    D.map6 (<|)
+--        fieldSet0
+--        (D.field "scoreBarLabel" D.string)
+--        (D.field "scoreLabel" D.string)
+--        (D.field "solvedLabel" D.string)
+--        (D.field "summaries" <| D.list interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObjectDecoder)
+--        (D.field "tipButtonLabel" D.string)
+--interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject
+--interactiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObjectDecoder =
+--    D.map2 InteractiveVideoInteractiveVideoSummaryTaskParamsOverallFeedbackObject
+--        (D.field "from" D.int)
+--        (D.field "to" D.int)
+--interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject
+--interactiveVideoInteractiveVideoSummaryTaskParamsSummariesObjectDecoder =
+--    D.map2 InteractiveVideoInteractiveVideoSummaryTaskParamsSummariesObject
+--        (D.field "subContentId" D.string)
+--        (D.field "tip" D.string)
+--interactiveVideoInteractiveVideoVideoDecoder : D.Decoder InteractiveVideoInteractiveVideoVideo
+--interactiveVideoInteractiveVideoVideoDecoder =
+--    D.map3 InteractiveVideoInteractiveVideoVideo
+--        (D.field "files" <| D.list interactiveVideoInteractiveVideoVideoFilesObjectDecoder)
+--        (D.field "startScreenOptions" interactiveVideoInteractiveVideoVideoStartScreenOptionsDecoder)
+--        (D.field "textTracks" interactiveVideoInteractiveVideoVideoTextTracksDecoder)
+--interactiveVideoInteractiveVideoVideoFilesObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoFilesObject
+--interactiveVideoInteractiveVideoVideoFilesObjectDecoder =
+--    D.map3 InteractiveVideoInteractiveVideoVideoFilesObject
+--        (D.field "copyright" interactiveVideoInteractiveVideoVideoFilesObjectCopyrightDecoder)
+--        (D.field "mime" D.string)
+--        (D.field "path" D.string)
+--interactiveVideoInteractiveVideoVideoFilesObjectCopyrightDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoFilesObjectCopyright
+--interactiveVideoInteractiveVideoVideoFilesObjectCopyrightDecoder =
+--    D.map InteractiveVideoInteractiveVideoVideoFilesObjectCopyright
+--        (D.field "license" D.string)
+--interactiveVideoInteractiveVideoVideoStartScreenOptionsDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoStartScreenOptions
+--interactiveVideoInteractiveVideoVideoStartScreenOptionsDecoder =
+--    D.map2 InteractiveVideoInteractiveVideoVideoStartScreenOptions
+--        (D.field "hideStartTitle" D.bool)
+--        (D.field "title" D.string)
+--interactiveVideoInteractiveVideoVideoTextTracksDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoTextTracks
+--interactiveVideoInteractiveVideoVideoTextTracksDecoder =
+--    D.map InteractiveVideoInteractiveVideoVideoTextTracks
+--        (D.field "videoTrack" <| D.list interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObjectDecoder)
+--interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObjectDecoder : D.Decoder InteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject
+--interactiveVideoInteractiveVideoVideoTextTracksVideoTrackObjectDecoder =
+--    D.map3 InteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject
+--        (D.field "kind" D.string)
+--        (D.field "label" D.string)
+--        (D.field "srcLang" D.string)
+--interactiveVideoL10nDecoder : D.Decoder InteractiveVideoL10n
+--interactiveVideoL10nDecoder =
+--    let
+--        fieldSet0 =
+--            D.map8 InteractiveVideoL10n
+--                (D.field "answered" D.string)
+--                (D.field "back" D.string)
+--                (D.field "bookmarks" D.string)
+--                (D.field "captions" D.string)
+--                (D.field "close" D.string)
+--                (D.field "content" D.string)
+--                (D.field "continueWithVideo" D.string)
+--                (D.field "currentTime" D.string)
+--        fieldSet1 =
+--            D.map8 (<|)
+--                fieldSet0
+--                (D.field "defaultAdaptivitySeekLabel" D.string)
+--                (D.field "endCardTableRowSummaryWithScore" D.string)
+--                (D.field "endCardTableRowSummaryWithoutScore" D.string)
+--                (D.field "endcardAnsweredScore" D.string)
+--                (D.field "endcardInformation" D.string)
+--                (D.field "endcardInformationMustHaveAnswer" D.string)
+--                (D.field "endcardInformationNoAnswers" D.string)
+--        fieldSet2 =
+--            D.map8 (<|)
+--                fieldSet1
+--                (D.field "endcardInformationOnSubmitButtonDisabled" D.string)
+--                (D.field "endcardSubmitButton" D.string)
+--                (D.field "endcardSubmitMessage" D.string)
+--                (D.field "endcardTableRowAnswered" D.string)
+--                (D.field "endcardTableRowScore" D.string)
+--                (D.field "endcardTitle" D.string)
+--                (D.field "endscreen" D.string)
+--        fieldSet3 =
+--            D.map8 (<|)
+--                fieldSet2
+--                (D.field "exitFullscreen" D.string)
+--                (D.field "fullscreen" D.string)
+--                (D.field "hours" D.string)
+--                (D.field "interaction" D.string)
+--                (D.field "minutes" D.string)
+--                (D.field "more" D.string)
+--                (D.field "multipleInteractionsAnnouncement" D.string)
+--        fieldSet4 =
+--            D.map8 (<|)
+--                fieldSet3
+--                (D.field "mute" D.string)
+--                (D.field "navDisabled" D.string)
+--                (D.field "pause" D.string)
+--                (D.field "play" D.string)
+--                (D.field "playbackRate" D.string)
+--                (D.field "quality" D.string)
+--                (D.field "requiresCompletionWarning" D.string)
+--        fieldSet5 =
+--            D.map8 (<|)
+--                fieldSet4
+--                (D.field "rewind10" D.string)
+--                (D.field "seconds" D.string)
+--                (D.field "singleInteractionAnnouncement" D.string)
+--                (D.field "sndDisabled" D.string)
+--                (D.field "summary" D.string)
+--                (D.field "totalTime" D.string)
+--                (D.field "unmute" D.string)
+--    in
+--    D.map2 (<|)
+--        fieldSet5
+--        (D.field "videoPausedAnnouncement" D.string)
+--interactiveVideoOverrideDecoder : D.Decoder InteractiveVideoOverride
+--interactiveVideoOverrideDecoder =
+--    D.map6 InteractiveVideoOverride
+--        (D.field "autoplay" D.bool)
+--        (D.field "deactivateSound" D.bool)
+--        (D.field "loop" D.bool)
+--        (D.field "preventSkipping" D.bool)
+--        (D.field "showBookmarksmenuOnLoad" D.bool)
+--        (D.field "showRewind10" D.bool)
 
 
 encodedInteractiveVideo : InteractiveVideo -> E.Value
@@ -1923,17 +1943,29 @@ encodedInteractiveVideo interactiveVideo =
 
 encodedInteractiveVideoInteractiveVideo : InteractiveVideoInteractiveVideo -> E.Value
 encodedInteractiveVideoInteractiveVideo interactiveVideoInteractiveVideo =
-    E.object
-        [ ( "assets", encodedInteractiveVideoInteractiveVideoAssets interactiveVideoInteractiveVideo.assets )
-        , ( "summary", encodedInteractiveVideoInteractiveVideoSummary interactiveVideoInteractiveVideo.summary )
-        , ( "video", encodedInteractiveVideoInteractiveVideoVideo interactiveVideoInteractiveVideo.video )
+    E.object <|
+        [ ( "assets"
+          , case interactiveVideoInteractiveVideo.assets of
+                Just assets ->
+                    encodedInteractiveVideoInteractiveVideoAssets assets
+
+                Nothing ->
+                    E.object []
+          )
         ]
+            ++ [ ( "summary", encodedInteractiveVideoInteractiveVideoSummary interactiveVideoInteractiveVideo.summary )
+               , ( "video", encodedInteractiveVideoInteractiveVideoVideo interactiveVideoInteractiveVideo.video )
+               ]
 
 
 encodedInteractiveVideoInteractiveVideoAssets : InteractiveVideoInteractiveVideoAssets -> E.Value
 encodedInteractiveVideoInteractiveVideoAssets interactiveVideoInteractiveVideoAssets =
     E.object
-        []
+        [ ( "interaction", encodedInteractiveVideoInteractiveVideoAssetsInteraction interactiveVideoInteractiveVideoAssets.interaction ) ]
+
+
+encodedInteractiveVideoInteractiveVideoAssetsInteraction interactiveVideoInteractiveVideoAssetsInteraction =
+    E.object []
 
 
 encodedInteractiveVideoInteractiveVideoSummary : InteractiveVideoInteractiveVideoSummary -> E.Value
@@ -2169,61 +2201,50 @@ type H5pSubContext
 
 h5pParser : Int -> Parser Context Problem (Generator H5p)
 h5pParser depth =
-    succeed recorder
+    succeed identity
         |= subContextParser
             [ ( BranchingScenarioH5pSubContext, Just "BranchingScenario" )
             , ( CoursePresentationH5pSubContext, Just "CoursePresentation" )
             , ( TrueFalseH5pSubContext, Just "TrueFalse" )
             , ( InteractiveVideoH5pSubContext, Just "InteractiveVideo" )
             ]
-        |= headlineParser
-        |= blocContentParser
         |> andThen
-            (\record ->
-                case record.context of
+            (\context ->
+                case context of
                     BranchingScenarioH5pSubContext ->
                         inContext BranchingScenarioContext <|
-                            let
-                                build content =
-                                    new branchingScenarioField
-                                        |> with2 startScreenField
-                                            startScreenSubtitleField
-                                            record.headline
-                                        |> with contentField content
-                                        |> BranchingScenarioH5P
-                            in
-                            succeed (R.map build << R.map L.reverse << .content)
-                                |= branchingScenarioParser (depth + 1)
-                                    { content = R.constant []
-                                    , lastIdUsed = -1
-                                    }
+                            succeed (R.map BranchingScenarioH5P)
+                                |= branchingScenarioParser depth
 
                     CoursePresentationH5pSubContext ->
                         inContext CoursePresentationContext <|
-                            succeed
-                                (R.map CoursePresentationH5P
-                                    << coursePresentationBuilder
-                                )
-                                |= many coursePresentationParser (depth + 1)
+                            succeed (R.map CoursePresentationH5P)
+                                |= coursePresentationParser depth
 
                     TrueFalseH5pSubContext ->
                         inContext TrueFalseContext <|
-                            succeed
-                                (R.map TrueFalseH5P <|
-                                    trueFalseBuilder
-                                        record.headline
-                                        record.blocContent
-                                )
+                            succeed (R.map TrueFalseH5P)
+                                |= trueFalseParser
 
                     InteractiveVideoH5pSubContext ->
                         inContext InteractiveVideoContext <|
-                            succeed
-                                (new interactiveVideoField
-                                    |> InteractiveVideoH5p
-                                    |> R.constant
-                                )
-             --|. many interactiveVideoParser (depth + 1)
+                            succeed (R.map InteractiveVideoH5p)
+                                |= interactiveVideoParser depth
             )
+
+
+branchingScenarioParser depth =
+    succeed
+        (\title branchingScenarioState ->
+            branchingScenarioState
+                |> .content
+                |> L.reverse
+                |> REx.sequence
+                |> buildBranchingScenario title
+        )
+        |= headlineParser
+        |. blocContentParser
+        |= branchingScenarioContentParser (depth + 1) { content = [], lastIdUsed = -1 }
 
 
 type BranchingScenarioSubContext
@@ -2233,135 +2254,143 @@ type BranchingScenarioSubContext
 
 
 type alias BranchingScenarioState =
-    { content : Generator (List BranchingScenarioContent)
+    { content : List (Generator BranchingScenarioContent)
     , lastIdUsed : Int
     }
 
 
-branchingScenarioParser :
+branchingScenarioContentParser :
     Int
     -> BranchingScenarioState
     -> Parser Context Problem BranchingScenarioState
-branchingScenarioParser depth state =
+branchingScenarioContentParser depth state =
     oneOf
         [ withStars depth
-            (succeed recorder
+            (succeed identity
                 |= subContextParser
                     [ ( CoursePresentationBranchingScenarioSubContext, Just "CoursePresentation" )
                     , ( InteractiveVideoBranchingScenarioSubContext, Just "InteractiveVideo" )
-                    , -- Must be left behind !
-                      ( BranchingQuestionBranchingScenarioSubContext, Nothing )
+                    , ( BranchingQuestionBranchingScenarioSubContext, Just "BranchingQuestion" )
                     ]
-                |= headlineParser
-                |= blocContentParser
                 |> andThen
-                    (\record ->
-                        let
-                            buildContent subBuilder title contentType library subTrees =
-                                R.map2
-                                    (buildContentHelp title contentType library)
-                                    (R.map CoursePresentationBranchingScenarioContentTypeParams <|
-                                        subBuilder subTrees
-                                    )
-                                    UUID.generator
-
-                            buildContentHelp title contentType library params uuid =
-                                new contentField
-                                    |> with3 typeField metadataField titleField title
-                                    |> with3 typeField metadataField contentTypeField contentType
-                                    |> with2 typeField libraryField library
-                                    |> with2 typeField paramsField params
-                                    |> with2 typeField subContentIdField (UUID.toString uuid)
-                                    |> with nextContentIdField (Just (state.lastIdUsed + 2))
-                        in
-                        case record.context of
+                    (\context ->
+                        case context of
                             BranchingQuestionBranchingScenarioSubContext ->
                                 inContext BranchingQuestionContext <|
-                                    (succeed
-                                        (\subState ->
-                                            { state
-                                                | content =
-                                                    R.map2 (++)
-                                                        subState.content
-                                                        state.content
-                                                , lastIdUsed = subState.lastIdUsed
-                                            }
-                                        )
-                                        |= branchingQuestionParser (depth + 1)
-                                            { alternatives = []
-                                            , content = R.constant []
-                                            , lastIdUsed = state.lastIdUsed + 1
-                                            , question = record.headline
-                                            }
-                                        |> andThen (branchingScenarioParser depth)
-                                    )
+                                    branchingQuestionParser depth state
 
                             CoursePresentationBranchingScenarioSubContext ->
-                                inContext CoursePresentationContext <|
+                                inContext CoursePresentationContext
                                     (succeed
-                                        (\slides ->
+                                        (\coursePresentation ->
                                             let
                                                 newContent =
-                                                    buildContent
-                                                        coursePresentationBuilder
-                                                        record.headline
+                                                    buildBranchingScenarioContent
                                                         "Course Presentation"
                                                         "H5P.CoursePresentation 1.24"
-                                                        slides
+                                                        (Just (state.lastIdUsed + 2))
+                                                        (coursePresentation
+                                                            --|> R.map
+                                                            --    (with2 presentationField slidesField <|
+                                                            --        L.map
+                                                            --            (with elementsField <|
+                                                            --                L.map (with3 actionField metadataField defaultLanguageField "fr")
+                                                            --            )
+                                                            --    )
+                                                            |> R.map CoursePresentationBranchingScenarioContentTypeParams
+                                                        )
                                             in
                                             { state
                                                 | content =
-                                                    R.map2 (::)
-                                                        newContent
-                                                        state.content
+                                                    newContent :: state.content
                                                 , lastIdUsed = state.lastIdUsed + 1
                                             }
                                         )
-                                        |= many coursePresentationParser (depth + 1)
-                                        |> andThen (branchingScenarioParser depth)
+                                        |= coursePresentationParser depth
+                                        |> andThen (branchingScenarioContentParser depth)
                                     )
 
                             InteractiveVideoBranchingScenarioSubContext ->
-                                inContext InteractiveVideoContext <|
-                                    succeed
-                                        { state
-                                            | lastIdUsed = state.lastIdUsed + 1
-                                        }
+                                inContext InteractiveVideoContext
+                                    (succeed
+                                        (\interactiveVideo ->
+                                            let
+                                                newContent =
+                                                    buildBranchingScenarioContent
+                                                        "Interactive Video"
+                                                        "H5P.InteractiveVideo 1.24"
+                                                        (Just (state.lastIdUsed + 2))
+                                                        (R.map InteractiveVideoBranchingScenarioContentTypeParams
+                                                            interactiveVideo
+                                                        )
+                                            in
+                                            { state
+                                                | content =
+                                                    newContent :: state.content
+                                                , lastIdUsed = state.lastIdUsed + 1
+                                            }
+                                        )
+                                        |= interactiveVideoParser depth
+                                        |> andThen (branchingScenarioContentParser depth)
+                                    )
                     )
             )
-        , let
-            changeLastId contentList =
-                case contentList of
-                    c :: cc ->
-                        c
-                            |> with nextContentIdField (Just -1)
-                            |> (\x -> x :: cc)
-
-                    [] ->
-                        contentList
-          in
-          succeed
+        , succeed
             { state
                 | content =
-                    state.content
-                        |> R.map changeLastId
+                    case state.content of
+                        c :: cc ->
+                            c
+                                |> R.map (with nextContentIdField (Just -1))
+                                |> (\x -> x :: cc)
+
+                        [] ->
+                            state.content
             }
         ]
 
 
+branchingQuestionParser :
+    Int
+    -> BranchingScenarioState
+    -> Parser Context Problem BranchingScenarioState
+branchingQuestionParser depth state =
+    succeed identity
+        |= headlineParser
+        |. blocContentParser
+        |> andThen
+            (\question ->
+                succeed
+                    (\subState ->
+                        { state
+                            | content =
+                                subState.content ++ state.content
+                            , lastIdUsed = subState.lastIdUsed
+                        }
+                    )
+                    |= branchingQuestionAlternativeParser (depth + 1)
+                        { alternatives = []
+                        , content = []
+                        , lastIdUsed = state.lastIdUsed + 1
+                        , question = question
+                        }
+                    |> andThen (branchingScenarioContentParser depth)
+            )
+
+
 type alias BranchingQuestionState =
     { alternatives : List BranchingQuestionAlternatives
-    , content : Generator (List BranchingScenarioContent)
+    , content : List (Generator BranchingScenarioContent)
     , lastIdUsed : Int
     , question : String
     }
 
 
-branchingQuestionParser :
+branchingQuestionAlternativeParser :
     Int
     -> BranchingQuestionState
     -> Parser Context Problem BranchingScenarioState
-branchingQuestionParser depth state =
+branchingQuestionAlternativeParser depth state =
     oneOf
         [ withStars depth <|
             inContext BranchingQuestionAlternativeContext <|
@@ -2370,19 +2399,24 @@ branchingQuestionParser depth state =
                     |. blocContentParser
                     |> andThen
                         (\alternative ->
-                            branchingScenarioParser (depth + 1)
+                            branchingScenarioContentParser (depth + 1)
                                 { content = state.content
                                 , lastIdUsed = state.lastIdUsed
                                 }
                                 |> andThen
                                     (\content ->
-                                        branchingQuestionParser depth
+                                        branchingQuestionAlternativeParser depth
                                             { state
                                                 | alternatives =
-                                                    (new alternativesField
-                                                        |> with nextContentIdField (state.lastIdUsed + 1)
-                                                        |> with textField alternative
-                                                    )
+                                                    buildBranchingQuestionAlternative
+                                                        alternative
+                                                        (case content.content of
+                                                            [] ->
+                                                                -1
+
+                                                            _ ->
+                                                                state.lastIdUsed + 1
+                                                        )
                                                         :: state.alternatives
                                                 , content = content.content
                                                 , lastIdUsed = content.lastIdUsed
@@ -2392,60 +2426,85 @@ branchingQuestionParser depth state =
                 )
         , let
             branchingQuestion =
-                R.map branchingQuestionHelp UUID.generator
-
-            branchingQuestionHelp uuid =
-                L.singleton
-                    (new contentField
-                        |> with3 typeField metadataField titleField ""
-                        |> with3 typeField metadataField contentTypeField "Branching Question"
-                        |> with2 typeField libraryField "H5P.BranchingQuestion 1.0"
-                        |> with2 typeField paramsField params
-                        |> with2 typeField subContentIdField (UUID.toString uuid)
-                    )
+                buildBranchingScenarioContent
+                    "Branching Question"
+                    "H5P.BranchingQuestion 1.0"
+                    Nothing
+                    params
 
             params =
-                BranchingQuestionBranchingScenarioContentTypeParams
-                    { alternatives = L.reverse state.alternatives
-                    , question = state.question
-                    }
-
-            content =
-                R.map2 (++) state.content branchingQuestion
+                R.constant <|
+                    BranchingQuestionBranchingScenarioContentTypeParams
+                        { alternatives = L.reverse state.alternatives
+                        , question = state.question
+                        }
           in
           succeed
-            { content = content
+            { content = state.content ++ [ branchingQuestion ]
             , lastIdUsed = state.lastIdUsed
             }
         ]
 
 
-type CoursePresentationSubContext
-    = TrueFalseCoursePresentationSubContext
-
-
-coursePresentationParser : Int -> Parser Context Problem (Generator TrueFalse)
 coursePresentationParser depth =
-    succeed recorder
+    succeed buildCoursePresentation
+        |. headlineParser
+        |. blocContentParser
+        |= many coursePresentationSlideParser (depth + 1)
+
+
+coursePresentationSlideParser depth =
+    succeed buildSlide
+        |. headlineParser
+        |. blocContentParser
+        |= many coursePresentationSlideElementParser (depth + 1)
+
+
+type CoursePresentationSlideElementSubContext
+    = TrueFalseCoursePresentationSlideElementSubContext
+
+
+coursePresentationSlideElementParser : Int -> Parser Context Problem (Generator CoursePresentationPresentationSlidesElements)
+coursePresentationSlideElementParser depth =
+    succeed identity
         |= subContextParser
-            [ ( TrueFalseCoursePresentationSubContext, Just "TrueFalse" )
+            [ ( TrueFalseCoursePresentationSlideElementSubContext, Just "TrueFalse" )
             ]
-        |= headlineParser
-        |= blocContentParser
         |> andThen
-            (\record ->
-                case record.context of
-                    TrueFalseCoursePresentationSubContext ->
+            (\context ->
+                case context of
+                    TrueFalseCoursePresentationSlideElementSubContext ->
                         inContext TrueFalseContext <|
-                            succeed <|
-                                R.constant <|
-                                    new trueFalseField
+                            succeed
+                                (\trueFalse ->
+                                    buildSlideElement
+                                        "Quizz"
+                                        "True/False Question"
+                                        "H5P.TrueFalse 1.8"
+                                        (R.map
+                                            TrueFalseCoursePresentationPresentationSlidesElementsActionParams
+                                            trueFalse
+                                        )
+                                )
+                                |= trueFalseParser
             )
 
 
+trueFalseParser =
+    succeed (\proposition -> buildTrueFalse proposition True Nothing Nothing)
+        |= headlineParser
+        |. blocContentParser
+
+
 interactiveVideoParser depth =
-    --todo
-    succeed (trueFalseBuilder "record.headline" "record.blocContent")
+    succeed buildInteractiveVideo
+        |= headlineParser
+        |= blocContentParser
+
+
+
+--|. many interactiveVideoParser (depth + 1)
+--interactiveVideoParser depth =
 
 
 many blocParser depth =
@@ -2508,7 +2567,12 @@ subContextParser subContexts =
 
 
 headlineParser =
-    getChompedString <| chompWhile ((/=) '\n')
+    succeed identity
+        |= (getChompedString <| chompWhile ((/=) '\n'))
+        |. oneOf
+            [ token (Token "\n" <| Missing "Retour à la ligne")
+            , succeed ()
+            ]
 
 
 blocContentParser =
@@ -2557,16 +2621,399 @@ blocContentParser =
 -}
 
 
-coursePresentationBuilder trees =
-    R.constant <| new coursePresentationField
+buildBranchingScenario title content =
+    R.map (buildBranchingScenarioHelp title) content
 
 
-trueFalseBuilder question correction =
-    R.constant <| new trueFalseField
+buildBranchingScenarioHelp title content =
+    { endScreens =
+        [ { endScreenTitle = "Fin du parcours personnalisé"
+          , endScreenSubtitle = "Fin du parcours personnalisé"
+          , contentId = -1
+          , endScreenScore = 0
+          }
+        ]
+    , scoringOptionGroup =
+        { scoringOption = "no-score"
+        , includeInteractionsScores = True
+        }
+    , startScreen =
+        { startScreenTitle = "<p>Parcours personnalisé</p>\n"
+        , startScreenSubtitle =
+            case title of
+                "" ->
+                    "<p>Préparez vos méninges !</p>\n"
+
+                _ ->
+                    title
+        }
+    , behaviour =
+        { enableBackwardsNavigation = True
+        , forceContentFinished = False
+        }
+    , l10n =
+        { startScreenButtonText = "Commencer le parcours"
+        , endScreenButtonText = "Recommencer le parcours"
+        , backButtonText = "Revenir en arrière"
+        , proceedButtonText = "Continuer"
+        , disableProceedButtonText = "Jouer la vidéo de nouveau"
+        , replayButtonText = "Votre note :"
+        , scoreText = "Votre note :"
+        , fullscreenAria = "Plein écran"
+        }
+    , content = content
+    }
 
 
-interactiveVideoBuilder link x =
-    R.constant <| ()
+buildBranchingScenarioContent contentType library nextContentId params =
+    R.map2
+        (buildBranchingScenarioContentHelp contentType library nextContentId)
+        params
+        UUID.generator
+
+
+buildBranchingScenarioContentHelp contentType library nextContentId params uuid =
+    { contentBehaviour = "useBehavioural"
+    , feedback = { subtitle = "" }
+    , forceContentFinished = "useBehavioural"
+    , showContentTitle = False
+    , nextContentId = Nothing
+    , type_ =
+        { library = ""
+        , params = params
+        , subContentId = ""
+        , metadata =
+            { license = "U"
+            , title = ""
+            , contentType = ""
+            }
+        }
+    }
+        --|> with3 typeField metadataField titleField title
+        |> with3 typeField metadataField contentTypeField contentType
+        |> with2 typeField libraryField library
+        |> with2 typeField subContentIdField (UUID.toString uuid)
+        |> with nextContentIdField nextContentId
+
+
+buildBranchingQuestionAlternative alternative nextContentId =
+    { nextContentId = nextContentId
+    , feedback =
+        { title = ""
+        , subtitle = ""
+        }
+    , text = alternative
+    }
+
+
+buildCoursePresentation slides =
+    R.map buildCoursePresentationHelp <| REx.sequence slides
+
+
+buildCoursePresentationHelp slides =
+    { l10n =
+        { accessibilityCanvasLabel = "Le champs de présentation. Utilisez les fleches gauche et droite pour naviguer entre les diapositives."
+        , accessibilityEnteredFullscreen = "Mode plein-écran activé"
+        , accessibilityExitedFullscreen = "Mode plein-écran désactivé"
+        , accessibilitySlideNavigationExplanation = "Utilisez les fleches gauche et droite pour pour naviguer entre les diapositives"
+        , accessibilityTotalScore = "Vous avez obtenu @score sur @maxScore points au total"
+        , confirmDialogConfirmText = "Envoyer et voir les résultats"
+        , confirmDialogHeader = "Envoyer vos réponses"
+        , confirmDialogText = "Cette action va envoyer vos réponses, voulez-vous continuer?"
+        , containsCompleted = "@slideName contient des interactions complètes"
+        , containsIncorrectAnswers = "@slideName contient des réponses incorrectes"
+        , containsNotCompleted = "@slideName contient des interactions incomplètes"
+        , containsOnlyCorrect = "toutes les réponses sont bonnes sur @slideName"
+        , currentSlide = "Diapositive courante"
+        , exitFullscreen = "Quitter le plein écran"
+        , exportAnswers = "Exporter"
+        , fullscreen = "Plein écran"
+        , hideKeywords = "Cacher la liste des mots-clés"
+        , lastSlide = "Dernière diapositive"
+        , maxScore = "Score maximum"
+        , nextSlide = "Diapositive suivante"
+        , noTitle = "Sans intitulé"
+        , prevSlide = "Diapositive précédente"
+        , printAllSlides = "Imprimer toutes les diapositives"
+        , printCurrentSlide = "Imprimer la diapositive courante"
+        , printIngress = "Comment souhaitez-vous imprimer cette présentation ?"
+        , printTitle = "Imprimer"
+        , retry = "Recommencer"
+        , score = "Score"
+        , scoreMessage = "Votre score :"
+        , shareFacebook = "Partager sur Facebook"
+        , shareGoogle = "Partager sur Google+"
+        , shareResult = "Partager le résultat"
+        , shareTwitter = "Partager sur Twitter"
+        , showKeywords = "Afficher la liste des mots-clés"
+        , showSolutions = "Voir la correction"
+        , slide = "Diapositive"
+        , slideCount = "Diapositive a @index de @total"
+        , solutionModeText = "Passer en mode &quot;Correction&quot;"
+        , solutionModeTitle = "Sortir du mode &quot;Correction&quot;"
+        , solutionsButtonTitle = "Afficher les commentaires"
+        , summary = "Résumé"
+        , summaryMultipleTaskText = "Activités multiples"
+        , total = "Total"
+        , totalScore = "Score total"
+        , yourScore = "Votre score"
+        }
+    , override =
+        { activeSurface = False
+        , enablePrintButton = False
+        , hideSummarySlide = False
+        , social =
+            { facebookShare =
+                { quote = "I scored @score out of @maxScore on a task at @currentpageurl."
+                , url = "@currentpageurl"
+                }
+            , googleShareUrl = "@currentpageurl"
+            , showFacebookShare = False
+            , showGoogleShare = False
+            , showTwitterShare = False
+            , twitterShare =
+                { hashtags = "h5p, course"
+                , statement = "I scored @score out of @maxScore on a task at @currentpageurl."
+                , url = "@currentpageurl"
+                }
+            }
+        , summarySlideRetryButton = True
+        , summarySlideSolutionButton = True
+        }
+    , presentation =
+        { globalBackgroundSelector = { fillGlobalBackground = "" }
+        , keywordListAlwaysShow = False
+        , keywordListAutoHide = False
+        , keywordListEnabled = True
+        , keywordListOpacity = 90
+        , slides = slides
+        }
+    }
+
+
+buildSlide elements =
+    R.map buildSlideHelp <| REx.sequence <| elements
+
+
+buildSlideHelp elements =
+    { elements = elements
+    , slideBackgroundSelector =
+        { fillSlideBackground = ""
+        }
+    }
+
+
+buildSlideElement title contentType library params =
+    R.map2
+        (buildSlideElementHelp title contentType library)
+        params
+        (R.map UUID.toString UUID.generator)
+
+
+buildSlideElementHelp title contentType library params uuid =
+    { x = 5
+    , y = 10
+    , width = 90
+    , height = 80
+    , action =
+        { library = library
+        , params = params
+        , subContentId = uuid
+        , metadata =
+            { contentType = contentType
+            , defaultLanguage = "fr" --Nothing
+            , license = "U"
+            , title = title
+            }
+        }
+    , alwaysDisplayComments = False
+    , backgroundOpacity = 0
+    , displayAsButton = False
+    , buttonSize = "big"
+    , goToSlideType = "specified"
+    , invisible = False
+    , solution = ""
+    }
+
+
+buildTrueFalse question truthValue feedbackOnCorrect feedbackOnWrong =
+    R.constant <|
+        { behaviour =
+            { autoCheck = True
+            , confirmCheckDialog = False
+            , confirmRetryDialog = False
+            , enableCheckButton = True
+            , enableRetry = True
+            , enableSolutionsButton = True
+            , feedbackOnCorrect = feedbackOnCorrect
+            , feedbackOnWrong = feedbackOnWrong
+            }
+        , confirmCheck =
+            { body = "Êtes-vous sûr de vouloir terminer ?"
+            , cancelLabel = "Annuler"
+            , confirmLabel = "Confirmer"
+            , header = "Terminer ?"
+            }
+        , confirmRetry =
+            { body = "Êtes-vous sûr de vouloir recommencer ?"
+            , cancelLabel = "Annuler"
+            , confirmLabel = "Confirmer"
+            , header = "Recommencer ?"
+            }
+        , correct =
+            case truthValue of
+                True ->
+                    "true"
+
+                False ->
+                    "false"
+        , l10n =
+            { a11yCheck = "Check the answers. The responses will be marked as correct, incorrect, or unanswered."
+            , a11yRetry = "Retry the task. Reset all responses and start the task over again."
+            , a11yShowSolution = "Show the solution. The task will be marked with its correct solution."
+            , checkAnswer = "Vérifier"
+            , correctAnswerMessage = "Bonne réponse"
+            , falseText = "Faux"
+            , score = "Vous avez obtenu @score points sur un total de @total"
+            , scoreBarLabel = "Vous avez obtenu @score points sur un total de @total"
+            , showSolutionButton = "Voir la solution"
+            , submitAnswer = "Vérifier"
+            , trueText = "Vrai"
+            , tryAgain = "Recommencer"
+            , wrongAnswerMessage = "Réponse incorrecte"
+            }
+        , media = { disableImageZooming = False }
+        , question = question
+        }
+
+
+buildInteractiveVideo title link =
+    let
+        uuid =
+            R.map UUID.toString UUID.generator
+    in
+    R.map2 (buildInteractiveVideoHelp title link) uuid uuid
+
+
+buildInteractiveVideoHelp title link uuid1 uuid2 =
+    { interactiveVideo =
+        { assets = Nothing
+        , summary =
+            { displayAt = 3
+            , task =
+                { library =
+                    "H5P.Summary 1.10"
+                , metadata =
+                    { contentType = "Summary"
+                    , defaultLanguage = "fr"
+                    , license = "U"
+                    , title = "Untitled Summary"
+                    }
+                , params =
+                    { alternativeIncorrectLabel = "Incorrect"
+                    , intro = "Choose the correct statement."
+                    , labelCorrect = "Correct."
+                    , labelCorrectAnswers = "Réponses correctes."
+                    , labelIncorrect = "Incorrect! Please try again."
+                    , overallFeedback =
+                        [ { from = 0
+                          , to = 100
+                          }
+                        ]
+                    , progressText = "Progression de :num sur :total"
+                    , resultLabel = "Votre résultat :"
+                    , scoreBarLabel = "Vous avez :num points sur un total de :total"
+                    , scoreLabel = "Erreurs :"
+                    , solvedLabel = "Progression :"
+                    , summaries =
+                        [ { subContentId = uuid1
+                          , tip = ""
+                          }
+                        ]
+                    , tipButtonLabel = "Montrer l&#039;indice"
+                    }
+                , subContentId = uuid2
+                }
+            }
+        , video =
+            { files =
+                [ { copyright =
+                        { license = "U"
+                        }
+                  , mime = "video/YouTube"
+                  , path = link
+                  }
+                ]
+            , startScreenOptions =
+                { hideStartTitle = False
+                , title = title
+                }
+            , textTracks =
+                { videoTrack =
+                    [ { kind = "subtitles"
+                      , label = "Subtitles"
+                      , srcLang = "fr"
+                      }
+                    ]
+                }
+            }
+        }
+    , l10n =
+        { answered = "@answered réponses données"
+        , back = "Retour"
+        , bookmarks = "Signets"
+        , captions = "Sous-titres"
+        , close = "Fermer"
+        , content = "Contenu"
+        , continueWithVideo = "Reprendre la lecture"
+        , currentTime = "Durée actuelle :"
+        , defaultAdaptivitySeekLabel = "Continue"
+        , endCardTableRowSummaryWithScore = "Vous avez obtenu de @score sur un total de @points pour la question @question qui apparaissait à @minutes minutes et @secondes secondes."
+        , endCardTableRowSummaryWithoutScore = "Vous avez répondu aux @question qui sont apparues après @minutes minutes et @seconds secondes."
+        , endcardAnsweredScore = "Réponses"
+        , endcardInformation = "Vous avez répondu à @answered questions."
+        , endcardInformationMustHaveAnswer = "Vous devez répondre à au moins une question avant de pouvoir soumettre vos réponses."
+        , endcardInformationNoAnswers = "Vous n&#039;avez répondu à aucune question."
+        , endcardInformationOnSubmitButtonDisabled = "Vous avez répondu à @answered questions. Cliquez ci-dessous pour les remettre."
+        , endcardSubmitButton = "Remettre vos réponses"
+        , endcardSubmitMessage = "Vos réponses ont été remises !"
+        , endcardTableRowAnswered = "Questions auxquelles vous avez répondu"
+        , endcardTableRowScore = "Score"
+        , endcardTitle = "@answered question(s) auxquelles vous avez répondu"
+        , endscreen = "Continuer"
+        , exitFullscreen = "Sortir du plein écran"
+        , fullscreen = "Plein écran"
+        , hours = "Heures"
+        , interaction = "Activité"
+        , minutes = "Minutes"
+        , more = "More player options"
+        , multipleInteractionsAnnouncement = "De multiples interactions sont apparues."
+        , mute = "Sourdine, présentement le son est activé."
+        , navDisabled = "La navigation est désactivée"
+        , pause = "Pause"
+        , play = "Jouer"
+        , playbackRate = "Vitesse de lecture"
+        , quality = "Qualité de la vidéo"
+        , requiresCompletionWarning = "Vous devez répondre correctement à toutes les questions avant de continuer."
+        , rewind10 = "Revenir en arrière de 10 secondes"
+        , seconds = "Secondes"
+        , singleInteractionAnnouncement = "Une interaction est apparue."
+        , sndDisabled = "Le son est désactivé"
+        , summary = "Résumé"
+        , totalTime = "Temps total :"
+        , unmute = "Activer le son, présentement en sourdine."
+        , videoPausedAnnouncement = "La vidéo est en pause."
+        , videoProgressBar = "Progression vidéo"
+        }
+    , override =
+        { autoplay = False
+        , deactivateSound = False
+        , loop = False
+        , preventSkipping = False
+        , showBookmarksmenuOnLoad = False
+        , showRewind10 = False
+        }
+    }
 
 
 
@@ -2621,6 +3068,16 @@ with4 field subField subSubField subSubSubField value record =
         |> with field subRecord
 
 
+with5 field subField subSubField subSubSubField subSubSubSubField value record =
+    let
+        subRecord =
+            map field record
+                |> with4 subField subSubField subSubSubField subSubSubSubField value
+    in
+    record
+        |> with field subRecord
+
+
 fieldConstructor nameField =
     nameField
         ++ "Field={with=\\value record->{record|"
@@ -2656,29 +3113,60 @@ startScreenSubtitleField =
 contentField =
     { with = \value record -> { record | content = value }
     , accessor = .content
-    , default =
-        { contentBehaviour = "useBehavioural"
-        , feedback = { subtitle = "" }
-        , forceContentFinished = "useBehavioural"
-        , showContentTitle = False
-        , nextContentId = Nothing
-        , type_ =
-            { library = ""
-            , params = UnknownBranchingScenarioContentTypeParams
-            , subContentId = ""
-            , metadata =
-                { license = "U"
-                , title = ""
-                , contentType = ""
-                }
-            }
-        }
     }
 
 
 typeField =
     { with = \value record -> { record | type_ = value }
     , accessor = .type_
+    }
+
+
+interactiveVideoField =
+    { with = \value record -> { record | summary = value }
+    , accessor = .summary
+    }
+
+
+taskField =
+    { with = \value record -> { record | task = value }
+    , accessor = .task
+    }
+
+
+presentationField =
+    { with = \value record -> { record | presentation = value }
+    , accessor = .presentation
+    }
+
+
+slidesField =
+    { with = \value record -> { record | slides = value }
+    , accessor = .slides
+    }
+
+
+elementsField =
+    { with = \value record -> { record | elements = value }
+    , accessor = .elements
+    }
+
+
+actionField =
+    { with = \value record -> { record | action = value }
+    , accessor = .action
+    }
+
+
+defaultLanguageField =
+    { with = \value record -> { record | defaultLanguage = value }
+    , accessor = .defaultLanguage
+    }
+
+
+summaryField =
+    { with = \value record -> { record | interactiveVideo = value }
+    , accessor = .interactiveVideo
     }
 
 
@@ -2713,10 +3201,6 @@ paramsField =
 branchingQuestionField =
     { with = \value record -> { record | branchingQuestion = value }
     , accessor = .branchingQuestion
-    , default =
-        { alternatives = []
-        , question = ""
-        }
     }
 
 
@@ -2741,385 +3225,6 @@ questionField =
 alternativesField =
     { with = \value record -> { record | alternatives = value }
     , accessor = .alternatives
-    , default =
-        { nextContentId = -1
-        , feedback =
-            { title = ""
-            , subtitle = ""
-            }
-        , text = ""
-        }
-    }
-
-
-branchingScenarioField =
-    { default =
-        { endScreens =
-            [ { endScreenTitle = "Fin du parcours personnalisé"
-              , endScreenSubtitle = "Fin du parcours personnalisé"
-              , contentId = -1
-              , endScreenScore = 0
-              }
-            ]
-        , scoringOptionGroup =
-            { scoringOption = "no-score"
-            , includeInteractionsScores = True
-            }
-        , startScreen =
-            { startScreenTitle = "<p>Parcours personnalisé</p>\n"
-            , startScreenSubtitle = "<p>Préparez bien vos méninges !</p>\n"
-            }
-        , behaviour =
-            { enableBackwardsNavigation = True
-            , forceContentFinished = False
-            }
-        , l10n =
-            { startScreenButtonText = "Commencer le parcours"
-            , endScreenButtonText = "Recommencer le parcours"
-            , backButtonText = "Revenir en arrière"
-            , proceedButtonText = "Continuer"
-            , disableProceedButtonText = "Jouer la vidéo de nouveau"
-            , replayButtonText = "Votre note :"
-            , scoreText = "Votre note :"
-            , fullscreenAria = "Plein écran"
-            }
-        , content = []
-        }
-    }
-
-
-coursePresentationField =
-    { default =
-        { l10n =
-            { accessibilityCanvasLabel = "Le champs de présentation. Utilisez les fleches gauche et droite pour naviguer entre les diapositives."
-            , accessibilityEnteredFullscreen = "Mode plein-écran activé"
-            , accessibilityExitedFullscreen = "Mode plein-écran désactivé"
-            , accessibilitySlideNavigationExplanation = "Utilisez les fleches gauche et droite pour pour naviguer entre les diapositives"
-            , accessibilityTotalScore = "Vous avez obtenu @score sur @maxScore points au total"
-            , confirmDialogConfirmText = "Envoyer et voir les résultats"
-            , confirmDialogHeader = "Envoyer vos réponses"
-            , confirmDialogText = "Cette action va envoyer vos réponses, voulez-vous continuer?"
-            , containsCompleted = "@slideName contient des interactions complètes"
-            , containsIncorrectAnswers = "@slideName contient des réponses incorrectes"
-            , containsNotCompleted = "@slideName contient des interactions incomplètes"
-            , containsOnlyCorrect = "toutes les réponses sont bonnes sur @slideName"
-            , currentSlide = "Diapositive courante"
-            , exitFullscreen = "Quitter le plein écran"
-            , exportAnswers = "Exporter"
-            , fullscreen = "Plein écran"
-            , hideKeywords = "Cacher la liste des mots-clés"
-            , lastSlide = "Dernière diapositive"
-            , maxScore = "Score maximum"
-            , nextSlide = "Diapositive suivante"
-            , noTitle = "Sans intitulé"
-            , prevSlide = "Diapositive précédente"
-            , printAllSlides = "Imprimer toutes les diapositives"
-            , printCurrentSlide = "Imprimer la diapositive courante"
-            , printIngress = "Comment souhaitez-vous imprimer cette présentation ?"
-            , printTitle = "Imprimer"
-            , retry = "Recommencer"
-            , score = "Score"
-            , scoreMessage = "Votre score :"
-            , shareFacebook = "Partager sur Facebook"
-            , shareGoogle = "Partager sur Google+"
-            , shareResult = "Partager le résultat"
-            , shareTwitter = "Partager sur Twitter"
-            , showKeywords = "Afficher la liste des mots-clés"
-            , showSolutions = "Voir la correction"
-            , slide = "Diapositive"
-            , slideCount = "Diapositive a @index de @total"
-            , solutionModeText = "Passer en mode &quot;Correction&quot;"
-            , solutionModeTitle = "Sortir du mode &quot;Correction&quot;"
-            , solutionsButtonTitle = "Afficher les commentaires"
-            , summary = "Résumé"
-            , summaryMultipleTaskText = "Activités multiples"
-            , total = "Total"
-            , totalScore = "Score total"
-            , yourScore = "Votre score"
-            }
-        , override =
-            { activeSurface = False
-            , enablePrintButton = False
-            , hideSummarySlide = False
-            , social =
-                { facebookShare =
-                    { quote = "I scored @score out of @maxScore on a task at @currentpageurl."
-                    , url = "@currentpageurl"
-                    }
-                , googleShareUrl = "@currentpageurl"
-                , showFacebookShare = False
-                , showGoogleShare = False
-                , showTwitterShare = False
-                , twitterShare =
-                    { hashtags = "h5p, course"
-                    , statement = "I scored @score out of @maxScore on a task at @currentpageurl."
-                    , url = "@currentpageurl"
-                    }
-                }
-            , summarySlideRetryButton = True
-            , summarySlideSolutionButton = True
-            }
-        , presentation =
-            { globalBackgroundSelector = { fillGlobalBackground = "" }
-            , keywordListAlwaysShow = False
-            , keywordListAutoHide = False
-            , keywordListEnabled = True
-            , keywordListOpacity = 90
-            , slides =
-                [ { elements = []
-                  , slideBackgroundSelector = { fillSlideBackground = "" }
-                  }
-                ]
-            }
-        }
-    }
-
-
-trueFalseField =
-    { default =
-        { behaviour =
-            { autoCheck = True
-            , confirmCheckDialog = False
-            , confirmRetryDialog = False
-            , enableCheckButton = True
-            , enableRetry = True
-            , enableSolutionsButton = True
-            , feedbackOnCorrect = Just "C&#039;est la base !\n"
-            , feedbackOnWrong = Nothing
-            }
-        , confirmCheck =
-            { body = "Êtes-vous sûr de vouloir terminer ?"
-            , cancelLabel = "Annuler"
-            , confirmLabel = "Confirmer"
-            , header = "Terminer ?"
-            }
-        , confirmRetry =
-            { body = "Êtes-vous sûr de vouloir recommencer ?"
-            , cancelLabel = "Annuler"
-            , confirmLabel = "Confirmer"
-            , header = "Recommencer ?"
-            }
-        , correct = "true"
-        , l10n =
-            { a11yCheck = "Check the answers. The responses will be marked as correct, incorrect, or unanswered."
-            , a11yRetry = "Retry the task. Reset all responses and start the task over again."
-            , a11yShowSolution = "Show the solution. The task will be marked with its correct solution."
-            , checkAnswer = "Vérifier"
-            , correctAnswerMessage = "Bonne réponse"
-            , falseText = "Faux"
-            , score = "Vous avez obtenu @score points sur un total de @total"
-            , scoreBarLabel = "Vous avez obtenu @score points sur un total de @total"
-            , showSolutionButton = "Voir la solution"
-            , submitAnswer = "Vérifier"
-            , trueText = "Vrai"
-            , tryAgain = "Recommencer"
-            , wrongAnswerMessage = "Réponse incorrecte"
-            }
-        , media = { disableImageZooming = False }
-        , question = ""
-        }
-    }
-
-
-elementField =
-    { default =
-        { x = 5
-        , y = 10
-        , width = 90
-        , height = 80
-        , action =
-            { library = "H5P.TrueFalse 1.8"
-            , params =
-                { media =
-                    { disableImageZooming = False
-                    }
-                , correct = "true"
-                , behaviour =
-                    { enableRetry = True
-                    , enableSolutionsButton = True
-                    , enableCheckButton = True
-                    , confirmCheckDialog = False
-                    , confirmRetryDialog = False
-                    , autoCheck = True
-                    , feedbackOnCorrect = "C&#039;est la base !"
-                    }
-                , l10n =
-                    { trueText = "Vrai"
-                    , falseText = "Faux"
-                    , score = "Vous avez obtenu @score points sur un total de @total"
-                    , checkAnswer = "Vérifier"
-                    , submitAnswer = "Vérifier"
-                    , showSolutionButton = "Voir la solution"
-                    , tryAgain = "Recommencer"
-                    , wrongAnswerMessage = "Réponse incorrecte"
-                    , correctAnswerMessage = "Bonne réponse"
-                    , scoreBarLabel = "Vous avez obtenu @score points sur un total de @total"
-                    , a11yCheck = "Check the answers. The responses will be marked as correct, incorrect, or unanswered."
-                    , a11yShowSolution = "Show the solution. The task will be marked with its correct solution."
-                    , a11yRetry = "Retry the task. Reset all responses and start the task over again."
-                    }
-                , confirmCheck =
-                    { header = "Terminer ?"
-                    , body = "Êtes-vous sûr de vouloir terminer ?"
-                    , cancelLabel = "Annuler"
-                    , confirmLabel = "Confirmer"
-                    }
-                , confirmRetry =
-                    { header = "Recommencer ?"
-                    , body = "Êtes-vous sûr de vouloir recommencer ?"
-                    , cancelLabel = "Annuler"
-                    , confirmLabel = "Confirmer"
-                    }
-                , question = "<p>Est-ce que \\(2+2=4\\) ?</p>\n"
-                }
-            , subContentId = "b055240b-8dcb-4a8a-b3bb-2c83a8a9a56e"
-            , metadata =
-                { contentType = "True/False Question"
-                , license = "U"
-                , title = "Untitled True/False Question"
-                }
-            }
-        , alwaysDisplayComments = False
-        , backgroundOpacity = 0
-        , displayAsButton = False
-        , buttonSize = "big"
-        , goToSlideType = "specified"
-        , invisible = False
-        , solution = "<p>Voilà</p>\n"
-        }
-    }
-
-
-slideField =
-    { default =
-        { slides =
-            []
-        , slideBackgroundSelector =
-            { fillSlideBackground = ""
-            }
-        }
-    }
-
-
-interactiveVideoField =
-    { default =
-        { interactiveVideo =
-            { assets = {}
-            , summary =
-                { displayAt = 3
-                , task =
-                    { library =
-                        "H5P.Summary 1.10"
-                    , metadata =
-                        { contentType = "Summary"
-                        , defaultLanguage = "fr"
-                        , license = "U"
-                        , title = "Untitled Summary"
-                        }
-                    , params =
-                        { alternativeIncorrectLabel = "Incorrect"
-                        , intro = "Choose the correct statement."
-                        , labelCorrect = "Correct."
-                        , labelCorrectAnswers = "Réponses correctes."
-                        , labelIncorrect = "Incorrect! Please try again."
-                        , overallFeedback =
-                            [ { from = 0
-                              , to = 100
-                              }
-                            ]
-                        , progressText = "Progression de :num sur :total"
-                        , resultLabel = "Votre résultat :"
-                        , scoreBarLabel = "Vous avez :num points sur un total de :total"
-                        , scoreLabel = "Erreurs :"
-                        , solvedLabel = "Progression :"
-                        , summaries =
-                            [ { subContentId = "8b665f86-5dcd-40a1-86e2-ca7fe18413a9"
-                              , tip = ""
-                              }
-                            ]
-                        , tipButtonLabel = "Montrer l&#039;indice"
-                        }
-                    , subContentId = "92b40988-9d67-4b9e-8187-6fb772f245ff"
-                    }
-                }
-            , video =
-                { files =
-                    [ { copyright =
-                            { license = "U"
-                            }
-                      , mime = "video/YouTube"
-                      , path = "https://www.youtube.com/watch?v=UFimQQTuQNc&amp;t=24s"
-                      }
-                    ]
-                , startScreenOptions =
-                    { hideStartTitle = False
-                    , title = "Interactive Video"
-                    }
-                , textTracks =
-                    { videoTrack =
-                        [ { kind = "subtitles"
-                          , label = "Subtitles"
-                          , srcLang = "fr"
-                          }
-                        ]
-                    }
-                }
-            }
-        , l10n =
-            { answered = "@answered réponses données"
-            , back = "Retour"
-            , bookmarks = "Signets"
-            , captions = "Sous-titres"
-            , close = "Fermer"
-            , content = "Contenu"
-            , continueWithVideo = "Reprendre la lecture"
-            , currentTime = "Durée actuelle :"
-            , defaultAdaptivitySeekLabel = "Continue"
-            , endCardTableRowSummaryWithScore = "Vous avez obtenu de @score sur un total de @points pour la question @question qui apparaissait à @minutes minutes et @secondes secondes."
-            , endCardTableRowSummaryWithoutScore = "Vous avez répondu aux @question qui sont apparues après @minutes minutes et @seconds secondes."
-            , endcardAnsweredScore = "Réponses"
-            , endcardInformation = "Vous avez répondu à @answered questions."
-            , endcardInformationMustHaveAnswer = "Vous devez répondre à au moins une question avant de pouvoir soumettre vos réponses."
-            , endcardInformationNoAnswers = "Vous n&#039;avez répondu à aucune question."
-            , endcardInformationOnSubmitButtonDisabled = "Vous avez répondu à @answered questions. Cliquez ci-dessous pour les remettre."
-            , endcardSubmitButton = "Remettre vos réponses"
-            , endcardSubmitMessage = "Vos réponses ont été remises !"
-            , endcardTableRowAnswered = "Questions auxquelles vous avez répondu"
-            , endcardTableRowScore = "Score"
-            , endcardTitle = "@answered question(s) auxquelles vous avez répondu"
-            , endscreen = "Continuer"
-            , exitFullscreen = "Sortir du plein écran"
-            , fullscreen = "Plein écran"
-            , hours = "Heures"
-            , interaction = "Activité"
-            , minutes = "Minutes"
-            , more = "More player options"
-            , multipleInteractionsAnnouncement = "De multiples interactions sont apparues."
-            , mute = "Sourdine, présentement le son est activé."
-            , navDisabled = "La navigation est désactivée"
-            , pause = "Pause"
-            , play = "Jouer"
-            , playbackRate = "Vitesse de lecture"
-            , quality = "Qualité de la vidéo"
-            , requiresCompletionWarning = "Vous devez répondre correctement à toutes les questions avant de continuer."
-            , rewind10 = "Revenir en arrière de 10 secondes"
-            , seconds = "Secondes"
-            , singleInteractionAnnouncement = "Une interaction est apparue."
-            , sndDisabled = "Le son est désactivé"
-            , summary = "Résumé"
-            , totalTime = "Temps total :"
-            , unmute = "Activer le son, présentement en sourdine."
-            , videoPausedAnnouncement = "La vidéo est en pause."
-            }
-        , override =
-            { autoplay = False
-            , deactivateSound = False
-            , loop = False
-            , preventSkipping = False
-            , showBookmarksmenuOnLoad = False
-            , showRewind10 = False
-            }
-        }
     }
 
 
