@@ -1743,7 +1743,7 @@ type alias InteractiveVideoL10n =
     , totalTime : String
     , unmute : String
     , videoPausedAnnouncement : String
-    , videoProgressBar : String
+    , videoProgressBar : Maybe String
     }
 
 
@@ -2082,7 +2082,7 @@ encodedInteractiveVideoInteractiveVideoVideoTextTracksVideoTrackObject interacti
 
 encodedInteractiveVideoL10n : InteractiveVideoL10n -> E.Value
 encodedInteractiveVideoL10n interactiveVideoL10n =
-    E.object
+    E.object <|
         [ ( "answered", E.string interactiveVideoL10n.answered )
         , ( "back", E.string interactiveVideoL10n.back )
         , ( "bookmarks", E.string interactiveVideoL10n.bookmarks )
@@ -2128,6 +2128,13 @@ encodedInteractiveVideoL10n interactiveVideoL10n =
         , ( "unmute", E.string interactiveVideoL10n.unmute )
         , ( "videoPausedAnnouncement", E.string interactiveVideoL10n.videoPausedAnnouncement )
         ]
+            ++ (case interactiveVideoL10n.videoProgressBar of
+                    Just videoProgressBar ->
+                        [ ( "videoProgressBar", E.string videoProgressBar ) ]
+
+                    Nothing ->
+                        []
+               )
 
 
 encodedInteractiveVideoOverride : InteractiveVideoOverride -> E.Value
@@ -2315,13 +2322,22 @@ branchingScenarioContentParser depth state =
                                     (succeed
                                         (\interactiveVideo ->
                                             let
+                                                interactiveVideoHelp =
+                                                    interactiveVideo
+                                                        |> R.map
+                                                            (with2
+                                                                l10nField
+                                                                videoProgressBarField
+                                                                (Just "Progression vidéo")
+                                                            )
+
                                                 newContent =
                                                     buildBranchingScenarioContent
                                                         "Interactive Video"
                                                         "H5P.InteractiveVideo 1.24"
                                                         (Just (state.lastIdUsed + 2))
                                                         (R.map InteractiveVideoBranchingScenarioContentTypeParams
-                                                            interactiveVideo
+                                                            interactiveVideoHelp
                                                         )
                                             in
                                             { state
@@ -2674,7 +2690,9 @@ buildBranchingScenarioContent contentType library nextContentId params =
 
 buildBranchingScenarioContentHelp contentType library nextContentId params uuid =
     { contentBehaviour = "useBehavioural"
-    , feedback = { subtitle = "" }
+    , feedback =
+        { subtitle = ""
+        }
     , forceContentFinished = "useBehavioural"
     , showContentTitle = False
     , nextContentId = Nothing
@@ -2684,7 +2702,7 @@ buildBranchingScenarioContentHelp contentType library nextContentId params uuid 
         , subContentId = ""
         , metadata =
             { license = "U"
-            , title = ""
+            , title = "Sans titre"
             , contentType = ""
             }
         }
@@ -3003,7 +3021,7 @@ buildInteractiveVideoHelp title link uuid1 uuid2 =
         , totalTime = "Temps total :"
         , unmute = "Activer le son, présentement en sourdine."
         , videoPausedAnnouncement = "La vidéo est en pause."
-        , videoProgressBar = "Progression vidéo"
+        , videoProgressBar = Nothing
         }
     , override =
         { autoplay = False
@@ -3131,6 +3149,18 @@ interactiveVideoField =
 taskField =
     { with = \value record -> { record | task = value }
     , accessor = .task
+    }
+
+
+l10nField =
+    { with = \value record -> { record | l10n = value }
+    , accessor = .l10n
+    }
+
+
+videoProgressBarField =
+    { with = \value record -> { record | videoProgressBar = value }
+    , accessor = .videoProgressBar
     }
 
 
