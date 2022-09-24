@@ -2527,46 +2527,53 @@ signParser =
 
 trueFalseBlocContentParser feedback =
     oneOf
-        [ succeed identity
-            |. spacesOrTabs
-            |= oneOf
-                [ succeed
-                    (\truthValue line ->
-                        case truthValue of
-                            True ->
-                                { feedback | onCorrect = line :: feedback.onCorrect }
+        [ succeed S.length
+            |= getChompedString spacesOrTabs
+            |> andThen
+                (\numberOfSpaces ->
+                    oneOf
+                        [ succeed
+                            (\truthValue line ->
+                                case truthValue of
+                                    True ->
+                                        { feedback | onCorrect = line :: feedback.onCorrect }
 
-                            False ->
-                                { feedback | onWrong = line :: feedback.onWrong }
-                    )
-                    |. spacesOrTabs
-                    |= signParser
-                    |. atLeastOneSpace
-                    |= getChompedString (chompWhile ((/=) '\n'))
-                    |. oneOf
-                        [ token (Token "\n" GenericProblem)
-                        , succeed ()
+                                    False ->
+                                        { feedback | onWrong = line :: feedback.onWrong }
+                            )
+                            |. spacesOrTabs
+                            |= signParser
+                            |. atLeastOneSpace
+                            |= getChompedString (chompWhile ((/=) '\n'))
+                            |. oneOf
+                                [ token (Token "\n" GenericProblem)
+                                , succeed ()
+                                ]
+                            |> andThen trueFalseBlocContentParser
+                        , succeed
+                            (\line ->
+                                { feedback
+                                    | onCorrect = line :: feedback.onCorrect
+                                    , onWrong = line :: feedback.onWrong
+                                }
+                            )
+                            |= getChompedString
+                                (succeed ()
+                                    |. (if numberOfSpaces == 0 then
+                                            chompIf ((/=) '*') EndOfFile
+
+                                        else
+                                            succeed ()
+                                                |. chompWhile ((/=) '\n')
+                                       )
+                                )
+                            |. oneOf
+                                [ token (Token "\n" GenericProblem)
+                                , succeed ()
+                                ]
+                            |> andThen trueFalseBlocContentParser
                         ]
-                    |> andThen trueFalseBlocContentParser
-                , succeed
-                    (\line ->
-                        { feedback
-                            | onCorrect = line :: feedback.onCorrect
-                            , onWrong = line :: feedback.onWrong
-                        }
-                    )
-                    |= getChompedString
-                        (succeed ()
-                            |. chompIf ((/=) '*') EndOfFile
-                            |. chompWhile ((/=) '\n')
-                            |. chompWhile ((/=) '\n')
-                        )
-                    |. oneOf
-                        [ token (Token "\n" GenericProblem)
-                        , succeed ()
-                        ]
-                    |> andThen trueFalseBlocContentParser
-                ]
+                )
         , succeed
             { onCorrect = Just <| S.join "\n" <| L.reverse feedback.onCorrect
             , onWrong = Just <| S.join "\n" <| L.reverse feedback.onWrong
