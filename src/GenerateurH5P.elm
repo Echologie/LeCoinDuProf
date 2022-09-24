@@ -2196,7 +2196,7 @@ contentParser =
 preambleParser =
     -- Plus compliqué que nécessaire, en vue d'améliorations futures
     succeed identity
-        |. blocContentParser
+        |. genericBlocContentParser
 
 
 type H5pSubContext
@@ -2249,8 +2249,8 @@ branchingScenarioParser depth =
                 |> REx.sequence
                 |> buildBranchingScenario title
         )
-        |= headlineParser
-        |. blocContentParser
+        |= genericHeadlineParser
+        |. genericBlocContentParser
         |= branchingScenarioContentParser (depth + 1) { content = [], lastIdUsed = -1 }
 
 
@@ -2372,8 +2372,8 @@ branchingQuestionParser :
     -> Parser Context Problem BranchingScenarioState
 branchingQuestionParser depth state =
     succeed identity
-        |= headlineParser
-        |. blocContentParser
+        |= genericHeadlineParser
+        |. genericBlocContentParser
         |> andThen
             (\question ->
                 succeed
@@ -2411,8 +2411,8 @@ branchingQuestionAlternativeParser depth state =
         [ withStars depth <|
             inContext BranchingQuestionAlternativeContext <|
                 (succeed identity
-                    |= headlineParser
-                    |. blocContentParser
+                    |= genericHeadlineParser
+                    |. genericBlocContentParser
                     |> andThen
                         (\alternative ->
                             branchingScenarioContentParser (depth + 1)
@@ -2464,15 +2464,15 @@ branchingQuestionAlternativeParser depth state =
 
 coursePresentationParser depth =
     succeed buildCoursePresentation
-        |. headlineParser
-        |. blocContentParser
+        |. genericHeadlineParser
+        |. genericBlocContentParser
         |= many coursePresentationSlideParser (depth + 1)
 
 
 coursePresentationSlideParser depth =
     succeed buildSlide
-        |. headlineParser
-        |. blocContentParser
+        |. genericHeadlineParser
+        |. genericBlocContentParser
         |= many coursePresentationSlideElementParser (depth + 1)
 
 
@@ -2507,15 +2507,77 @@ coursePresentationSlideElementParser depth =
 
 
 trueFalseParser =
-    succeed (\proposition -> buildTrueFalse proposition True Nothing Nothing)
-        |= headlineParser
-        |. blocContentParser
+    succeed
+        (\truthValue proposition feedback ->
+            buildTrueFalse proposition truthValue feedback.onCorrect feedback.onWrong
+        )
+        |= signParser
+        |= genericHeadlineParser
+        |= trueFalseBlocContentParser { onCorrect = [], onWrong = [] }
+
+
+signParser =
+    oneOf
+        [ succeed True
+            |. token (Token "+" (Missing "+"))
+        , succeed False
+            |. token (Token "-" (Missing "-"))
+        ]
+
+
+trueFalseBlocContentParser feedback =
+    oneOf
+        [ succeed identity
+            |. spacesOrTabs
+            |= oneOf
+                [ succeed
+                    (\truthValue line ->
+                        case truthValue of
+                            True ->
+                                { feedback | onCorrect = line :: feedback.onCorrect }
+
+                            False ->
+                                { feedback | onWrong = line :: feedback.onWrong }
+                    )
+                    |. spacesOrTabs
+                    |= signParser
+                    |. atLeastOneSpace
+                    |= getChompedString (chompWhile ((/=) '\n'))
+                    |. oneOf
+                        [ token (Token "\n" GenericProblem)
+                        , succeed ()
+                        ]
+                    |> andThen trueFalseBlocContentParser
+                , succeed
+                    (\line ->
+                        { feedback
+                            | onCorrect = line :: feedback.onCorrect
+                            , onWrong = line :: feedback.onWrong
+                        }
+                    )
+                    |= getChompedString
+                        (succeed ()
+                            |. chompIf ((/=) '*') EndOfFile
+                            |. chompWhile ((/=) '\n')
+                            |. chompWhile ((/=) '\n')
+                        )
+                    |. oneOf
+                        [ token (Token "\n" GenericProblem)
+                        , succeed ()
+                        ]
+                    |> andThen trueFalseBlocContentParser
+                ]
+        , succeed
+            { onCorrect = Just <| S.join "\n" <| L.reverse feedback.onCorrect
+            , onWrong = Just <| S.join "\n" <| L.reverse feedback.onWrong
+            }
+        ]
 
 
 interactiveVideoParser depth =
     succeed buildInteractiveVideo
-        |= headlineParser
-        |= blocContentParser
+        |= genericHeadlineParser
+        |= genericBlocContentParser
 
 
 
@@ -2551,19 +2613,16 @@ withStars depth parser =
 
 atLeastOneSpace =
     succeed ()
-        |. token (Token " " MissingSpace)
-        |. mySpace
+        |. space
+        |. spacesOrTabs
 
 
-mySpace =
+space =
+    token (Token " " MissingSpace)
+
+
+spacesOrTabs =
     chompWhile (\x -> x == ' ' || x == '\t')
-
-
-recorder context headline blocContent =
-    { context = context
-    , headline = headline
-    , blocContent = blocContent
-    }
 
 
 subContextParser subContexts =
@@ -2577,12 +2636,12 @@ subContextParser subContexts =
                         Nothing ->
                             succeed ()
                    )
-                |. mySpace
+                |. spacesOrTabs
     in
     oneOf (L.map subContextParserHelp subContexts)
 
 
-headlineParser =
+genericHeadlineParser =
     succeed identity
         |= (getChompedString <| chompWhile ((/=) '\n'))
         |. oneOf
@@ -2591,7 +2650,7 @@ headlineParser =
             ]
 
 
-blocContentParser =
+genericBlocContentParser =
     getChompedString
         (succeed identity
             |. chompWhile ((/=) '*')
@@ -2603,7 +2662,7 @@ blocContentParser =
                             [ end EndOfFile
                             , succeed ()
                                 |. token (Token "*" EndOfFile)
-                                |. blocContentParser
+                                |. genericBlocContentParser
                             ]
 
                     else
@@ -2799,7 +2858,9 @@ buildCoursePresentationHelp slides =
         , summarySlideSolutionButton = True
         }
     , presentation =
-        { globalBackgroundSelector = { fillGlobalBackground = "" }
+        { globalBackgroundSelector =
+            { fillGlobalBackground = ""
+            }
         , keywordListAlwaysShow = False
         , keywordListAutoHide = False
         , keywordListEnabled = True
