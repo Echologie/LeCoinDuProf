@@ -2928,9 +2928,9 @@ buildTrueFalse question truthValue feedbackOnCorrect feedbackOnWrong =
             { autoCheck = True
             , confirmCheckDialog = False
             , confirmRetryDialog = False
-            , enableCheckButton = True
-            , enableRetry = True
-            , enableSolutionsButton = True
+            , enableCheckButton = False
+            , enableRetry = False
+            , enableSolutionsButton = False
             , feedbackOnCorrect = feedbackOnCorrect
             , feedbackOnWrong = feedbackOnWrong
             }
