@@ -1,6 +1,8 @@
 elm-stuff/
+.stversions/
 /index.html
 /prof.js
 /fav.svg
+.DS_Store
 *.sublime-*
 *.org
