@@ -37,7 +37,7 @@ titre =
 
 
 --todo =
---    Debug.todo "Cette fonctionnalité est en cours de développement"
+--    Debug.todo "Fonctionnalité en cours de développement"
 --h5pTest h5p =
 --    case h5p of
 --        BranchingScenarioH5P branchingScenario ->
@@ -2984,7 +2984,7 @@ buildBranchingScenarioHelp title content =
 
                 _ ->
                     title
-        , startScreenSubtitle = "<p>Votre session de travail personnalisée</p>\n"
+        , startScreenSubtitle = "<p>Session de travail personnalisée</p>\n"
         }
     , behaviour =
         { enableBackwardsNavigation = True
