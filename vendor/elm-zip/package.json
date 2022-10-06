@@ -1,0 +1,30 @@
+{
+  "name": "elm-zip",
+  "version": "3.0.1",
+  "description": "Read a write ZIP archives without leaving Elm.",
+  "private": true,
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "elm-test",
+    "review": "elm-review"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agu-z/elm-zip.git"
+  },
+  "keywords": [
+    "elm",
+    "zip"
+  ],
+  "author": "Agus Zubiaga <hi@aguz.me>",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/agu-z/elm-zip/issues"
+  },
+  "homepage": "https://github.com/agu-z/elm-zip#readme",
+  "devDependencies": {
+    "elm-review": "^2.7.5"
+  }
+}

@@ -1,13 +1,13 @@
 {
     "type": "application",
     "source-directories": [
-        "src"
+        "src",
+        "vendor/elm-zip/src"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
             "TSFoster/elm-uuid": "4.2.0",
-            "agu-z/elm-zip": "3.0.1",
             "alexkorban/json-to-elm": "1.1.0",
             "avh4/elm-color": "1.0.0",
             "ccapndave/elm-update-extra": "4.0.0",
@@ -24,7 +24,11 @@
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
             "elm-community/random-extra": "3.2.0",
+            "folkertdev/elm-flate": "2.0.5",
+            "justinmimbs/time-extra": "1.1.1",
             "jxxcarlson/meenylatex": "14.1.1",
+            "lamdera/codecs": "1.0.0",
+            "lamdera/core": "1.0.0",
             "lynn/elm-arithmetic": "3.0.0",
             "mdgriffith/elm-ui": "1.1.8",
             "noahzgordon/elm-color-extra": "1.0.2",
@@ -47,11 +51,9 @@
             "elm-community/result-extra": "2.4.0",
             "elm-community/string-extra": "4.0.1",
             "erlandsona/assoc-set": "1.1.0",
-            "folkertdev/elm-flate": "2.0.5",
             "fredcy/elm-parseint": "2.0.1",
             "hrldcpr/elm-cons": "3.1.0",
             "justinmimbs/date": "4.0.1",
-            "justinmimbs/time-extra": "1.1.1",
             "miniBill/elm-unicode": "1.0.2",
             "pablohirafuji/elm-syntax-highlight": "3.4.1",
             "pilatch/flip": "1.0.0",

@@ -1,4 +1,4 @@
-module Prof exposing (main)
+module Prof exposing (..)
 
 import Browser
 import Browser.Navigation as Nav

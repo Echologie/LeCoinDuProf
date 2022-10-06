@@ -179,7 +179,7 @@ update msg model =
                 toJson =
                     -- Remplacer (h5pEncode 2) par h5pTest pour tester
                     -- TODO Remplacer par 0 quand projet terminé
-                    L.map (h5pEncode 2)
+                    L.map (h5pEncode 0)
             in
             ( { model | source = source }
             , R.generate NewContent h5pGenerator
@@ -498,7 +498,8 @@ type alias BranchingScenarioContentTypeMetadata =
 
 
 type BranchingScenarioContentTypeParams
-    = BranchingQuestionBranchingScenarioContentTypeParams BranchingQuestion
+    = AdvancedTextBranchingScenarioContentTypeParams String
+    | BranchingQuestionBranchingScenarioContentTypeParams BranchingQuestion
     | CoursePresentationBranchingScenarioContentTypeParams CoursePresentation
     | InteractiveVideoBranchingScenarioContentTypeParams InteractiveVideo
 
@@ -722,6 +723,9 @@ encodedBranchingScenarioContentTypeParams branchingScenarioContentTypeParams =
     case branchingScenarioContentTypeParams of
         CoursePresentationBranchingScenarioContentTypeParams p ->
             encodedCoursePresentation p
+
+        AdvancedTextBranchingScenarioContentTypeParams text ->
+            E.object [ ( "text", E.string text ) ]
 
         BranchingQuestionBranchingScenarioContentTypeParams q ->
             encodedBranchingQuestion q
@@ -1603,11 +1607,61 @@ type alias InteractiveVideoInteractiveVideo =
 
 
 type alias InteractiveVideoInteractiveVideoAssets =
-    { interaction : List InteractiveVideoInteractiveVideoAssetsInteraction }
+    { interactions : List InteractiveVideoInteractiveVideoAssetsInteractions }
 
 
-type InteractiveVideoInteractiveVideoAssetsInteraction
-    = InteractiveVideoInteractiveVideoAssetsInteraction
+type alias InteractiveVideoInteractiveVideoAssetsInteractions =
+    { action : InteractiveVideoInteractiveVideoAssetsInteractionsAction
+    , adaptivity : InteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity
+    , buttonOnMobile : Bool
+    , displayType : String
+    , duration : InteractiveVideoInteractiveVideoAssetsInteractionsDuration
+    , height : Float
+    , label : String
+    , libraryTitle : String
+    , pause : Bool
+    , width : Float
+    , x : Float
+    , y : Float
+    }
+
+
+type alias InteractiveVideoInteractiveVideoAssetsInteractionsAction =
+    { library : String
+    , metadata : InteractiveVideoInteractiveVideoAssetsInteractionsActionMetadata
+    , params : InteractiveVideoInteractiveVideoAssetsInteractionsActionParams
+    , subContentId : String
+    }
+
+
+type alias InteractiveVideoInteractiveVideoAssetsInteractionsActionMetadata =
+    { contentType : String
+    , license : String
+    , title : String
+    }
+
+
+type InteractiveVideoInteractiveVideoAssetsInteractionsActionParams
+    = TrueFalseInteractiveVideoInteractiveVideoAssetsInteractionsActionParams TrueFalse
+
+
+type alias InteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity =
+    { correct : InteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity_
+    , requireCompletion : Bool
+    , wrong : InteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity_
+    }
+
+
+type alias InteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity_ =
+    { allowOptOut : Bool
+    , message : String
+    }
+
+
+type alias InteractiveVideoInteractiveVideoAssetsInteractionsDuration =
+    { from : Float
+    , to : Float
+    }
 
 
 type alias InteractiveVideoInteractiveVideoSummary =
@@ -1778,6 +1832,63 @@ type alias InteractiveVideoOverride =
 --    D.map2 InteractiveVideoInteractiveVideoSummary
 --        (D.field "displayAt" D.int)
 --        (D.field "task" interactiveVideoInteractiveVideoSummaryTaskDecoder)
+--interactiveVideoInteractiveVideoAssetsInteractionDecoder : D.Decoder InteractiveVideoInteractiveVideoAssetsInteraction
+--interactiveVideoInteractiveVideoAssetsInteractionDecoder =
+--    let
+--        fieldSet0 =
+--            D.map8 InteractiveVideoInteractiveVideoAssetsInteraction
+--                (D.field "action" interactiveVideoInteractiveVideoAssetsInteractionActionDecoder)
+--                (D.field "adaptivity" interactiveVideoInteractiveVideoAssetsInteractionAdaptivityDecoder)
+--                (D.field "buttonOnMobile" D.bool)
+--                (D.field "displayType" D.string)
+--                (D.field "duration" interactiveVideoInteractiveVideoAssetsInteractionDurationDecoder)
+--                (D.field "height" D.int)
+--                (D.field "label" D.string)
+--                (D.field "libraryTitle" D.string)
+--    in
+--    D.map5 (<|)
+--        fieldSet0
+--        (D.field "pause" D.bool)
+--        (D.field "width" D.int)
+--        (D.field "x" D.float)
+--        (D.field "y" D.float)
+--interactiveVideoInteractiveVideoAssetsInteractionActionDecoder : D.Decoder InteractiveVideoInteractiveVideoAssetsInteractionAction
+--interactiveVideoInteractiveVideoAssetsInteractionActionDecoder =
+--    D.map4 InteractiveVideoInteractiveVideoAssetsInteractionAction
+--        (D.field "library" D.string)
+--        (D.field "metadata" interactiveVideoInteractiveVideoAssetsInteractionActionMetadataDecoder)
+--        (D.field "params" interactiveVideoInteractiveVideoAssetsInteractionActionParamsDecoder)
+--        (D.field "subContentId" D.string)
+--interactiveVideoInteractiveVideoAssetsInteractionActionMetadataDecoder : D.Decoder InteractiveVideoInteractiveVideoAssetsInteractionActionMetadata
+--interactiveVideoInteractiveVideoAssetsInteractionActionMetadataDecoder =
+--    D.map3 InteractiveVideoInteractiveVideoAssetsInteractionActionMetadata
+--        (D.field "contentType" D.string)
+--        (D.field "license" D.string)
+--        (D.field "title" D.string)
+--interactiveVideoInteractiveVideoAssetsInteractionActionParamsDecoder : D.Decoder InteractiveVideoInteractiveVideoAssetsInteractionActionParams
+--interactiveVideoInteractiveVideoAssetsInteractionActionParamsDecoder =
+--    D.succeed InteractiveVideoInteractiveVideoAssetsInteractionActionParams
+--interactiveVideoInteractiveVideoAssetsInteractionAdaptivityDecoder : D.Decoder InteractiveVideoInteractiveVideoAssetsInteractionAdaptivity
+--interactiveVideoInteractiveVideoAssetsInteractionAdaptivityDecoder =
+--    D.map3 InteractiveVideoInteractiveVideoAssetsInteractionAdaptivity
+--        (D.field "correct" interactiveVideoInteractiveVideoAssetsInteractionAdaptivityCorrectDecoder)
+--        (D.field "requireCompletion" D.bool)
+--        (D.field "wrong" interactiveVideoInteractiveVideoAssetsInteractionAdaptivityWrongDecoder)
+--interactiveVideoInteractiveVideoAssetsInteractionAdaptivityCorrectDecoder : D.Decoder InteractiveVideoInteractiveVideoAssetsInteractionAdaptivityCorrect
+--interactiveVideoInteractiveVideoAssetsInteractionAdaptivityCorrectDecoder =
+--    D.map2 InteractiveVideoInteractiveVideoAssetsInteractionAdaptivityCorrect
+--        (D.field "allowOptOut" D.bool)
+--        (D.field "message" D.string)
+--interactiveVideoInteractiveVideoAssetsInteractionAdaptivityWrongDecoder : D.Decoder InteractiveVideoInteractiveVideoAssetsInteractionAdaptivityWrong
+--interactiveVideoInteractiveVideoAssetsInteractionAdaptivityWrongDecoder =
+--    D.map2 InteractiveVideoInteractiveVideoAssetsInteractionAdaptivityWrong
+--        (D.field "allowOptOut" D.bool)
+--        (D.field "message" D.string)
+--interactiveVideoInteractiveVideoAssetsInteractionDurationDecoder : D.Decoder InteractiveVideoInteractiveVideoAssetsInteractionDuration
+--interactiveVideoInteractiveVideoAssetsInteractionDurationDecoder =
+--    D.map2 InteractiveVideoInteractiveVideoAssetsInteractionDuration
+--        (D.field "from" D.float)
+--        (D.field "to" D.float)
 --interactiveVideoInteractiveVideoSummaryTaskDecoder : D.Decoder InteractiveVideoInteractiveVideoSummaryTask
 --interactiveVideoInteractiveVideoSummaryTaskDecoder =
 --    D.map4 InteractiveVideoInteractiveVideoSummaryTask
@@ -1961,11 +2072,76 @@ encodedInteractiveVideoInteractiveVideo interactiveVideoInteractiveVideo =
 encodedInteractiveVideoInteractiveVideoAssets : InteractiveVideoInteractiveVideoAssets -> E.Value
 encodedInteractiveVideoInteractiveVideoAssets interactiveVideoInteractiveVideoAssets =
     E.object
-        [ ( "interaction", encodedInteractiveVideoInteractiveVideoAssetsInteraction interactiveVideoInteractiveVideoAssets.interaction ) ]
+        [ ( "interactions", E.list encodedInteractiveVideoInteractiveVideoAssetsInteractions interactiveVideoInteractiveVideoAssets.interactions ) ]
 
 
-encodedInteractiveVideoInteractiveVideoAssetsInteraction interactiveVideoInteractiveVideoAssetsInteraction =
-    E.object []
+encodedInteractiveVideoInteractiveVideoAssetsInteractions : InteractiveVideoInteractiveVideoAssetsInteractions -> E.Value
+encodedInteractiveVideoInteractiveVideoAssetsInteractions interactiveVideoInteractiveVideoAssetsInteractions =
+    E.object
+        [ ( "action", encodedInteractiveVideoInteractiveVideoAssetsInteractionsAction interactiveVideoInteractiveVideoAssetsInteractions.action )
+        , ( "adaptivity", encodedInteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity interactiveVideoInteractiveVideoAssetsInteractions.adaptivity )
+        , ( "buttonOnMobile", E.bool interactiveVideoInteractiveVideoAssetsInteractions.buttonOnMobile )
+        , ( "displayType", E.string interactiveVideoInteractiveVideoAssetsInteractions.displayType )
+        , ( "duration", encodedInteractiveVideoInteractiveVideoAssetsInteractionsDuration interactiveVideoInteractiveVideoAssetsInteractions.duration )
+        , ( "height", E.float interactiveVideoInteractiveVideoAssetsInteractions.height )
+        , ( "label", E.string interactiveVideoInteractiveVideoAssetsInteractions.label )
+        , ( "libraryTitle", E.string interactiveVideoInteractiveVideoAssetsInteractions.libraryTitle )
+        , ( "pause", E.bool interactiveVideoInteractiveVideoAssetsInteractions.pause )
+        , ( "width", E.float interactiveVideoInteractiveVideoAssetsInteractions.width )
+        , ( "x", E.float interactiveVideoInteractiveVideoAssetsInteractions.x )
+        , ( "y", E.float interactiveVideoInteractiveVideoAssetsInteractions.y )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsAction : InteractiveVideoInteractiveVideoAssetsInteractionsAction -> E.Value
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsAction interactiveVideoInteractiveVideoAssetsInteractionsAction =
+    E.object
+        [ ( "library", E.string interactiveVideoInteractiveVideoAssetsInteractionsAction.library )
+        , ( "metadata", encodedInteractiveVideoInteractiveVideoAssetsInteractionsActionMetadata interactiveVideoInteractiveVideoAssetsInteractionsAction.metadata )
+        , ( "params", encodedInteractiveVideoInteractiveVideoAssetsInteractionsActionParams interactiveVideoInteractiveVideoAssetsInteractionsAction.params )
+        , ( "subContentId", E.string interactiveVideoInteractiveVideoAssetsInteractionsAction.subContentId )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsActionMetadata : InteractiveVideoInteractiveVideoAssetsInteractionsActionMetadata -> E.Value
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsActionMetadata interactiveVideoInteractiveVideoAssetsInteractionsActionMetadata =
+    E.object
+        [ ( "contentType", E.string interactiveVideoInteractiveVideoAssetsInteractionsActionMetadata.contentType )
+        , ( "license", E.string interactiveVideoInteractiveVideoAssetsInteractionsActionMetadata.license )
+        , ( "title", E.string interactiveVideoInteractiveVideoAssetsInteractionsActionMetadata.title )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsActionParams : InteractiveVideoInteractiveVideoAssetsInteractionsActionParams -> E.Value
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsActionParams interactiveVideoInteractiveVideoAssetsInteractionsActionParams =
+    case interactiveVideoInteractiveVideoAssetsInteractionsActionParams of
+        TrueFalseInteractiveVideoInteractiveVideoAssetsInteractionsActionParams trueFalse ->
+            encodedTrueFalse trueFalse
+
+
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity : InteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity -> E.Value
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity interactiveVideoInteractiveVideoAssetsInteractionsAdaptivity =
+    E.object
+        [ ( "correct", encodedInteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity_ interactiveVideoInteractiveVideoAssetsInteractionsAdaptivity.correct )
+        , ( "requireCompletion", E.bool interactiveVideoInteractiveVideoAssetsInteractionsAdaptivity.requireCompletion )
+        , ( "wrong", encodedInteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity_ interactiveVideoInteractiveVideoAssetsInteractionsAdaptivity.wrong )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity_ : InteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity_ -> E.Value
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsAdaptivity_ interactiveVideoInteractiveVideoAssetsInteractionsAdaptivity_ =
+    E.object
+        [ ( "allowOptOut", E.bool interactiveVideoInteractiveVideoAssetsInteractionsAdaptivity_.allowOptOut )
+        , ( "message", E.string interactiveVideoInteractiveVideoAssetsInteractionsAdaptivity_.message )
+        ]
+
+
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsDuration : InteractiveVideoInteractiveVideoAssetsInteractionsDuration -> E.Value
+encodedInteractiveVideoInteractiveVideoAssetsInteractionsDuration interactiveVideoInteractiveVideoAssetsInteractionsDuration =
+    E.object
+        [ ( "from", E.float interactiveVideoInteractiveVideoAssetsInteractionsDuration.from )
+        , ( "to", E.float interactiveVideoInteractiveVideoAssetsInteractionsDuration.to )
+        ]
 
 
 encodedInteractiveVideoInteractiveVideoSummary : InteractiveVideoInteractiveVideoSummary -> E.Value
@@ -2178,6 +2354,7 @@ type Context
     = PreambleContext
     | RootContext
     | BranchingScenarioContext
+    | AdvancedTextContext
     | BranchingQuestionContext
     | BranchingQuestionAlternativeContext
     | CoursePresentationContext
@@ -2235,7 +2412,7 @@ h5pParser depth =
 
                     InteractiveVideoH5pSubContext ->
                         inContext InteractiveVideoContext <|
-                            succeed (R.map InteractiveVideoH5p)
+                            succeed (R.map InteractiveVideoH5p << .interactiveVideo)
                                 |= interactiveVideoParser depth
             )
 
@@ -2255,7 +2432,8 @@ branchingScenarioParser depth =
 
 
 type BranchingScenarioSubContext
-    = CoursePresentationBranchingScenarioSubContext
+    = AdvancedTextBranchingScenarioSubContext
+    | CoursePresentationBranchingScenarioSubContext
     | InteractiveVideoBranchingScenarioSubContext
     | BranchingQuestionBranchingScenarioSubContext
 
@@ -2275,7 +2453,8 @@ branchingScenarioContentParser depth state =
         [ withStars depth
             (succeed identity
                 |= subContextParser
-                    [ ( CoursePresentationBranchingScenarioSubContext, Just "CoursePresentation" )
+                    [ ( AdvancedTextBranchingScenarioSubContext, Just "Text" )
+                    , ( CoursePresentationBranchingScenarioSubContext, Just "CoursePresentation" )
                     , ( InteractiveVideoBranchingScenarioSubContext, Just "InteractiveVideo" )
                     , ( BranchingQuestionBranchingScenarioSubContext, Just "BranchingQuestion" )
                     ]
@@ -2286,6 +2465,36 @@ branchingScenarioContentParser depth state =
                                 inContext BranchingQuestionContext <|
                                     branchingQuestionParser depth state
 
+                            AdvancedTextBranchingScenarioSubContext ->
+                                inContext AdvancedTextContext
+                                    (succeed
+                                        (\content ->
+                                            let
+                                                newContent =
+                                                    buildBranchingScenarioContent
+                                                        content.headline
+                                                        "Text"
+                                                        "H5P.AdvancedText 1.1"
+                                                        (Just (state.lastIdUsed + 2))
+                                                        ("""<h2 style="text-align:center"><span style="color:#4FB0AE;"><span style="font-size:1.50em;"><strong>"""
+                                                            ++ content.headline
+                                                            ++ """</strong></span></span></h2><span style="font-size:1.25em;"><p>"""
+                                                            ++ content.blocContent
+                                                            ++ "</p></span>"
+                                                            |> AdvancedTextBranchingScenarioContentTypeParams
+                                                            |> R.constant
+                                                        )
+                                            in
+                                            { state
+                                                | content =
+                                                    newContent :: state.content
+                                                , lastIdUsed = state.lastIdUsed + 1
+                                            }
+                                        )
+                                    )
+                                    |= genericContentParser
+                                    |> andThen (branchingScenarioContentParser depth)
+
                             CoursePresentationBranchingScenarioSubContext ->
                                 inContext CoursePresentationContext
                                     (succeed
@@ -2293,6 +2502,7 @@ branchingScenarioContentParser depth state =
                                             let
                                                 newContent =
                                                     buildBranchingScenarioContent
+                                                        "Présentation sans titre"
                                                         "Course Presentation"
                                                         "H5P.CoursePresentation 1.24"
                                                         (Just (state.lastIdUsed + 2))
@@ -2320,10 +2530,10 @@ branchingScenarioContentParser depth state =
                             InteractiveVideoBranchingScenarioSubContext ->
                                 inContext InteractiveVideoContext
                                     (succeed
-                                        (\interactiveVideo ->
+                                        (\content ->
                                             let
                                                 interactiveVideoHelp =
-                                                    interactiveVideo
+                                                    content.interactiveVideo
                                                         |> R.map
                                                             (with2
                                                                 l10nField
@@ -2333,6 +2543,7 @@ branchingScenarioContentParser depth state =
 
                                                 newContent =
                                                     buildBranchingScenarioContent
+                                                        content.title
                                                         "Interactive Video"
                                                         "H5P.InteractiveVideo 1.24"
                                                         (Just (state.lastIdUsed + 2))
@@ -2443,6 +2654,7 @@ branchingQuestionAlternativeParser depth state =
         , let
             branchingQuestion =
                 buildBranchingScenarioContent
+                    "Embranchement"
                     "Branching Question"
                     "H5P.BranchingQuestion 1.0"
                     Nothing
@@ -2494,7 +2706,7 @@ coursePresentationSlideElementParser depth =
                             succeed
                                 (\trueFalse ->
                                     buildSlideElement
-                                        "Quizz"
+                                        "Quiz"
                                         "True/False Question"
                                         "H5P.TrueFalse 1.8"
                                         (R.map
@@ -2585,11 +2797,45 @@ interactiveVideoParser depth =
     succeed buildInteractiveVideo
         |= genericHeadlineParser
         |= genericBlocContentParser
+        |= many interactionInteractiveVideoParser (depth + 1)
 
 
+type InteractionInteractiveVideoSubParser
+    = TrueFalseInteractionInteractiveVideoSubParser
 
---|. many interactiveVideoParser (depth + 1)
---interactiveVideoParser depth =
+
+interactionInteractiveVideoParser depth =
+    succeed
+        (\time subContext ->
+            { time = time
+            , subContext = subContext
+            }
+        )
+        |= float ExpectingTimeCode ExpectingTimeCode
+        |. atLeastOneSpace
+        |= subContextParser
+            [ ( TrueFalseInteractionInteractiveVideoSubParser, Just "TrueFalse" )
+            ]
+        |> andThen
+            (\record ->
+                case record.subContext of
+                    TrueFalseInteractionInteractiveVideoSubParser ->
+                        inContext TrueFalseContext <|
+                            succeed
+                                (\trueFalse ->
+                                    buildInteractionInteractiveVideo
+                                        record.time
+                                        "Vrai ou faux"
+                                        "Vrai ou faux"
+                                        "True/False Question"
+                                        "H5P.TrueFalse 1.8"
+                                        (R.map
+                                            TrueFalseInteractiveVideoInteractiveVideoAssetsInteractionsActionParams
+                                            trueFalse
+                                        )
+                                )
+                                |= trueFalseParser
+            )
 
 
 many blocParser depth =
@@ -2646,6 +2892,17 @@ subContextParser subContexts =
                 |. spacesOrTabs
     in
     oneOf (L.map subContextParserHelp subContexts)
+
+
+genericContentParser =
+    succeed
+        (\headline blocContent ->
+            { headline = headline
+            , blocContent = blocContent
+            }
+        )
+        |= genericHeadlineParser
+        |= genericBlocContentParser
 
 
 genericHeadlineParser =
@@ -2709,8 +2966,8 @@ buildBranchingScenario title content =
 
 buildBranchingScenarioHelp title content =
     { endScreens =
-        [ { endScreenTitle = "Fin du parcours personnalisé"
-          , endScreenSubtitle = "Fin du parcours personnalisé"
+        [ { endScreenTitle = "Fin du parcours"
+          , endScreenSubtitle = "Revenez vite !"
           , contentId = -1
           , endScreenScore = 0
           }
@@ -2720,22 +2977,22 @@ buildBranchingScenarioHelp title content =
         , includeInteractionsScores = True
         }
     , startScreen =
-        { startScreenTitle = "<p>Parcours personnalisé</p>\n"
-        , startScreenSubtitle =
+        { startScreenTitle =
             case title of
                 "" ->
                     "<p>Préparez vos méninges !</p>\n"
 
                 _ ->
                     title
+        , startScreenSubtitle = "<p>Votre session de travail personnalisée</p>\n"
         }
     , behaviour =
         { enableBackwardsNavigation = True
         , forceContentFinished = False
         }
     , l10n =
-        { startScreenButtonText = "Commencer le parcours"
-        , endScreenButtonText = "Recommencer le parcours"
+        { startScreenButtonText = "Démarrer"
+        , endScreenButtonText = "Recommencer"
         , backButtonText = "Revenir en arrière"
         , proceedButtonText = "Continuer"
         , disableProceedButtonText = "Jouer la vidéo de nouveau"
@@ -2747,14 +3004,14 @@ buildBranchingScenarioHelp title content =
     }
 
 
-buildBranchingScenarioContent contentType library nextContentId params =
+buildBranchingScenarioContent title contentType library nextContentId params =
     R.map2
-        (buildBranchingScenarioContentHelp contentType library nextContentId)
+        (buildBranchingScenarioContentHelp title contentType library nextContentId)
         params
         UUID.generator
 
 
-buildBranchingScenarioContentHelp contentType library nextContentId params uuid =
+buildBranchingScenarioContentHelp title contentType library nextContentId params uuid =
     { contentBehaviour = "useBehavioural"
     , feedback =
         { subtitle = ""
@@ -2768,7 +3025,7 @@ buildBranchingScenarioContentHelp contentType library nextContentId params uuid 
         , subContentId = ""
         , metadata =
             { license = "U"
-            , title = "Sans titre"
+            , title = title
             , contentType = ""
             }
         }
@@ -2973,17 +3230,26 @@ buildTrueFalse question truthValue feedbackOnCorrect feedbackOnWrong =
         }
 
 
-buildInteractiveVideo title link =
+buildInteractiveVideo title link interactions =
     let
         uuid =
             R.map UUID.toString UUID.generator
     in
-    R.map2 (buildInteractiveVideoHelp title link) uuid uuid
+    { title = title
+    , interactiveVideo =
+        R.map3 (buildInteractiveVideoHelp title link) (REx.sequence interactions) uuid uuid
+    }
 
 
-buildInteractiveVideoHelp title link uuid1 uuid2 =
+buildInteractiveVideoHelp title link interactions uuid1 uuid2 =
     { interactiveVideo =
-        { assets = Nothing
+        { assets =
+            case interactions of
+                [] ->
+                    Nothing
+
+                _ ->
+                    Just { interactions = interactions }
         , summary =
             { displayAt = 3
             , task =
@@ -3099,6 +3365,51 @@ buildInteractiveVideoHelp title link uuid1 uuid2 =
         , showBookmarksmenuOnLoad = False
         , showRewind10 = False
         }
+    }
+
+
+buildInteractionInteractiveVideo time label title contentType library params =
+    R.map2
+        (buildInteractionInteractiveVideoHelp time label title contentType library)
+        params
+        (R.map UUID.toString UUID.generator)
+
+
+buildInteractionInteractiveVideoHelp time label title contentType library params uuid =
+    { x = 10
+    , y = 10
+    , width = 80
+    , height = 80
+    , duration =
+        { from = time
+        , to = time
+        }
+    , libraryTitle = contentType
+    , action =
+        { library = library
+        , params = params
+        , subContentId = uuid
+        , metadata =
+            { contentType = contentType
+            , license = "U"
+            , title = title
+            }
+        }
+    , pause = True
+    , displayType = "button" --"poster"
+    , buttonOnMobile = False
+    , adaptivity =
+        { correct =
+            { allowOptOut = False
+            , message = ""
+            }
+        , wrong =
+            { allowOptOut = False
+            , message = ""
+            }
+        , requireCompletion = False
+        }
+    , label = label
     }
 
 
@@ -3370,6 +3681,7 @@ type Problem
     | MissingSpace
     | Missing String
     | MissingStars Int
+    | ExpectingTimeCode
 
 
 deadEndsToStringBis errs =
@@ -3416,6 +3728,9 @@ showProblem prob =
         MissingStars n ->
             "Je m'attends à trouver " ++ S.fromInt n ++ " '*'\n"
 
+        ExpectingTimeCode ->
+            "Je m'attends à trouver un flottant représentant un temps en secondes\n"
+
         GenericProblem ->
             "Problème inconnu\n"
 
@@ -3461,6 +3776,9 @@ showContextHelp depth ccc =
 
                 BranchingQuestionAlternativeContext ->
                     f "Alternative\n"
+
+                AdvancedTextContext ->
+                    f "Text\n"
 
                 CoursePresentationContext ->
                     f "CoursePresentation\n"
